@@ -1,0 +1,8 @@
+loadMesh 0 C:\Users\Clint\PycharmProjects\ML-MATLAB\python/PCA_App/afterMarker/template-60k-m_rot_trans-n.ply
+loadMarkers 0 C:\Users\Clint\PycharmProjects\ML-MATLAB\python/PCA_App/afterMarker/template-60k-m-adjust.mkr
+loadMesh 1 C:/Users/Clint/PycharmProjects/ML-MATLAB/python/PCA_App/process\02ADL0086_B.ply
+loadMarkers 1 C:/Users/Clint/PycharmProjects/ML-MATLAB/python/PCA_App/process\02ADL0086_B.mkr
+startMatch 1 1   0   0
+startMatch 0 2   0   0.2 800
+saveMesh C:/Users/Clint/PycharmProjects/ML-MATLAB/python/PCA_App/process/fitted/02ADL0086_B_fitted.ply
+

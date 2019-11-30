@@ -1,0 +1,11 @@
+02ADL0004 Left_ankle
+02ADL0014
+02ADL0138_A Right_arm, Left_arm
+02ADL0178_A Head
+02ADL0182_A Head
+02ADL0184_B Head
+02ADL0040_Styku1obj.obj Right_arm Left_arm
+188A Head Shoulder
+188B Head Shoulder
+203A.obj Right_arm
+02ADL0040_Styku2obj.obj Right_arm Left_arm

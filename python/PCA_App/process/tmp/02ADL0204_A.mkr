@@ -1,0 +1,76 @@
+1
+74
+75
+1_sellion	0	-0.00413289	0.648115	0.0615851
+2_infraorbitale_right	0	-0.0165894	0.639853	0.0556442
+3_infraorbitale_left	0	0.00693506	0.639815	0.0568806
+4_supramenton	0	-0.00369147	0.612327	0.0618636
+5_tragion_right	0	-0.0328355	0.650242	0.0177573
+6_gonion_right	0	-0.0311821	0.632342	0.0203356
+7_tragion_left	0	0.0293935	0.649353	0.0206663
+8_gonion_left	0	0.0282854	0.632172	0.0234935
+9_nuchale	0	-0.00200647	0.636205	-0.0165431
+10_clavicle_right	0	-0.00855345	0.581617	0.035687
+11_suprasternale	0	0.00116412	0.571203	0.0459941
+12_clavicle_left	0	0.0109799	0.581794	0.034887
+13_thelion_bustpoint_right	0	-0.0479912	0.523844	0.0629929
+14_thelion_bustpoint_left	0	0.0466916	0.521764	0.0672901
+15_substernale	0	-4.68784e-5	0.521127	0.0637652
+16_tenth_rib_right	0	-0.056384	0.486016	0.0348041
+17_iliac_spine_anterior_superior_right	0	-0.0701135	0.392901	0.0170699
+18_tenth_rib_left	0	0.0593671	0.485157	0.0304458
+19_iliac_spine_anterior_superior_left	0	0.0624522	0.392789	0.0268987
+20_ilioicristale_right	0	-0.0643517	0.415837	-0.0102321
+21_trochanterion_right	0	-0.0728709	0.38267	-0.00677951
+22_iliocristale_left	0	0.0676214	0.409046	0.00271822
+23_trochanterion_left	0	0.0736957	0.378276	-0.00222487
+24_cervicale	0	-0.00111439	0.603455	-0.0226534
+25_tenth_rib_midspine	0	0.0039402	0.480883	-0.031477
+26_iliac_spine_posterior_superior_right	0	-0.0085699	0.417652	-0.0488694
+27_iliac_spine_posterior_superior_left	0	0.0184954	0.416675	-0.0491952
+28_waist_preferred_posterior	0	0.0074738	0.428935	-0.0415506
+29_acromion_right	0	-0.0616226	0.589215	0.00565543
+30_axilla_point_anterior_right	0	-0.0703846	0.531826	0.0283961
+31_radial_styloid_right	0	-0.145014	0.359069	0.0144248
+32_axilla_point_posterior_right	0	-0.0723552	0.542335	-0.0388103
+33_olecranon_right	0	-0.130302	0.461915	-0.0270575
+34_humeral_epicondyle_lateral_right	0	-0.131665	0.467064	-0.0210707
+35_humeral_epicondyle_medial_right	0	-0.12146	0.466577	-0.0323383
+36_radiale_right	0	-0.133625	0.462483	-0.0179582
+37_metacarpal_phalangeal_ II_right	0	-0.158604	0.329847	0.0240476
+38_dactylion_right	0	-0.142481	0.313595	0.0127689
+39_ulnar_styloid_right	0	-0.144819	0.358074	-0.00549884
+40_metacarpal_phalangeal_ V_right	0	-0.153045	0.326176	-0.00660183
+41_acromion_left	0	0.0630854	0.592194	0.00968304
+42_axilla_point_anterior_left	0	0.0772239	0.538057	0.0316143
+43_radial_styloid_left	0	0.142492	0.358334	0.0203514
+44_axilla_point_posterior_left	0	0.0813268	0.538074	-0.031185
+45_olecranon_left	0	0.137096	0.465558	-0.0151794
+46_humeral_epicondyle_lateral_left	0	0.137766	0.474658	-0.00927876
+47_humeral_epicondyle_medial_left	0	0.12948	0.470579	-0.0194883
+48_radiale_left	0	0.139723	0.465412	-0.00775858
+49_metacarpal_phalangeal_ II_left	0	0.151358	0.330517	0.0341208
+50_dactylion_left	0	0.134943	0.317052	0.0222423
+51_ulnar_styloid_left	0	0.145912	0.361906	0.000936045
+52_metacarpal_phalangeal_ V_left	0	0.153603	0.334587	0.00488552
+53_knee_crease_right	0	-0.0559944	0.210844	-0.0302062
+54_femoral_epicondyle_lateral_right	0	-0.0701569	0.214953	0.0103959
+55_femoral_epicondyle_medial_right	0	-0.0434938	0.214405	0.0105987
+56_metatarsal_phalangeal_ V_right	0	-0.101964	0.00342509	0.00842272
+57_malleolus_lateral_right	0	-0.0787376	0.0398686	-0.0266523
+58_malleolus_medial_right	0	-0.0601837	0.0401879	-0.0211378
+59_sphyrion_right	0	-0.0597624	0.0311616	-0.0234197
+60_metatarsal_phalangeal_ I_right	0	-0.069322	0.0108339	0.0201777
+61_calcaneus_posterior_right	0	-0.0659477	0.0222361	-0.0468805
+62_digit_II_right	0	-0.0917282	0.00936836	0.0354013
+63_knee_crease_left	0	0.0470395	0.212323	-0.0394912
+64_femoral_epicondyle_lateral_left	0	0.0689036	0.213999	-0.00160883
+65_femoral_epicondyle_medial_left	0	0.0443744	0.207992	0.00112503
+66_metatarsal_phalangeal_ V_left	0	0.0937113	0.0110473	-0.00863032
+67_malleolus_lateral_left	0	0.0701492	0.0340357	-0.0458574
+68_malleolus_lateral_right	0	0.051485	0.0414669	-0.0381426
+69_sphyrion_left	0	0.0510933	0.0318401	-0.0389573
+70_metatarsal_phalangeal_ I_left	0	0.0608673	0.0165723	0.0018066
+71_calcaneus_posterior_left	0	0.0579687	0.024165	-0.0599217
+72_digit_II_left	0	0.0838625	0.00891223	0.0220693
+73_crotch	0	-0.00162616	0.315764	0.0329853

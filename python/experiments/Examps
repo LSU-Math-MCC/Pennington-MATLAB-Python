@@ -1,0 +1,40 @@
+import pandas as pd
+'''
+def sources(scans=True):
+    sources = []
+    sources.append(pd.read_csv("data/DXA.csv"))
+    sources.append(pd.read_csv("data/Styku_a_over_b.csv"))
+    sources.append(pd.read_excel("data/Pennington_BodPod.xlsx"))
+    sources.append(pd.read_excel("data/DXA_Q2_plusRegional_brief.xlsx").rename(
+        columns={"Subject ID": "SubjectID"}))  # Remove space in column
+
+    sources.append(pd.read_csv('data/Questionnaire.csv'))
+    sources.append(pd.read_csv('data/Manual.csv'))
+    sources.append(pd.read_csv('data/Blood.csv'))
+
+
+    # sources.append(pd.read_excel("data/ObjOrganizerStyku_v6.xlsx").rename(columns={
+    #    "waist circ": "waist_circ", "hip circ": "hip_circ"}))
+    scan = "Styku"
+    df = pd.read_excel(f"data/ObjOrganizer{scan}_v6.xlsx", na_values="[]")
+    names = df["Name"]
+    df.rename(columns={col: f"{scan}_{col.replace(' ', '_')}" for col in df.columns},
+              inplace=True)  # Rename columns with dataset
+    df["SubjectID"] = standardize_subject_ids(names)
+    df = standardize_units_2(df)
+    sources.append(df)
+    return sources
+'''
+dxa = pd.read_csv("data/DXA.csv")
+blood = pd.read_csv('data/Blood.csv')
+questionaire =  pd.read_csv('data/Questionnaire.csv')
+a_b = pd.read_csv("data/Styku_a_over_b.csv")
+bod_pod=pd.read_excel("data/Pennington_BodPod.xlsx")
+dxa2 = pd.read_excel("data/DXA_Q2_plusRegional_brief.xlsx").rename(
+        columns={"Subject ID": "SubjectID"})
+
+combo = blood.merge(dxa,on='SubjectID', how='outer', copy = True)
+combo = combo.merge(questionaire,on='SubjectID', how='outer', copy = True)
+combo = combo.merge(a_b,on='SubjectID', how='outer', copy = True)
+combo = combo.merge(bod_pod,on='SubjectID', how='outer', copy = True)
+
