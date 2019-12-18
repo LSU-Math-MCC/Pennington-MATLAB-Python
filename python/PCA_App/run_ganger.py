@@ -6,8 +6,8 @@ import psutil
 import tkinter as tk
 from tkinter import filedialog
 from os import system
-from python.utilities.DirectoryGrab import DirGrab
-from python.utilities.PathMaker import PathMan
+from utilities.DirectoryGrab import DirGrab
+from utilities.PathMaker import PathMan
 
 Path = PathMan()
 GANGER_PATH = Path.getter() + 'python/PCA_App/ganger/'
@@ -19,8 +19,8 @@ MKR_EXT = '.mkr'
 DEFAULT_OUTDIR = '/fitted/'
 DEFAULT_OUTPUT_SUFFIX = '_fitted'
 
-TEMPLATETRANS = Path.getter() + 'python/PCA_App/afterMarker/template-60k-m_rot_trans-n.ply'
-TEMPLATEMODIFIED = Path.getter() + 'python/PCA_App/afterMarker/template-60k-m-adjust.mkr'
+# TEMPLATETRANS = Path.getter() + 'python/PCA_App/ganger/data/template-60k-m_rot_trans.ply'
+# TEMPLATEMODIFIED = Path.getter() + 'python/PCA_App/ganger/data/template-60k-m-adjust.mkr'
 
 concurring = int(input("Enter number of Simultaneous runs: "))
 
@@ -39,21 +39,22 @@ class GangGang:
         # the following code writes a start up file for the list of instructions to feed to ganger. StartMatch refers to the settings we use to initailize the fitting. each line refers to a round of fitting.
         for i in range(len(self.in_meshes)):
             with open(STARTUP_FILE, 'w') as f:
+                print(self.out_meshes[i])
                 if self.in_points[i] is not None:
-                    f.write('loadMesh 0 '+ TEMPLATETRANS + '\n')
-                    f.write('loadMarkers 0 '+ TEMPLATEMODIFIED + '\n')
+                    f.write('loadMesh 0 '+ 'data/template-60k-m_rot_trans.ply' + '\n')
+                    f.write('loadMarkers 0 '+ 'data/template-60k-m-adjust.mkr' + '\n')
                     f.write('loadMesh 1 ' + self.in_meshes[i] + '\n')
                     f.write('loadMarkers 1 ' + self.in_points[i] + '\n')
-#                   f.write('show 1'+ '\n')
+                    #f.write('show 1'+ '\n')
 
                     f.write('startMatch 1 1   0   0'+ '\n')
                     f.write('startMatch 0 2   0   0.2 800'+ '\n')
-                    #f.write('startMatch 0 10  0   0.2 40'+ '\n')
-                    #f.write('startMatch 0 10  0.2 0.2 100'+ '\n')
-                    #f.write('startMatch 0 5   1   0.3 100'+ '\n')
-                    #f.write('startMatch 0 0.5 10  0.5 100'+ '\n')
-                    #f.write('startMatch 0 0.1 20  0.3 20'+ '\n')
-#                   f.write('show 1'+ '\n')
+                    f.write('startMatch 0 10  0   0.2 40'+ '\n')
+                    f.write('startMatch 0 10  0.2 0.2 100'+ '\n')
+                    f.write('startMatch 0 5   1   0.3 100'+ '\n')
+                    f.write('startMatch 0 0.5 10  0.5 100'+ '\n')
+                    f.write('startMatch 0 0.1 20  0.3 20'+ '\n')
+                    #f.write('show 1'+ '\n')
                     f.write('saveMesh ' + self.out_meshes[i] + '\n\n')
 
             self.open_ganger()
@@ -144,6 +145,7 @@ class GangGang:
 def __main__():
     gang3x = GangGang()
 
-# if __name__ == "__main__":
-   # __main__()
+# Uncomment for pipeline
+if __name__ == "__main__":
+   __main__()
 

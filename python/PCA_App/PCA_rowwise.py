@@ -99,9 +99,12 @@ def main():
     outputPath = Path.getter() + "python/PCA_App/process/MKR/output"
     MV = MoverMan(inputPath,outputPath)
     MV.MoveByExt(".ply")
+
+
     # identify input path, call parseArgs
     # args = Extract_Ply.parseArgs('C:/Users/domii/Desktop/All_Together_Now/process/fitted/')
-    gang3x = GangGang()
+
+    gang3x = GangGang() # run Ganger
 
     # array containing the paths of all of the input .ply's
 
@@ -132,6 +135,11 @@ def main():
     # output_df = output_df.T
     # print(output_df.head(10))
 
+    # uncomment for debugging -----
+    # output_df.to_csv('extracted_ply.csv')
+    # output_df = pd.read_csv('extracted_ply.csv')
+    # -----------------------------
+
     # uses output_df to create dataframes of males and females from files **in the input directory
     male_table = split_male(output_df, male_subjects)
     male_table = male_table.T  # transposes dataframe
@@ -147,6 +155,7 @@ def main():
 
     ml = PCA_ml('male_pca.csv','female_pca.csv')
 
+    print(ml.results)
     ml.results.to_csv('reports/RegTrial_PCAAutoDataSet_LinearRegression.csv')
 
 if __name__ == "__main__":

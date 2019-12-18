@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd, numpy as np
 import datetime
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -22,7 +22,7 @@ class PCAAutoDataSet(DataSet):
         super().__init__()
 
     def load_data(self):
-        print('Loading PCAAutoDataSet')
+        # print('Loading PCAAutoDataSet')
         pca_male = pd.read_csv(self.male_file)  # Meant to be ran from PCA_App folder
         pca_male['SubjectID'] = pca_male['Unnamed: 0']
         pca_female = pd.read_csv(self.female_file)
@@ -34,14 +34,19 @@ class PCAAutoDataSet(DataSet):
 
         combined_df['age'] = combined_df['BIRTHDATE'].map(
             lambda row: date.today().year - int(row[-2:]) - 1900 if isinstance(row, str) else "")
+
+        for col in combined_df.columns:
+            if col.startswith('PC'):
+                combined_df[col] = combined_df[col].fillna(0)
+        combined_df = combined_df[pd.notnull(combined_df['SEX'])]
         return combined_df
 
 
 class PCA_ml:
-    def __init__(self, male_file, female_file):
+    def __init__(self, male_file, female_file, max_PCs = 10):
         dataset = PCAAutoDataSet(male_file, female_file)
         PCs = [i for i in dataset.load_data().columns if i.startswith('PC')]
-        n = len(PCs)
+        n = np.min([len(PCs), max_PCs])
         #numbers = list(range(1, n + 1))
 
 
@@ -56,7 +61,7 @@ class PCA_ml:
                 "M/F": [],
             },
             feature_cnames=combine_options(additional_options=["SEX"], input={
-                "Principal Components": {
+                "PCs": {
                     f'{n}': [f'PC{i}' for i in range(1, n + 1)]
                 }
             })
