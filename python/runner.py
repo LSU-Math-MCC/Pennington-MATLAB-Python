@@ -34,8 +34,8 @@ def execute(datasets,
             loader_param_grid,
             regressors,
             regressor_param_grid,
-            ext_dataset=None,
             targets=None,
+            ext_dataset=None,
             save_name=None,
             cv=5,
             multicore=True,
@@ -46,14 +46,22 @@ def execute(datasets,
             include_regressor_and_mlpdata=False,
             # Classifier option in execute function
             eval_type='regressor',
-            cnd=None, # Condition (index) to test for in TF_clf
-            # Export best n evaluators for each sex and target option
+            cnd=None, # Condition (index) to test for, e.g. for GLU_risk 'Healthy' := 1
+            # Export (save to ./models/) best n evaluators for each sex and target option
             export_best=0,
             # Save report as spreadsheet and save scatter plot png
             report=None,
             save_png=False,
             show_png=False
             ):
+    '''
+        The original runner function accepts an instance of the DataSet class (:datasets),
+    extracts groups of features (:loader_param_grid), applies specified scalars (:loader_params) and
+    then performs regression or classification (:eval_type) on :targets using user-specified models (:regressors)
+    and their potential hyper-parameters (:regressor_param_grid).
+        The function may take :targets, :datasets and :regressors as lists. For each combination of these options, a
+    grid search is performed by 'run_grid_search' on :loader_param_grid and :regressor_param_grid keys.
+    '''
     # Conflicting input check
     write_validation = write_validation and save_name is not None
     save_df_report = save_df_report and save_name is not None
@@ -75,7 +83,7 @@ def execute(datasets,
         warnings.warn('Classifier object is not callable, removing regressor_param_grid.')
         regressor_param_grid = {}
     if isinstance(datasets, list):
-        warnings.warn('Multi-dataset runs of evaluate are not yet fully supported and may cause unexpected errors.')
+        warnings.warn('Multi-dataset run detected, please insure feature column names have been standardized.')
 
     # Support for old code
     regressors = regressors if isinstance(regressors, list) else [regressors]

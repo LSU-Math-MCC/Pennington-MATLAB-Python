@@ -63,12 +63,14 @@ def run_batch(datasets,
         cv_method = regressorCV
         score_method = regressorScore
 
+    # create DataGrids
     dataset_dg = dg.singleton_datagrid(datasets, 'DataSet')
     target_dg = dg.singleton_datagrid(data_config['target_cnames'], 'Target')
     trnsfrm_dg = dg.list_product(lambda x, y: x + y, dg.option_datagrid_list(data_config['transform_options']))
     cname_dg = dg.list_product(lambda x, y: x + y, dg.option_datagrid_list(data_config['feature_options']))
     cname_dg = cname_dg[(cname_dg['__data__'].map(len) != 0)]  # Remove rows with no input columns
 
+    # extract data to MLPData
     print('[STATUS] Extracting Data')
     data_dg = dg.nary_product((lambda dataset, target, trnsfrm, cnames:
         dataset.extract_data(cnames, target, scaler_config=(data_config['scalar_config']), data_transformers=trnsfrm)),
@@ -76,17 +78,22 @@ def run_batch(datasets,
 
     print('[STATUS] Training Estimators')
     if regressor_param_grid != {}:
-        assert callable(regressors)
+        # perform hyper-parameter grid search
+        assert callable(regressors), 'regressor_param_grid cannot be used on multi-regressor runs.'
         hyperparam_dg = dg.compose_dictgrid(regressor_param_grid)
         regressor_dg = dg.nary_product(lambda params: regressors(**params), hyperparam_dg)
-        results_dg = dg.nary_product((lambda data, reg: cv_method(data, reg, cnd, threshold, cv=cv)), data_dg,
-          regressor_dg, multicore=True)
+        results_dg = dg.nary_product((lambda data, reg: cv_method(data, reg, cnd, threshold, cv=cv)),
+                                     data_dg, regressor_dg, multicore=True)
     elif isinstance(regressors, list):
+        # train each regressor on the extracted data
         regressor_dg = dg.singleton_datagrid(regressors, 'Model')
-        results_dg = dg.nary_product((lambda data, reg: cv_method(data, reg, cnd, threshold, cv=cv)), data_dg,
-          regressor_dg, multicore=True)
+        results_dg = dg.nary_product((lambda data, reg: cv_method(data, reg, cnd, threshold, cv=cv)),
+                                     data_dg, regressor_dg, multicore=True)
     else:
-        results_dg = dg.nary_product((lambda data: cv_method(data, regressors, cnd, threshold, cv=cv)), data_dg, multicore=True)
+        # train single regressor on extracted data
+        results_dg = dg.nary_product((lambda data: cv_method(data, regressors, cnd, threshold, cv=cv)),
+                                     data_dg, multicore=True)
+    # unpack final results
     results_df = dg.unpack_dictgrid(results_dg)
 
     if ext_dataset is not None:
@@ -96,6 +103,7 @@ def run_batch(datasets,
             ext_dataset.extract_data(cnames, target, scaler_config=(data_config['scalar_config']), data_transformers=trnsfrm)),
           ext_dataset_dg, target_dg, trnsfrm_dg, cname_dg, multicore=True)
 
+        # ensure that ext_data_dg has the same rows as results_df
         if regressor_param_grid != {}:
             ext_data_dg = dg.binary_product(lambda data, reg: data, ext_data_dg, hyperparam_dg)
         elif isinstance(regressors, list):
