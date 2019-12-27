@@ -3,7 +3,7 @@ from typing import Iterable, Mapping, List, Dict
 from joblib import delayed
 from common import require_tuple, resolve_delayed
 
-import pandas as pd
+import pandas as pd, numpy as np
 
 import timeit
 
@@ -11,7 +11,7 @@ import timeit
 DataGrid Creation
 '''
 
-def dict_to_datagrid(option_dict, cnames=None):
+def dict_to_datagrid(option_dict, cname=None):
     '''
     Example: option_dict={'common': 1, 'all': [2, 3], 'none': 0}, cnames='measurements'
 
@@ -22,27 +22,26 @@ def dict_to_datagrid(option_dict, cnames=None):
     '''
     if isinstance(option_dict, pd.DataFrame):
         return option_dict
-    if cnames is None or "__cols" in option_dict:
-        cnames = require_tuple(option_dict["__cols"])
+    if cname is None or "__cols" in option_dict:
+        cname = require_tuple(option_dict["__cols"])
     else:
-        cnames = require_tuple(cnames)
+        cname = require_tuple(cname)
 
     # Make empty columns
     dict = {}
-    for col in cnames:
+    for col in cname:
         dict[col] = []
     data = []
     if not isinstance(option_dict, Mapping): # mapping = dict
-        assert len(cnames) == 1
+        assert len(cname) == 1
         option_dict = {str(item): item for item in option_dict}
     for key, value in option_dict.items():
         if key != "__cols":
             key = require_tuple(key)
             for idx in range(len(key)):
-                dict[cnames[idx]].append(key[idx])
+                dict[cname[idx]].append(key[idx])
             data.append(value)
     return pd.DataFrame({**dict, "__data__": data})
-
 
 def option_datagrid(option_dict):
     '''
@@ -53,7 +52,6 @@ def option_datagrid(option_dict):
     '''
     key = list(option_dict)[0]
     return dict_to_datagrid(option_dict[key], key)
-
 
 def option_datagrid_list(cname_to_option_dicts):
     '''
@@ -95,7 +93,7 @@ def compose_dictgrid(param_option_dict):
     for key, option_obj in param_option_dict.items():
         if not isinstance(option_obj, pd.DataFrame):
             # convert into dataframe
-            option_obj = dict_to_datagrid(option_obj, cnames=key)
+            option_obj = dict_to_datagrid(option_obj, cname=key)
         # check that it's a dataframe. assert aborts and gives an error if it's false
         assert isinstance(option_obj, pd.DataFrame)
         # writes dfs -  a list with vales from __data__ and keys from dict in {} pandas
@@ -103,7 +101,6 @@ def compose_dictgrid(param_option_dict):
     if len(dfs) == 0:
         return pd.DataFrame()
     return list_product(lambda x, y: {**x, **y}, dfs)
-
 
 def unpack_dictgrid(dictgrid):
     # WARNING: All entries in dict grid are expected to have SAME KEYS.
@@ -157,30 +154,31 @@ def list_product(fn, dgs: list):
     return reduce(lambda x1, x2: binary_product(fn, x1, x2), dgs)  # reduce: f(x1, x2, x3) = f(f(x1, x2), x3)
 
 
-def evaluate(fn, *dgs, multicore=False):
+def inplace_eval(fn, *dgs, inherit_cols=0, multicore=False):
     '''
     WIP: Maps fn over DataGrids __data__ entries inplace.
 
-    :param fn: Function with sequential inputs to map over __data__ columns
-    :param dgs: Ordered sequence of DataGrids
-    :param multicore: Boolean Parameter for parallel processing
-    :return: DataGrid 'product' with product.__data__ = fn(dg1.__data__ x dg2.__data__ x ...)
+    :param fn: Function with sequential inputs to map over __data__ columns.
+    :param dgs: Ordered sequence of DataGrids with the same number of ordered rows.
+    :param inherit_cols: Index of dg in dgs to inherit non-__data__ columns from.
+    :param multicore: Boolean Parameter for parallel processing.
+    :return: DataGrid 'product' with product.__data__ = fn(dg1.__data__, dg2.__data__, ...)
     '''
-    dg_list = [dg for dg in dgs]
-    data_list = [dg.__data__ for dg in dgs]
-    # product['__data__'] = product_data.apply(require_tuple, axis=1) # apply require_tuple over rows
-    # if multicore:
-    #     product['__data__'] = resolve_delayed([delayed(fn)(*tupl) for tupl in product['__data__']])
-    # else:
-    #     product['__data__'] = [fn(*tupl) for tupl in product['__data__']]
-    # return product.drop('__merge__', axis=1)
+    data_list = np.array([dg.__data__.values for dg in dgs]).T
+    data_list = [require_tuple(s) for s in data_list]
+    product = dgs[inherit_cols]
+    if multicore:
+        product["__data__"] = resolve_delayed([delayed(fn)(*tupl) for tupl in data_list])
+    else:
+        product["__data__"] = [fn(*tupl) for tupl in data_list]
+    return product
+
 
 # dg1 = pd.DataFrame({'col1': ['A','B'], '__data__': [[1],[]]})
-# dg2 = pd.DataFrame({'col1': ['A','B'], '__data__': [[2],[]]})
-# print(dg1)
-# print(dg2)
-
-# print(evaluate(lambda x, y: x + y, dg1, dg2))
+# dg2 = pd.DataFrame({'col2': ['A','B'], '__data__': [[2],[]]})
+# dg3 = pd.DataFrame({'col3': ['A','B'], '__data__': [[3],[]]})
+# print(nary_product(lambda x, y, z: x + y + z, dg1, dg2, dg3))
+# print(inplace_eval(lambda x, y, z: x + y + z, dg1, dg2, dg3, inherit_cols=0))
 
 '''
 start = timeit.default_timer()
@@ -200,3 +198,40 @@ print('Multicore Time: ', stop - start)
 # Time: 41.5880947 
 # Multicore Time: 26.3387945
 '''
+
+# df1 = dict_to_datagrid({'common': [1], 'all': [1, 2, 3], 'none': []},
+#                        cname='measurements')
+# print('df1: \n {}'.format(df1))
+#
+# df2 = option_datagrid({'Volumes': {'common': [4], 'all': [4, 5], 'none': []}})
+# print('df2: \n {}'.format(df2))
+#
+# df3 = compose_dictgrid({'Volumes':
+#                             {'common': [4], 'all': [4, 5], 'none': []},
+#                         'Measurements':
+#                             {'common': [1], 'all': [1, 2, 3], 'none': []}
+#                         })
+# print('df3: \n {}'.format(df3))
+#
+# df0 = nary_product(lambda x1, x2: x1 + x2,
+#                    df1, df2)
+# print('df0: \n {}'.format(df0))
+#
+# start = timeit.default_timer()
+# df0 = nary_product(lambda x: {'Values': x}, df1)
+# df0 = unpack_dictgrid(df0)
+# print('df0: \n {}'.format(df0))
+# stop = timeit.default_timer()
+# print('Time: ', stop - start)
+#
+# start = timeit.default_timer()
+# df0 = df1.rename(columns={'__data__': 'Values'})
+# print('df0: \n {}'.format(df0))
+# stop = timeit.default_timer()
+# print('Time: ', stop - start)
+#
+# df0 = nary_product(lambda x1, x2: {'Out 1': x1 + x2, 'Out 2': 2*x1 +  x2},
+#                    df1, df2)
+# print('df0: \n {}'.format(df0))
+# df0 = unpack_dictgrid(df0)
+# print('df0: \n {}'.format(df0))

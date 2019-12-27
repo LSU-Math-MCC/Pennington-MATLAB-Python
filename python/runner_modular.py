@@ -11,7 +11,7 @@ from sklearn.model_selection import KFold, StratifiedShuffleSplit, StratifiedKFo
 from joblib import dump # Similar to pickle, optimized for objects with large internal numpy arrays
 
 import os
-from common import append_dict, partition
+from common import append_dict, partition, df_reorder_columns
 import utilities.datagrid as dg
 import numpy as np, pandas as pd, datetime
 from sklearn.metrics import confusion_matrix, r2_score, accuracy_score
@@ -28,8 +28,34 @@ def run_batch(datasets,
               eval_type='regressor',
               cnd=None,
               threshold=None,
-              show_best_runs=0
+              show_best_runs=0,
               ):
+    '''
+        'run_batch' is an updated version of the legacy 'execute' function designed to use internal DataGrids for
+    multi-threaded grid searches throughout the pipeline. The code has been streamlined to accept input with better
+    readability and generality. As a result of the parallel-batch nature of this function there are no for-loops and
+    the trade off we have for speed is a decrease in verbosity.
+    TODO: Add progress indicators and a verbosity option to either run_batch or nary_product.
+
+    :param datasets: List of DataSet type objects with identical feature names.
+    :param data_config: Dictionary containing information on how the datasets should be extracted and scaled.
+        :key target_cnames: List of column names to be used as targets.
+        :key feature_options: {group_name: {option: [features]}}
+            Dictionary of feature groups, each containing 'option: [features]' key-value pairs.
+        :key transform_options: {feature: {category: [transformers]}}
+            Dictionary of categorical features to split the run over, for each possible category there is a list of
+            transformers. Ideal for sex and ethnicity.
+        :key scalar_config: Dictionary containing 'feature: scalar' key-value pairs for sklearn formatted scalars.
+    :param regressors:
+    :param regressor_param_grid:
+    :param cv: Number of folds in cross-validation.
+    :param ext_dataset:
+    :param eval_type:
+    :param cnd:
+    :param threshold:
+    :param show_best_runs:
+    :return:
+    '''
     if eval_type == 'classifier':
         cv_method = stratifiedCV
         score_method = classifierScore
@@ -64,7 +90,6 @@ def run_batch(datasets,
     results_df = dg.unpack_dictgrid(results_dg)
 
     if ext_dataset is not None:
-        # Incomplete
         print('[STATUS] Extracting External Data')
         ext_dataset_dg = dg.singleton_datagrid(ext_dataset, 'ExtDataSet')
         ext_data_dg = dg.nary_product((lambda ext_dataset, target, trnsfrm, cnames:
@@ -75,14 +100,15 @@ def run_batch(datasets,
             ext_data_dg = dg.binary_product(lambda data, reg: data, ext_data_dg, hyperparam_dg)
         elif isinstance(regressors, list):
             ext_data_dg = dg.binary_product(lambda data, reg: data, ext_data_dg, regressor_dg)
-        # else:
-        #     print('[STATUS] Training Estimators on External Data')
-        #     results_df['__data__'] = results_df['estimator']
-        #     results_df = dg.evaluate((lambda reg, data: score_method(data, reg, cnd, cv=cv)), results_df,
-        #       ext_data_dg, multicore=True)
-        #     results_df['__data__'] = results_df['__data__'].map(lambda row: {'ext_' + key:val for key, val in row.items()})
-        #     results_df = dg.unpack_dictgrid(results_df)
-        #     del results_df['ext_estimator']
+
+        print('[STATUS] Training Estimators on External Data')
+        results_df['__data__'] = results_df['estimator']
+        results_df = dg.inplace_eval((lambda reg, data:
+                                      {'dataset': type(ext_dataset).__name__, **score_method(data, reg, cnd, cv=cv)}),
+                                     results_df, ext_data_dg, multicore=True)
+        results_df['__data__'] = results_df['__data__'].map(lambda row: {'ext_' + key:val for key, val in row.items()})
+        results_df = dg.unpack_dictgrid(results_df)
+        results_df = df_reorder_columns(send_back=['estimator'], df=results_df)
 
     if show_best_runs != 0:
         #results_df['FPR0'] = results_df['FPR'].map(lambda x: 1 - x if x != 0 else x)
@@ -91,7 +117,7 @@ def run_batch(datasets,
         run_blocks = [df.nlargest(show_best_runs, columns=['test_r2']) for df in run_blocks]
         best_runs = pd.concat(run_blocks)
         print('[STATUS] Best Runs:\n', best_runs)
-        save = str(input('[EXPORT] Save evaluators to disk (y/[n])? '))
+        # save = str(input('[EXPORT] Save evaluators to disk (y/[n])? '))
 
     return results_df
 
@@ -178,13 +204,15 @@ def regressorCV(data, reg, cnd=None, threshold=None, cv=5, total_train=False):
         reg0 = reg.fit(X, y)
         cv_scores = {**cv_scores, **(regressorScore(data, reg0, prefix='total_train_'))}
         estimator = reg0
-    return {**cv_scores, **{'estimator': estimator}}
+    cv_scores['estimator'] = estimator
+    return {**{'subjects':len(y)}, **cv_scores}
 
 
 def regressorScore(data, reg, cnd=None, threshold=None, cv=5, prefix=''):
     X = data.x_scaled.values
     y = data.y_scaled.values.ravel()
     columns = dict()
+    columns['subjects'] = len(y)
     columns['r2'] = r2_score(y, reg.predict(X))
     if prefix != '':
         columns = {prefix + key:value for key, value in columns.items()}
