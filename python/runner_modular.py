@@ -22,13 +22,13 @@ from joblib import dump
 def run_batch(datasets,
               data_config,
               regressors,
-              regressor_param_grid,
+              regressor_param_grid={},
               cv=3,
               ext_dataset=None,
               eval_type='regressor',
               cnd=None,
               threshold=None,
-              show_best_runs=0,
+              show_best_runs=0
               ):
     '''
         'run_batch' is an updated version of the legacy 'execute' function designed to use internal DataGrids for
@@ -44,7 +44,7 @@ def run_batch(datasets,
             Dictionary of feature groups, each containing 'option: [features]' key-value pairs.
         :key transform_options: {feature: {category: [transformers]}}
             Dictionary of categorical features to split the run over, for each possible category there is a list of
-            transformers. Ideal for sex and ethnicity.
+            data transformers. Ideal for sex and ethnicity.
         :key scalar_config: Dictionary containing 'feature: scalar' key-value pairs for sklearn formatted scalars.
     :param regressors:
     :param regressor_param_grid:

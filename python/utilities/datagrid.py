@@ -20,6 +20,17 @@ def dict_to_datagrid(option_dict, cname=None):
     1          all   [2, 3]
     2         none        0
     '''
+    return option_datagrid({cname: option_dict})
+
+def option_datagrid(option_dict):
+    '''
+    Create DataGrid from option dictionary.
+
+    :param option_dict: A singleton dictionary of the form {'OptName': {'Opt1': 'Val1', ...}}
+    :return: DataGrid with columns {'OptName': ['Opt1', ...], '__data__': ['Val1', ...]}
+    '''
+    cname = list(option_dict)[0]
+    option_dict = option_dict[cname]
     if isinstance(option_dict, pd.DataFrame):
         return option_dict
     if cname is None or "__cols" in option_dict:
@@ -43,16 +54,6 @@ def dict_to_datagrid(option_dict, cname=None):
             data.append(value)
     return pd.DataFrame({**dict, "__data__": data})
 
-def option_datagrid(option_dict):
-    '''
-    Create DataGrid from option dictionary.
-
-    :param option_dict: A singleton dictionary of the form {'OptName': {'Opt1': 'Val1', ...}}
-    :return: DataGrid with columns {'OptName': ['Opt1', ...], '__data__': ['Val1', ...]}
-    '''
-    key = list(option_dict)[0]
-    return dict_to_datagrid(option_dict[key], key)
-
 def option_datagrid_list(cname_to_option_dicts):
     '''
     Generalizes option_datagrid for multi-entry option_dicts.
@@ -63,7 +64,7 @@ def option_datagrid_list(cname_to_option_dicts):
     dfs = []
     for cname, option_dict in cname_to_option_dicts.items():
         assert isinstance(option_dict, Mapping) # Make sure its a dict
-        dfs.append(dict_to_datagrid(option_dict, cname))
+        dfs.append(option_datagrid({cname: option_dict}))
     return dfs
 
 
@@ -90,14 +91,14 @@ def compose_dictgrid(param_option_dict):
     :return: Pandas DataFrame with columns from keys in param_option_dict and a __data__ column with the row data as a dict
     '''
     dfs = []
-    for key, option_obj in param_option_dict.items():
-        if not isinstance(option_obj, pd.DataFrame):
+    for key, option_dict in param_option_dict.items():
+        if not isinstance(option_dict, pd.DataFrame):
             # convert into dataframe
-            option_obj = dict_to_datagrid(option_obj, cname=key)
+            option_dict = option_datagrid({key: option_dict})
         # check that it's a dataframe. assert aborts and gives an error if it's false
-        assert isinstance(option_obj, pd.DataFrame)
+        assert isinstance(option_dict, pd.DataFrame)
         # writes dfs -  a list with vales from __data__ and keys from dict in {} pandas
-        dfs.append(option_obj.assign(__data__=option_obj["__data__"].apply(lambda val: {key: val})))
+        dfs.append(option_dict.assign(__data__=option_dict["__data__"].apply(lambda val: {key: val})))
     if len(dfs) == 0:
         return pd.DataFrame()
     return list_product(lambda x, y: {**x, **y}, dfs)

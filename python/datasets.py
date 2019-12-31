@@ -123,6 +123,13 @@ class DataSet:
                 combined_df = df
             else:
                 combined_df = combined_df.merge(df, on='SubjectID', how='outer')
+
+        combined_df['age'] = combined_df['BIRTHDATE'].astype(str).map(
+            lambda row: date.today().year - int(row[2:4]) - 1900 if row != 'NaT' else "")
+        combined_df['age'] = combined_df.apply(
+            lambda row: date.today().year - row['qff_dob_year'] if row['age'] == "" else row['age'], axis=1)
+        combined_df['age'] = pd.to_numeric(combined_df['age'], errors='ignore')
+
         return combined_df
 
     # Returns a merged common datasheet where dexa has duplicate subject ids and the others are duplicated per subject id.
@@ -145,6 +152,26 @@ class DataSet:
         combo = combo.merge(questionnaire_df, how='outer', on='SubjectID')
         combo = dexa_df.merge(combo, how='outer', on='SubjectID', copy=True)
         return combo
+
+    # def search_update(self, prefix):
+    #     Path = PathMan()
+    #     strange_path = Path.getter() + "python\data"
+    #     #print(strange_path)
+    #     dir = DirGrab(strange_path)
+    #     dir.grabFromPrefix(prefix)
+    #     files = dir.getter()
+    #     Search = Searcher()
+    #     file_list = Search.GreatestValue(files)
+    #
+    #     #print(file_list[0])
+    #     dataset_location = file_list[0]
+    #     dataset_df = pd.read_excel(dataset_location, na_values=["[]", 0])
+    #     return dataset_df
+
+
+'''
+Usable Datasets
+'''
 
 
 #this class takes the mean of both the duplicate dexa values and styku subject ids .
@@ -196,10 +223,7 @@ class StykuDataSet(DataSet):
                         inplace=True)
         combined_df = super().common_dataframes()
         combined_df = combined_df.merge(styku_df, on='SubjectID', how='outer')
-        combined_df['age'] = combined_df['BIRTHDATE'].astype(str).map(
-            lambda row: date.today().year - int(row[2:4]) - 1900 if row != 'NaT' else "")
 
-        combined_df['age'] = combined_df.apply(lambda row: date.today().year - row['qff_dob_year'] if row['age'] == "" else row['age'], axis=1)
         combined_df['BMI_act'] = combined_df.apply(
             lambda row: row['bmi_calculated'] if row['BMI1'] == 0 or row['BMI1'] == "" or row['BMI1'] == "nan" or pd.isnull(row['BMI1']) else row['BMI1'], axis=1)
         combined_df['BMI_act'] = pd.to_numeric(combined_df['BMI_act'], errors='ignore')
@@ -210,9 +234,6 @@ class StykuDataSet(DataSet):
         combined_df['BMI'] = pd.to_numeric(combined_df['BMI'], errors='ignore')
 
         combined_df = combined_df.drop(columns="BMI_act")
-        combined_df['age'] = pd.to_numeric(combined_df['age'], errors='ignore')
-
-
 
         return combined_df
 
@@ -357,6 +378,9 @@ class NhanesDataSet(DataSet):
     def load_data(self):
             df = pd.read_excel(GITPATH + "python/data/NHANES/NHANES 07OCT2016active.xls", sheet_name="DXA_Imp_1")
             df['RIDAGEYR'] = df['RIDAGEYR'].astype(float) # fixes DataConversionWarning by MinMaxScaler
+
+            # Standardize units
+
             #df.reset_index(inplace=True)
             df = df.rename(columns={"RIDAGEYR": "age", "bmxbmi": "BMI1", "RIAGENDR": "SEX",
                                "BMXLEG": "rLegLength", "BMXARML": "RArmLength", "bmxwaist": "waist circ",
@@ -366,18 +390,19 @@ class NhanesDataSet(DataSet):
                                 "SEQN": "SubjectID"})
             df = df.loc[df.age >= 18]
 
-            # Remove subjects with family history of diabetes
-            df = df.loc[df['MCQ250A'] != 2]
-
             # Standardize units
-            #df['lbxglu'] = df['lbxglu'].map(lambda x: 100*x)
-            #df['lbdldl'] = df['lbdldl'].map(lambda x: 100*x)
-            #df['lbdhdl'] = df['lbdhdl'].map(lambda x: 100*x)
-            #df['lbxtr'] = df['lbxtr'].map(lambda x: 100*x)
+            df['GLU'] = df['GLU'].map(lambda x: 100*x)
+            df['LDL'] = df['LDL'].map(lambda x: 100*x)
+            df['HDL'] = df['HDL'].map(lambda x: 100*x)
+            df['TRIG'] = df['TRIG'].map(lambda x: 100*x)
+
+            # Remove subjects with family history of diabetes
+            # df = df.loc[df['MCQ250A'] != 2]
 
             # Remove subjects that did not fast
-            df = df.loc[(df['TRIG'] <= 180) | (df['BMI1'] >= 45)]  # Remove subjects w/ TRIG > 180 & BMI < 45
+            # df = df.loc[(df['TRIG'] <= 180) | (df['BMI1'] >= 45)]  # Remove subjects w/ TRIG > 180 & BMI < 45
             print(len(df))
+
             # Diabetes risks
             df['GLU_risk'] = discrete_class(df, 'GLU', [100, 125])  # 0 is healthy
             # df['GLU_risk'] = discrete_class(df, 'GLU', [100])  # 0 is healthy
@@ -460,8 +485,6 @@ class TrimmedStykuDataSet(DataSet):
 
 
         result = StykuDataSet()
-
-
         return result.load_data().dropna(axis=0, subset=cnames)
 
 
