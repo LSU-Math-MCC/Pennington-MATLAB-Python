@@ -4,34 +4,8 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
 
 from utilities.data_transformers import cut_subject_ids, column_filter
-from datasets import DataSet
+from datasets import DataSet, to_Dataset
 from runner_modular import run_batch
-
-
-def to_Dataset(df, subject_cname='SubjectID'):
-    class auto_dataset(DataSet):
-        def load_data(self):
-            try:
-                # find subject IDs and combine with DXA, Blood, and Questionaire data
-                df['SubjectID'] = cut_subject_ids(df[subject_cname])  # remove scan suffixes
-                if subject_cname != 'SubjectID':
-                    del df[subject_cname]  # The next step expects numeric columns
-
-                # TODO: Combine label columns differently than numeric columns
-                clean_df = df.replace([0, "[]", "", "nan"], None).dropna()
-                clean_df = clean_df.drop_duplicates('SubjectID')
-                # clean_df = clean_df.groupby(clean_df['SubjectID'], as_index=False).aggregate('mean')  # take average of duplicates
-
-                combined_df = super().common_dataframes()
-                combined_df = combined_df.merge(clean_df, on='SubjectID', how='outer')
-                return combined_df
-            except KeyError:
-                # if there are no subject indentifiers, do not combine with DXA
-                warnings.warn(f'Could not find subject identifier column \"{subject_cname}\", loading without DXA.',
-                              stacklevel=4)
-                return df
-    return auto_dataset()
-
 
 df = pd.read_excel('data/ObjOrganizerStyku_v14.xlsx')
 df = df.drop(df.columns[[0, 1, 3, 4]], axis=1)  # remove unnecessary label columns

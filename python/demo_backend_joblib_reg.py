@@ -36,7 +36,7 @@ all_models = glob.glob('models/*.joblib')
 model_rel_path = max(all_models, key=os.path.getctime)
 print('Model location: ', model_rel_path, '\n')
 
-# LOADING THE MODEL
+# LOADING THE MODEL AND USING IT TO PREDICT
 random_input = np.random.rand(n_features)
 random_input = random_input.reshape(1, -1)  # reshape recommended for single-sample predictions
 print('Random Input:', random_input)
