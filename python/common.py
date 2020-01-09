@@ -63,9 +63,6 @@ def df_reorder_columns(df, send_front=[], send_back=[]):
 def dataframe_with_structure(dataframe, ndarray):
     '''
     Takes an ndarray and converts it to a dataframe
-    :param dataframe:
-    :param ndarray:
-    :return:
     '''
     if isinstance(dataframe, pd.Series):  # checking for type series
         dataframe = dataframe.to_frame()  # converts series into a dataframe
@@ -78,15 +75,23 @@ def dataframe_with_structure(dataframe, ndarray):
     return dataframe
 
 
+# Save data frame to csv file in reports
+def save_df(df, save_name):
+    df.to_csv(f"reports/{save_name}.csv", index=False)
+    df.to_pickle(f"reports/{save_name}.pkl")
+
+
 '''
 Runtime Control
 '''
 
 
+# Resolve delayed statements with multicore processing
 def resolve_delayed(delayed_iter):
     # Resolve delayed statements with multicore processing
     delayed_list = list(delayed_iter)
     return list(Parallel(n_jobs=3)(delayed_list)) # Parallel - n_jobs = -1, use all cpu's
+
 
 '''
 Dot-Notation and (unused) Parameter Functions
@@ -116,6 +121,7 @@ class Map():
                 l.append(val)
             else:
                 Map.__collect(val.__dict__, exclude_keys, l)
+
 
 # https://en.wikipedia.org/wiki/Coefficient_of_determination#Adjusted_R2
 def adjusted_r2_score(r2_score, num_features, num_samples):
