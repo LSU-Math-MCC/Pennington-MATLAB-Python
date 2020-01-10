@@ -1,5 +1,5 @@
 import pandas as pd
-from datasets import DataSet
+from DataSets import DataSet
 
 class Map():
     """
@@ -118,7 +118,7 @@ def standardize_units(df, body_parts):  #
     return df
 
 '''
-Alex's Summary: SubClass that inherits The DataSet Class from datasets.py,
+Alex's Summary: SubClass that inherits The DataSet Class from DataSets.py,
 Overides the Abstract Method load Data
 load method loads a dataframe from combined sources from the sources method
 it standardizes the units of meausurements into liters and returns the dataframe

@@ -7,7 +7,7 @@ from sklearn.feature_selection import chi2, f_regression, mutual_info_regression
 from sklearn.metrics import mutual_info_score
 from sklearn.linear_model import LogisticRegression, Lasso, LinearRegression, Ridge
 import matplotlib.pyplot as plt
-#from datasets import StykuDataSet
+# from datasets import StykuDataSet
 
 
 def hold_dataset(dataset, rewrite=False):
@@ -16,7 +16,7 @@ def hold_dataset(dataset, rewrite=False):
         os.makedirs('./extracted datasets')
     if not os.path.isfile(f"./extracted datasets/{name}") or rewrite:
         dataset.load_data().to_csv(f"./extracted datasets/{name}.csv")
-#hold_dataset(StykuDataSet())
+# hold_dataset(StykuDataSet())
 df = pd.read_csv('./extracted datasets/StykuDataSet.csv')
 # df = df.loc[df['SEX'] == 'M']
 '''
@@ -107,11 +107,11 @@ a_b_all = ["Chest circ A_B", "waist circ A_B", "hip circ A_B", "rThighGirth A_B"
             "lBicepGirth A_B", "rAnkle A_B", "rWristGirth A_B", "Lankle A_B"]
 
 feature_cnames = a_b_all
-target_cname = 'TOTAL_FAT'
+target_cname = 'TOTAL_LEAN'
 
 # print(mRMR(df, feature_cnames, target_cname, return_best=6))
 # print(mRMR(df, feature_cnames, target_cname, method='mutual information', return_best=6))
-#print(mRMR(df, feature_cnames, target_cname, return_best='all'))
+# print(mRMR(df, feature_cnames, target_cname, return_best='all'))
 
 # k = 5
 # df = df[[target_cname] + feature_cnames].dropna()
@@ -128,7 +128,7 @@ target_cname = 'TOTAL_FAT'
 
 feature_cnames = bmi + m_all + a_b_all + volumes
 
-def plot_coefs(df, feature_cnames, target_cname, model = [LinearRegression()]):
+def plot_coefs(df, feature_cnames, target_cname, model = [LinearRegression()], sort = True):
     '''
     :param model: List of estimators with coef_ attribute.
       LinearRegression(), Ridge(), Lasso()
@@ -141,9 +141,15 @@ def plot_coefs(df, feature_cnames, target_cname, model = [LinearRegression()]):
     results_df['Features'] = feature_cnames
     results_df.set_index('Features', inplace=True)
     model = model if isinstance(model, list) else [model]
+    model_cnames = []
     for mdl in model:
         mdl = mdl.fit(X, y)
         results_df[f'{type(mdl).__name__}'] = mdl.coef_
+        model_cnames += [f'{type(mdl).__name__}']
+    if sort:
+        results_df['avg'] = results_df[model_cnames].mean(axis=1)
+        results_df = results_df.iloc[results_df['avg'].abs().argsort()[::-1]]
+        del results_df['avg']
     results_df.plot(kind='bar')
     plt.title(f'Feature Coefficients for {target_cname}')
     plt.xlabel('Features')
@@ -151,7 +157,7 @@ def plot_coefs(df, feature_cnames, target_cname, model = [LinearRegression()]):
     plt.show()
 
 
-plot_coefs(df, feature_cnames, target_cname, model = [Ridge(), Lasso(alpha=.01)])
+plot_coefs(df, feature_cnames, target_cname, model = [Ridge(), Lasso(alpha=.001)])
 
 # estimators = all_estimators()
 #

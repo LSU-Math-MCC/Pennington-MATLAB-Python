@@ -1,16 +1,11 @@
 import pandas as pd
-from sklearn.neural_network import MLPRegressor
 from sklearn.kernel_ridge import KernelRidge
-from sklearn.linear_model import Lasso, Ridge, LassoLars
 from sklearn.preprocessing import StandardScaler, LabelBinarizer,MinMaxScaler
-from common import Map
-from datasets import DataSet,StykuDataSet_2
+from utilities.common_functions import Map
+from DataSets import DataSet, StykuDataSet_2
 from utilities.paramutils import combine_options
-from runner import execute
-from utilities.data_transformers import standardize_subject_ids, column_filter, mean_body_part_transformer, average_transformer
-from utilities.data_transformers import discrete_class, standardize_subject_ids
-from utilities.folder_searcher import Searcher
-from utilities.DirectoryGrab import DirGrab
+from utilities.archive.runner import execute
+from utilities.data_transformers import mean_body_part_transformer, average_transformer
 from utilities.data_merger import ListMaker, ListStandardizer, CBDrowMaker, MergeMan
 import time
 

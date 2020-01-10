@@ -47,3 +47,42 @@ Location: models/TOTAL_LEAN_MLPRegressor_1910012158.joblib
 Features: ['Chest circ', 'waist circ', 'hip circ', 'rThighGirth', 'lThighGirth', 'rCalfCirc', 'lCalfCirc', 'rWristGirth', 'lWristGirth', 'rForearm', 'lForearmGirth', 'rbicepGirth', 'lBicepGirth', 'rAnkle', 'Lankle', 'LarmLength', 'RArmLength', 'CollarScalp', 'TrunkLength', 'lLegLength', 'rLegLength', 'crotchHeight', 'Chest circ A_B', 'waist circ A_B', 'hip circ A_B', 'rThighGirth A_B', 'lThighGirth A_B', 'rCalfCirc A_B', 'lCalfCirc A_B', 'lWristGirth A_B', 'rForearm A_B', 'lForearmGirth A_B', 'rbicepGirth A_B', 'lBicepGirth A_B', 'rAnkle A_B', 'rWristGirth A_B', 'Lankle A_B', 'TotalVolume', 'headVolume', 'rArmVolume', 'lArmVolume', 'rLegVolume', 'lLegVolume', 'trunkVolume']
 Score Info: {'test_r2': 0.823446631403948, 'train_r2': 0.9247057731174058, 'total_train_r2': 0.9062869453240826}
 
+Run 2001081146: MLPRegressor on TOTAL_LEAN with StykuDataSet
+Location: models/TOTAL_LEAN_MLPRegressor_2001081146.joblib
+Features: ['Chest circ', 'waist circ', 'hip circ', 'rThighGirth', 'lThighGirth', 'rCalfCirc', 'lCalfCirc', 'rWristGirth', 'lWristGirth', 'rForearm', 'lForearmGirth', 'rbicepGirth', 'lBicepGirth', 'rAnkle', 'Lankle', 'LarmLength', 'RArmLength', 'CollarScalp', 'TrunkLength', 'lLegLength', 'rLegLength', 'crotchHeight', 'Chest circ A_B', 'waist circ A_B', 'hip circ A_B', 'rThighGirth A_B', 'lThighGirth A_B', 'rCalfCirc A_B', 'lCalfCirc A_B', 'lWristGirth A_B', 'rForearm A_B', 'lForearmGirth A_B', 'rbicepGirth A_B', 'lBicepGirth A_B', 'rAnkle A_B', 'rWristGirth A_B', 'Lankle A_B', 'TotalVolume', 'headVolume', 'rArmVolume', 'lArmVolume', 'rLegVolume', 'lLegVolume', 'trunkVolume']
+Score Info: {'subjects': 345, 'test_r2': 0.8506705050527825, 'train_r2': 0.9304819629338349, 'total_train_subjects': 345, 'total_train_r2': 0.9309217978855129}
+
+Run 2001081147: threshold_clf on LDL_risk with NhanesDataSet
+Location: models/LDL_risk_threshold_clf_2001081147.joblib
+Features: ['BMI1', 'SEX', 'waist circ', 'rThighGirth', 'rbicepGirth']
+Score Info: {'subjects': 18976, 'train_acc': 0.0, 'test_acc': 0.0, 'tn': 0, 'fn': 0, 'fp': 18976, 'tp': 0, 'TPR': nan, 'FNR': nan, 'FPR': 1.0, 'TNR': 0.0, 'precision': 0.0, 'F1': nan, 'Confusion Matrix': array([[   0. ,    0. ],
+       [3795.2,    0. ]]), 'Condition 0 Matrix': array([[   0. , 3795.2],
+       [   0. ,    0. ]]), 'total_train_acc': 0.0, 'total_train_Condition 0 Matrix': array([[    0, 18976],
+       [    0,     0]], dtype=int64), 'total_train_TPR': nan, 'total_train_FNR': nan, 'total_train_FPR': 1.0, 'total_train_TNR': 0.0, 'total_train_precision': 0.0, 'total_train_F1': nan}
+
+Run 2001081150: threshold_clf on LDL_risk with NhanesDataSet
+Location: models/LDL_risk_threshold_clf_2001081150.joblib
+Features: ['BMI1', 'SEX', 'waist circ', 'rThighGirth', 'rbicepGirth']
+Score Info: {'subjects': 18976, 'train_acc': 0.0, 'test_acc': 0.0, 'tn': 0, 'fn': 0, 'fp': 18976, 'tp': 0, 'TPR': nan, 'FNR': nan, 'FPR': 1.0, 'TNR': 0.0, 'precision': 0.0, 'F1': nan, 'Confusion Matrix': array([[   0. ,    0. ],
+       [3795.2,    0. ]]), 'Condition 0 Matrix': array([[   0. , 3795.2],
+       [   0. ,    0. ]]), 'total_train_acc': 0.0, 'total_train_Condition 0 Matrix': array([[    0, 18976],
+       [    0,     0]], dtype=int64), 'total_train_TPR': nan, 'total_train_FNR': nan, 'total_train_FPR': 1.0, 'total_train_TNR': 0.0, 'total_train_precision': 0.0, 'total_train_F1': nan}
+
+Run 2001081309: threshold_clf on LDL_risk with NhanesDataSet
+Location: models/LDL_risk_threshold_clf_2001081309.joblib
+Features: ['BMI1', 'SEX', 'waist circ', 'rThighGirth', 'rbicepGirth']
+Score Info: {'subjects': 18976, 'train_acc': 0.0, 'test_acc': 0.0, 'tn': 0, 'fn': 0, 'fp': 18976, 'tp': 0, 'TPR': nan, 'FNR': nan, 'FPR': 1.0, 'TNR': 0.0, 'precision': 0.0, 'F1': nan, 'Confusion Matrix': array([[   0. ,    0. ],
+       [3795.2,    0. ]]), 'Condition 0 Matrix': array([[   0. , 3795.2],
+       [   0. ,    0. ]]), 'total_train_acc': 0.0, 'total_train_Condition 0 Matrix': array([[    0, 18976],
+       [    0,     0]], dtype=int64), 'total_train_TPR': nan, 'total_train_FNR': nan, 'total_train_FPR': 1.0, 'total_train_TNR': 0.0, 'total_train_precision': 0.0, 'total_train_F1': nan}
+
+Run 2001101257: MLPRegressor on TOTAL_LEAN with StykuDataSet
+Location: models/TOTAL_LEAN_MLPRegressor_2001101257.joblib
+Features: ['Chest circ', 'waist circ', 'hip circ', 'rThighGirth', 'lThighGirth', 'rCalfCirc', 'lCalfCirc', 'rWristGirth', 'lWristGirth', 'rForearm', 'lForearmGirth', 'rbicepGirth', 'lBicepGirth', 'rAnkle', 'Lankle', 'LarmLength', 'RArmLength', 'CollarScalp', 'TrunkLength', 'lLegLength', 'rLegLength', 'crotchHeight', 'Chest circ A_B', 'waist circ A_B', 'hip circ A_B', 'rThighGirth A_B', 'lThighGirth A_B', 'rCalfCirc A_B', 'lCalfCirc A_B', 'lWristGirth A_B', 'rForearm A_B', 'lForearmGirth A_B', 'rbicepGirth A_B', 'lBicepGirth A_B', 'rAnkle A_B', 'rWristGirth A_B', 'Lankle A_B', 'TotalVolume', 'headVolume', 'rArmVolume', 'lArmVolume', 'rLegVolume', 'lLegVolume', 'trunkVolume']
+Score Info: {'subjects': 345, 'test_r2': 0.8295657998907735, 'train_r2': 0.9181306061082871, 'total_train_subjects': 345, 'total_train_r2': 0.9291540506166527}
+
+Run 2001101259: MLPRegressor on TOTAL_LEAN with StykuDataSet
+Location: models/TOTAL_LEAN_MLPRegressor_2001101259.joblib
+Features: ['Chest circ', 'waist circ', 'hip circ', 'rThighGirth', 'lThighGirth', 'rCalfCirc', 'lCalfCirc', 'rWristGirth', 'lWristGirth', 'rForearm', 'lForearmGirth', 'rbicepGirth', 'lBicepGirth', 'rAnkle', 'Lankle', 'LarmLength', 'RArmLength', 'CollarScalp', 'TrunkLength', 'lLegLength', 'rLegLength', 'crotchHeight', 'Chest circ A_B', 'waist circ A_B', 'hip circ A_B', 'rThighGirth A_B', 'lThighGirth A_B', 'rCalfCirc A_B', 'lCalfCirc A_B', 'lWristGirth A_B', 'rForearm A_B', 'lForearmGirth A_B', 'rbicepGirth A_B', 'lBicepGirth A_B', 'rAnkle A_B', 'rWristGirth A_B', 'Lankle A_B', 'TotalVolume', 'headVolume', 'rArmVolume', 'lArmVolume', 'rLegVolume', 'lLegVolume', 'trunkVolume']
+Score Info: {'subjects': 345, 'test_r2': 0.8226597962729709, 'train_r2': 0.9219939104922595, 'total_train_subjects': 345, 'total_train_r2': 0.9078864252275349}
+

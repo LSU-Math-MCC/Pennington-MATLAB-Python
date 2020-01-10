@@ -9,26 +9,24 @@ Resources Used
 '''
 from datetime import date
 from sklearn.neural_network import MLPRegressor
-from sklearn.linear_model import LinearRegression, Ridge,LassoLars
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
-from datasets import StykuDataSet, SS20DataSet, CombinedDataSet, StykuDataSet_2, TrimmedStykuDataSet
-from utilities.data_transformers import column_filter, mean_body_part_transformer, average_transformer, cut_subject_ids
+from utilities.data_transformers import mean_body_part_transformer, average_transformer, cut_subject_ids
 from utilities.paramutils import combine_options
 from utilities.PathMaker import PathMan
-from runner import execute
+from utilities.archive.runner import execute
 import tkinter as tk
 import tkinter.filedialog
 from tkinter import messagebox
 from tkinter.ttk import *
 from PIL import Image, ImageTk
-from datasets import DataSet
 import pandas as pd
-from python.datasets import MLPData, DataFrameScaler
+from python.DataSets import ExtractedData, DataFrameScaler
 
 
 Path = PathMan()
-ico_path = Path.getter() + "python\data\\"
+ico_path = "data/GUI/"
 
 class MainApplication(tk.Frame):
     def __init__(self, master, *args, **kwargs):
@@ -105,7 +103,7 @@ class MainApplication(tk.Frame):
             # print(df[feature_cnames])
             x = df[feature_cnames]
             y = df[[label_cname]]
-            return MLPData(x, y, DataFrameScaler(scaler_config))
+            return ExtractedData(x, y, DataFrameScaler(scaler_config))
 
         def __transform(self, df, data_transformers, feature_cnames):
             for transformer in data_transformers:

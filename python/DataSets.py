@@ -1,9 +1,7 @@
-import time
 '''
 FUTURE NOTES: need version specific code
 '''
-import pandas as pd
-import warnings
+import pandas as pd, os, warnings
 from datetime import date
 from abc import abstractmethod
 
@@ -89,27 +87,27 @@ class DataSet:
     # Returns a datasheet without duplicates. The duplicates are also aggregated for the different values.
     # This goes into StykyDataset
     def common_dataframes(self, include_classes=False, prune_hist=True, prune_fast=True, n_classes=2):
-        questionnaire_df = pd.read_csv(GITPATH + 'python/data/Questionnaire.csv')
+        questionnaire_df = pd.read_csv(GITPATH + 'python/data/ShapeUp/common/Questionnaire.csv')
         questionnaire_df['SubjectID'] = cut_subject_ids(questionnaire_df['SubjectID'])
 
-        dexa_df = pd.read_excel(GITPATH + "python/data/DXAnooutliers.xlsx", na_values=['#N/A'])
+        dexa_df = pd.read_excel(GITPATH + "python/data/ShapeUp/common/DXAnooutliers.xlsx", na_values=['#N/A'])
         dexa_df = dexa_df.dropna(axis=0, subset=['TOTAL_FAT', 'TOTAL_LEAN', 'TOTAL_PFAT'])
         dexa_df['TRUNK_BMC'] = dexa_df.apply(
             lambda x: x['LRIB_BMC'] + x['RRIB_BMC'] + x['T_S_BMC'] + x['L_S_BMC'] + x['PELV_BMC'], axis=1)
         dexa_df['TOTAL_PLEAN'] = dexa_df.apply(lambda x: x['TOTAL_LEAN']/x['TOTAL_MASS'], axis=1)
         dexa_df['SubjectID'] = cut_subject_ids(dexa_df['SubjectID'])
 
-        manual_df = pd.read_csv(GITPATH + "python/data/Manual.csv")
+        manual_df = pd.read_csv(GITPATH + "python/data/ShapeUp/common/Manual.csv")
         manual_df['SubjectID'] = cut_subject_ids(manual_df['SubjectID'])
 
-        blood_df = pd.read_csv(GITPATH + "python/data/Blood.csv")
+        blood_df = pd.read_csv(GITPATH + "python/data/ShapeUp/common/Blood.csv")
         blood_df['SubjectID'] = cut_subject_ids(blood_df['SubjectID'])
         if include_classes:
             if prune_hist:
                 # Remove people with family histories for HBA1C
                 blood_df['SubjectID'] = cut_subject_ids(blood_df['SubjectID'])
                 blood_df = blood_df.merge(
-                    pd.read_excel('data/Shapeup_Adults_Q2_Fixed_meeting_5-24-19.xlsx', sheet_name='History'),
+                    pd.read_excel('data/ShapeUp/Shapeup_Adults_Q2_Fixed_meeting_5-24-19.xlsx', sheet_name='History'),
                     on='SubjectID', how='outer')
                 blood_df = blood_df.loc[blood_df['Fam_Diabetes'] != 'Yes']
                 blood_df['SubjectID'] = standardize_subject_ids(blood_df['SubjectID'])
@@ -128,7 +126,7 @@ class DataSet:
                 blood_df['LDL_risk'] = discrete_class(blood_df, 'LDL', [130, 160])  # 0 is healthy
                 blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40, 60])  # 2 (>60) is healthy
 
-        bia_df = pd.read_excel(GITPATH + "python/data/Shapeup_Adults_Q2_181101.xlsx", sheet_name="BIA")
+        bia_df = pd.read_excel(GITPATH + "python/data/ShapeUp/Shapeup_Adults_Q2_181101.xlsx", sheet_name="BIA")
         # bia_df = bia_df.rename(columns={"_BFM_Body_Fat_Mass_": "TOTAL_FAT", "_LBM_Lean_Body_Mass_": "TOTAL_LEAN"})
         # bia_df['_AGE'] = bia_df['_AGE'].astype(float)
         bia_df = bia_df.groupby(['SubjectID'], as_index=False).aggregate('mean')
@@ -159,14 +157,37 @@ class DataSet:
 
     # Returns a merged common datasheet where dexa has duplicate subject ids and the others are duplicated per subject id.
     # This goes into StykyDataset_2
-    def common_dataframes_2(self):
-        questionnaire_df = pd.read_csv(GITPATH + 'python/data/Questionnaire.csv')
-        dexa_df = pd.read_csv(GITPATH + "python/data/DXA.csv", na_values=["#N/A"])
+    def common_dataframes_2(self, include_classes=False, prune_hist=True, prune_fast=True, n_classes=2):
+        questionnaire_df = pd.read_csv(GITPATH + 'python/data/ShapeUp/common/Questionnaire.csv')
+        dexa_df = pd.read_csv(GITPATH + "python/data/ShapeUp/common/DXA.csv", na_values=["#N/A"])
         dexa_df['TRUNK_BMC'] = dexa_df.apply(
             lambda x: x['LRIB_BMC'] + x['RRIB_BMC'] + x['T_S_BMC'] + x['L_S_BMC'] + x['PELV_BMC'], axis=1)
         dexa_df['TOTAL_PLEAN'] = dexa_df.apply(lambda x: x['TOTAL_LEAN']/x['TOTAL_MASS'], axis=1)
-        manual_df = pd.read_csv(GITPATH + "python/data/Manual.csv")
-        blood_df = pd.read_csv(GITPATH + "python/data/Blood.csv")
+        manual_df = pd.read_csv(GITPATH + "python/data/ShapeUp/common/Manual.csv")
+        blood_df = pd.read_csv(GITPATH + "python/data/ShapeUp/common/Blood.csv")
+        if include_classes:
+            if prune_hist:
+                # Remove people with family histories for HBA1C
+                blood_df['SubjectID'] = cut_subject_ids(blood_df['SubjectID'])
+                blood_df = blood_df.merge(
+                    pd.read_excel('data/ShapeUp/Shapeup_Adults_Q2_Fixed_meeting_5-24-19.xlsx', sheet_name='History'),
+                    on='SubjectID', how='outer')
+                blood_df = blood_df.loc[blood_df['Fam_Diabetes'] != 'Yes']
+                blood_df['SubjectID'] = standardize_subject_ids(blood_df['SubjectID'])
+            if n_classes == 2:
+                # Diabetes risks
+                blood_df['GLU_risk'] = discrete_class(blood_df, 'GLU', [100])  # 0 is healthy
+                blood_df['HBA1C_risk'] = discrete_class(blood_df, '_HBA1C', [5.6])  # 0 is healthy
+                # Heart risks
+                blood_df['LDL_risk'] = discrete_class(blood_df, 'LDL', [130])  # 0 is healthy
+                blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40])  # 2 (>60) is healthy
+            if n_classes == 3:
+                # Diabetes risks
+                blood_df['GLU_risk'] = discrete_class(blood_df, 'GLU', [100, 125])  # 0 is healthy
+                blood_df['HBA1C_risk'] = discrete_class(blood_df, '_HBA1C', [5.6, 6.4])  # 0 is healthy
+                # Heart risks
+                blood_df['LDL_risk'] = discrete_class(blood_df, 'LDL', [130, 160])  # 0 is healthy
+                blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40, 60])  # 2 (>60) is healthy
         # NEW: Creating numeric health classes
         #blood_df['HBA1C_risk'] = discrete_class(blood_df, '_HBA1C', [5.6, 6.4])
         #blood_df['GLU_risk'] = discrete_class(blood_df, 'GLU', [100, 125])
@@ -176,6 +197,9 @@ class DataSet:
         #combo = combo.merge(a_over_b_df, how='outer', on='SubjectID')
         combo = combo.merge(questionnaire_df, how='outer', on='SubjectID')
         combo = dexa_df.merge(combo, how='outer', on='SubjectID', copy=True)
+        if include_classes and prune_fast:
+            # Remove subjects that did not fast
+            combo = combo.loc[(combo['TRIG'] <= 180) | (combo['BMI1'] >= 45)]  # Remove subjects w/ TRIG > 180 & BMI < 45
         return combo
 
     # def search_update(self, prefix):
@@ -209,7 +233,7 @@ class StykuDataSet(DataSet):
     # looks into the data file and provides the lastest dataset from marceline's team. It also standardizes the name and makes a new column called subject_id
     def search_update():
         Path = PathMan()
-        strange_path = Path.getter() + "python/data"
+        strange_path = Path.getter() + "python\data\ShapeUp"
         #print(strange_path)
         dir = DirGrab(strange_path)
         dir.grabFromPrefix('ObjOrganizerStyku')
@@ -358,7 +382,7 @@ class SS20DataSet(DataSet):
         super().__init__()
 
     def search_update():
-        strange_path = Path.getter() + "python\data"
+        strange_path = Path.getter() + "python\data\ShapeUp"
         dir = DirGrab(strange_path)
         dir.grabFromPrefix('ObjOrganizerSS20')
         files = dir.getter()
@@ -388,25 +412,27 @@ class SS20DataSet(DataSet):
         # SS20_df = SS20_df.groupby(['SubjectID'], as_index=False).aggregate('mean')
         SS20_df = self.standardize_units(SS20_df)
         SS20_df.rename(columns={col: f"{col.replace('/', '_')}" for col in SS20_df.columns}, inplace=True)
-        combined_df = super().common_dataframes(include_classes=self.classes)
+        combined_df = super().common_dataframes_2(include_classes=self.classes)
         combined_df = combined_df.merge(SS20_df, on='SubjectID', how='outer')
         combined_df['age'] = combined_df['BIRTHDATE'].map(
             lambda row: date.today().year - int(row[-2:]) - 1900 if isinstance(row, str) else "")
         combined_df['age'] = pd.to_numeric(combined_df['age'], errors='ignore')
         combined_df.drop_duplicates(subset='SubjectID', keep='last', inplace=True)
-        combined_df = combined_df.groupby(['SubjectID'], as_index=False).aggregate('mean')
+        # combined_df = combined_df.groupby(['SubjectID'], as_index=False).aggregate('mean')
 
         return combined_df
         
 
 class CombinedDataSet(DataSet):
-    def __init__(self):
+    def __init__(self, include_classes=False):
+        self.classes = include_classes
         super().__init__()
 
     def load_data(self):
         # Pair subjects with data from common datasets
         # ISSUE: Less than 50 subjects from SS20 are paired with DXA and results are awful
-        styku_df, ss20_df = StykuDataSet().load_data(), SS20DataSet().load_data()
+        styku_df = StykuDataSet(include_classes=self.classes).load_data()
+        ss20_df = SS20DataSet(include_classes=self.classes).load_data()
         # Distinguish between SS20 and Styku subject IDs (prevents duplicate index error)
         #   SE: Why is map() better than apply() for a single column?
         #   map() is for Series (i.e. single columns) and operates on one cell at a time, while apply() is for DataFrame, and operates on a whole row at a time.
@@ -451,7 +477,7 @@ class NhanesDataSet(DataSet):
 
             # Remove subjects that did not fast
             # df = df.loc[(df['TRIG'] <= 180) | (df['BMI1'] >= 45)]  # Remove subjects w/ TRIG > 180 & BMI < 45
-            print(len(df))
+            # print(len(df))
 
             # Diabetes risks
             df['GLU_risk'] = discrete_class(df, 'GLU', [100, 125])  # 0 is healthy
@@ -472,8 +498,8 @@ class PCADataSet(DataSet):
         super().__init__()
 
     def load_data(self):
-        pca_male = pd.read_excel('data/Shapeup_Adults_Q2_181101.xlsx', sheet_name='PC_Weights_Male')
-        pca_female = pd.read_excel('data/Shapeup_Adults_Q2_181101.xlsx', sheet_name='PC_Weights_Female')
+        pca_male = pd.read_excel('data/ShapeUp/Shapeup_Adults_Q2_181101.xlsx', sheet_name='PC_Weights_Male')
+        pca_female = pd.read_excel('data/ShapeUp/Shapeup_Adults_Q2_181101.xlsx', sheet_name='PC_Weights_Female')
 
         # SEX is assigned below
         combined_df = super().common_dataframes().merge(pd.concat([pca_male, pca_female], sort=False), on='SubjectID', how='inner')
@@ -519,12 +545,13 @@ class ExtractedData:
         self.x = x # x column
         self.y = y # y column
         self.scaler = scaler # scalar
+        # self.scaler_params = scaler.get_params()
         self.x_scaled = scaler.transform(x)
         self.y_scaled = scaler.transform(y)
 
 
 class DataFrameScaler:
-    def __init__(self, scaler_dict):
+    def __init__(self, scaler_dict, save_scalar_params=False):
         '''
         This function is passed scalar_dict of form {cname: scalar function} where cname
         is either the name of a column in some dataframe or 'default'. Then the transform
@@ -556,7 +583,7 @@ class DataFrameScaler:
     def transform(self, df):
         df = df.copy()
 
-        # Setup (fit?) scalars
+        # fit scalars
         for column in df.columns: # enumerate of str cnames
             for scaler in self.__get_column_scaler(column):  # Returns list of scalars to fit to column
                 frame = df[column].to_frame() # convert column to df
@@ -573,12 +600,13 @@ class DataFrameScaler:
 
 
 '''
-DataSet automatic creation code
+Other DataSet Functions
 '''
 
 
+# Create a DataSet from a pandas dataframe
 def to_Dataset(df, subject_cname='SubjectID'):
-    class auto_dataset(DataSet):
+    class AutoDataset(DataSet):
         def load_data(self):
             try:
                 # find subject IDs and combine with DXA, Blood, and Questionaire data
@@ -599,4 +627,12 @@ def to_Dataset(df, subject_cname='SubjectID'):
                 warnings.warn(f'Could not find subject identifier column \"{subject_cname}\", loading without DXA.',
                               stacklevel=4)
                 return df
-    return auto_dataset()
+    return AutoDataset()
+
+
+def hold_dataset(dataset, rewrite=False):
+    name = type(dataset).__name__
+    if not os.path.exists('./extracted datasets'):
+        os.makedirs('./extracted datasets')
+    if not os.path.isfile(f"./extracted datasets/{name}") or rewrite:
+        dataset.load_data().to_csv(f"./extracted datasets/{name}.csv")

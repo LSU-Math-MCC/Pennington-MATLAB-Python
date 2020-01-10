@@ -6,8 +6,8 @@ from joblib import load
 from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 
-from runner_modular import ext_train_save, threshold_clf
-from datasets import StykuDataSet, NhanesDataSet
+from ml_core import ext_train_save, threshold_clf
+from DataSets import StykuDataSet, NhanesDataSet
 
 bmi = ['BMI1']
 sex = ['SEX']

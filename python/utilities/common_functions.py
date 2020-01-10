@@ -1,7 +1,7 @@
 from typing import Mapping, Iterable, List, Tuple
 from joblib import Parallel
 
-import pandas as pd
+import pandas as pd, datetime
 from sklearn.model_selection import ParameterGrid
 
 '''
@@ -91,6 +91,15 @@ def resolve_delayed(delayed_iter):
     # Resolve delayed statements with multicore processing
     delayed_list = list(delayed_iter)
     return list(Parallel(n_jobs=3)(delayed_list)) # Parallel - n_jobs = -1, use all cpu's
+
+
+'''
+Labeling Functions
+'''
+
+
+def timestamp():
+    return int(datetime.datetime.now().strftime('%Y%m%d%H%M')[2:])
 
 
 '''

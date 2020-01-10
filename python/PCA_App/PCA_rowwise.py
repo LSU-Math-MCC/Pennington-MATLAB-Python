@@ -1,6 +1,5 @@
 import csv
 import sys
-import glob
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
@@ -11,7 +10,7 @@ from python.utilities.DirectoryGrab import DirGrab
 from python.PCA_App.run_ganger import GangGang
 from python.PCA_App.point_reduction_script import FileConverter
 from python.utilities.FolderToFolder import MoverMan
-from python.runner_PCA_auto import PCAAutoDataSet, PCA_ml
+from PCA_App.runner_PCA_auto import PCA_ml
 from python.utilities.PathMaker import PathMan
 
 ####################   Attempts to expand the field limit for 180k points      ##################################

@@ -5,8 +5,8 @@ import os
 from joblib import load
 from sklearn.neural_network import MLPRegressor
 
-from runner_modular import ext_train_save
-from datasets import StykuDataSet
+from ml_core import ext_train_save
+from DataSets import StykuDataSet
 
 # SAVING THE MODEL
 model = MLPRegressor(solver="lbfgs", activation="identity", max_iter=800, hidden_layer_sizes=(1,))

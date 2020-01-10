@@ -1,18 +1,11 @@
 import pandas as pd, numpy as np
-import datetime
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPRegressor
-from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, LabelBinarizer
-from sklearn.model_selection import KFold, GridSearchCV, train_test_split
-from datasets import DataSet
+from sklearn.preprocessing import MinMaxScaler, LabelBinarizer
+from DataSets import DataSet
 from utilities.paramutils import combine_options
 from utilities.data_transformers import column_filter, standardize_subject_ids
-from sklearn.linear_model import LinearRegression, Ridge, LassoLars, Lasso
-from runner import execute
+from utilities.archive.runner import execute
 from datetime import date
-
-from joblib import dump, load
 
 
 class PCAAutoDataSet(DataSet):

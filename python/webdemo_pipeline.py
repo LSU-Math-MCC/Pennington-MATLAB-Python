@@ -4,8 +4,8 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
 
 from utilities.data_transformers import cut_subject_ids, column_filter
-from datasets import DataSet, to_Dataset
-from runner_modular import run_batch
+from DataSets import DataSet, to_Dataset
+from ml_core import run_batch
 
 df = pd.read_excel('data/ObjOrganizerStyku_v14.xlsx')
 df = df.drop(df.columns[[0, 1, 3, 4]], axis=1)  # remove unnecessary label columns

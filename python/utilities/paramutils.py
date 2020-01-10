@@ -3,8 +3,7 @@ from typing import Iterable, Mapping, List, Dict
 
 import pandas as pd
 
-from common import copy_remove_duplicates
-from utilities.plotutils import hist_df
+from utilities.common_functions import copy_remove_duplicates
 
 pd.options.display.max_columns = 1000
 pd.options.display.max_rows = 1000

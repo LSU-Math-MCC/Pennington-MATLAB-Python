@@ -1,14 +1,10 @@
-import pandas as pd
-from sklearn.linear_model import LinearRegression, Lasso, Ridge,LassoLars
-from sklearn.kernel_ridge import KernelRidge
-from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
-from sklearn.model_selection import KFold, GridSearchCV, train_test_split
 
-from datasets import StykuDataSet, SS20DataSet, CombinedDataSet, StykuDataSet_2,TrimmedStykuDataSet, StykuDataSet_3
+from DataSets import SS20DataSet
 from utilities.data_transformers import column_filter, mean_body_part_transformer, average_transformer
 from utilities.paramutils import combine_options
-from runner import execute
+from utilities.archive.runner import execute
 
 import time
 start = time.time()
