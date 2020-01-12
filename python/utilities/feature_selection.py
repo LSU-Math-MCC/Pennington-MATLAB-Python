@@ -201,7 +201,7 @@ def select_and_run(df, feature_cnames, target_cname, model, upto=10, graph_r2=Tr
             "default": StandardScaler
         }
     }
-    results = run_batch(dataset, data_config_dict, model, multicore=False)
+    results = run_batch(dataset, data_config_dict, model, n_cores=1)
     if graph_r2:
         collapse = (('test_r2', ['test', 'r2']), ('train_r2', ['train', 'r2']))
         name = ['split', 'score_type']
