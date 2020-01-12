@@ -32,9 +32,13 @@ target_cname = 'TOTAL_LEAN'
 print(f'Training and storing model for {target_cname} prediction with {n_features} features from {type(dataset).__name__}')
 ext_train_save(model, dataset, cnames, target_cname, eval_type='regressor')
 
-all_models = glob.glob('models/*.joblib')
+all_models = glob.glob('models/*_mdl.joblib')
 model_rel_path = max(all_models, key=os.path.getctime)
 print('Model location: ', model_rel_path, '\n')
+
+# all_scalars = glob.glob('models/*_sclrs.joblib')
+# sclr_rel_path = max(all_scalars, key=os.path.getctime)
+# print('Scalar location: ', sclr_rel_path, '\n')
 
 # LOADING THE MODEL AND USING IT TO PREDICT
 random_input = np.random.rand(n_features)
@@ -42,5 +46,6 @@ random_input = random_input.reshape(1, -1)  # reshape recommended for single-sam
 print('Random Input:', random_input)
 
 pretrained_model = load(model_rel_path)
+# prefit_scalars = load(sclr_rel_path)
 prediction = pretrained_model.predict(random_input)
 print('Generated output: ', prediction)

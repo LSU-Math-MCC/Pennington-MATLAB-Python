@@ -87,10 +87,10 @@ Runtime Control
 
 
 # Resolve delayed statements with multicore processing
-def resolve_delayed(delayed_iter):
+def resolve_delayed(delayed_iter, n_cores=-1):
     # Resolve delayed statements with multicore processing
     delayed_list = list(delayed_iter)
-    return list(Parallel(n_jobs=3)(delayed_list)) # Parallel - n_jobs = -1, use all cpu's
+    return list(Parallel(n_jobs=n_cores)(delayed_list)) # Parallel - n_jobs = -1, use all cpu's
 
 
 '''

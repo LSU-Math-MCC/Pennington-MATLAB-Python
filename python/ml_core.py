@@ -1,9 +1,10 @@
 import os, numpy as np, pandas as pd
 
 import utilities.datagrid as dg
-from utilities.common_functions import append_dict, partition, df_reorder_columns, timestamp
+from utilities.common_functions import append_dict, partition, df_reorder_columns, timestamp, require_tuple
 
-from sklearn.metrics import confusion_matrix, r2_score, accuracy_score
+import sklearn.metrics as skm
+from sklearn.metrics import confusion_matrix, r2_score, accuracy_score, SCORERS, make_scorer
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, RepeatedStratifiedKFold
 from joblib import dump  # Similar to pickle, optimized for objects with large internal numpy arrays
 
@@ -14,8 +15,9 @@ def run_batch(datasets,
               model_param_grid={},
               ext_dataset=None,
               eval_type='regressor',
-              cv_params=dict(),
-              show_best_runs=0
+              cv_params={},
+              show_best_runs=0,
+              n_cores=-1
               ):
     '''
         'run_batch' is an updated version of the legacy 'execute' function designed to use internal DataGrids for
@@ -36,14 +38,15 @@ def run_batch(datasets,
     :param models:
     :param model_param_grid:
     :param ext_dataset:
-    :param eval_type:
-    :param cv_params:
-    :param threshold:
-    :param show_best_runs:
-    :return:
+    :param eval_type: String indicating if run is 'regressor' (default) or 'classifier' (may use 'r' or 'c' resp.)
+    :param cv_params: Dictionary of parameters to be passed to cv_method, which is either classifierCV or regressorCV.
+        (see possible arguments in 'Cross Validation and Scoring Functions' section below)
+    :param show_best_runs: Int indicating the best n runs to print for each target and sex option
+    :param n_cores: Number of processor cores to use in evaluation over DataGrids; -1 (default) uses all
+    :return: DataFrame containing run information, scoring information and estimators (trained models)
     '''
     # setup cross-validation and scoring method, different for regression and classification
-    if eval_type == 'classifier':
+    if eval_type[0] == 'c':
         cv_method = classifierCV
         score_method = classifierScore
     else:
@@ -59,9 +62,9 @@ def run_batch(datasets,
 
     # extract data to ExtractedData type object
     print('[STATUS] Extracting Data')
-    data_dg = dg.nary_product((lambda dataset, target, trnsfrm, cnames:
+    data_dg = dg.eval_product((lambda dataset, target, trnsfrm, cnames:
         dataset.extract_data(cnames, target, scaler_config=(data_config['scalar_config']), data_transformers=trnsfrm)),
-       dataset_dg, target_dg, trnsfrm_dg, cname_dg, multicore=True)
+                              dataset_dg, target_dg, trnsfrm_dg, cname_dg, n_cores=n_cores)
 
     # train, test and score models. There are three possibilities for input.
     print('[STATUS] Training Estimators')
@@ -69,27 +72,27 @@ def run_batch(datasets,
         # perform hyper-parameter grid search
         assert callable(models), 'regressor_param_grid cannot be used on multi-regressor runs.'
         hyperparam_dg = dg.compose_dictgrid(model_param_grid)
-        regressor_dg = dg.nary_product(lambda params: models(**params), hyperparam_dg)
-        results_dg = dg.nary_product((lambda data, reg: cv_method(data, reg, **cv_params)),
-                                     data_dg, regressor_dg, multicore=True)
+        regressor_dg = dg.eval_product(lambda params: models(**params), hyperparam_dg)
+        results_dg = dg.eval_product((lambda data, reg: cv_method(data, reg, **cv_params)),
+                                     data_dg, regressor_dg, n_cores=n_cores)
     elif isinstance(models, list):
         # train each regressor on the extracted data
         regressor_dg = dg.singleton_datagrid(models, 'Model')
-        results_dg = dg.nary_product((lambda data, reg: cv_method(data, reg, **cv_params)),
-                                     data_dg, regressor_dg, multicore=True)
+        results_dg = dg.eval_product((lambda data, reg: cv_method(data, reg, **cv_params)),
+                                     data_dg, regressor_dg, n_cores=n_cores)
     else:
         # train single regressor on extracted data
-        results_dg = dg.nary_product((lambda data: cv_method(data, models, **cv_params)),
-                                     data_dg, multicore=True)
+        results_dg = dg.eval_product((lambda data: cv_method(data, models, **cv_params)),
+                                     data_dg, n_cores=True)
     # unpack final results
     results_df = dg.unpack_dictgrid(results_dg)
 
     if ext_dataset is not None:
         print('[STATUS] Extracting External Data')
         ext_dataset_dg = dg.singleton_datagrid(ext_dataset, 'ExtDataSet')
-        ext_data_dg = dg.nary_product((lambda ext_dataset, target, trnsfrm, cnames:
+        ext_data_dg = dg.eval_product((lambda ext_dataset, target, trnsfrm, cnames:
             ext_dataset.extract_data(cnames, target, scaler_config=(data_config['scalar_config']), data_transformers=trnsfrm)),
-          ext_dataset_dg, target_dg, trnsfrm_dg, cname_dg, multicore=True)
+                                      ext_dataset_dg, target_dg, trnsfrm_dg, cname_dg, n_cores=multicore)
 
         # ensure that ext_data_dg has the same rows as results_df
         if model_param_grid != {}:
@@ -99,10 +102,10 @@ def run_batch(datasets,
 
         print('[STATUS] Training Estimators on External Data')
         results_df['__data__'] = results_df['estimator']
-        results_df = dg.inplace_eval((lambda reg, data:
+        results_df = dg.eval_inplace((lambda reg, data:
                                       {'ext_dataset': type(ext_dataset).__name__,
                                        **score_method(data, reg, prefix='ext')}
-                                      ), results_df, ext_data_dg, multicore=True)
+                                      ), results_df, ext_data_dg, n_cores=n_cores)
 
         # unpack final results
         results_df = dg.unpack_dictgrid(results_df)
@@ -124,10 +127,11 @@ def threshold_scan(thresholds,
                     datasets,
                     data_config,
                     classifiers,
-                    model_param_grid=dict(),
-                    cv_params=dict(),
+                    model_param_grid={},
+                    cv_params={},
                     ext_dataset=None,
-                    show_best_runs=0
+                    show_best_runs=0,
+                    n_cores=-1
                     ):
     '''
         Given a list of threshold values and a classifier with predict_proba, run a run_batch grid search and score the
@@ -146,7 +150,8 @@ def threshold_scan(thresholds,
                     ext_dataset=ext_dataset,
                     eval_type='classifier',
                     cv_params={**cv_params, **{'threshold': threshold}},
-                    show_best_runs=show_best_runs
+                    show_best_runs=show_best_runs,
+                    n_cores=n_cores
         )
         batch_results.insert(0, 'threshold', threshold)
         results = pd.concat([results, batch_results])
@@ -158,7 +163,7 @@ def ext_train_save(model,
                    feature_cnames,
                    target_cname,
                    eval_type='classifier',
-                   cnd=None,
+                   cv_params={},
                    model_name=None,
                    save_location = 'models'
                    ):
@@ -175,20 +180,22 @@ def ext_train_save(model,
     :param save_location: location to save the model (relative where this function is called from)
     '''
     # TODO: Save to models.csv instead
+    cv_params = {**dict(total_train=True), **cv_params}  # ensure always total_train=True
     if eval_type == 'classifier':
         cv_method = classifierCV
-        score_method = classifierScore
     else:
         cv_method = regressorCV
-        score_method = regressorScore
     if model_name is None:
         model_name = type(model).__name__
     save_name = f"{save_location}/{target_cname}_{model_name}_{timestamp()}"  # location and save name of extracted model
     # train and score the model
-    cv_score = cv_method(dataset.extract_data(feature_cnames, target_cname), model, cnd=cnd, total_train=True)
+    Data = dataset.extract_data(feature_cnames, target_cname)
+    cv_score = cv_method(Data, model, **cv_params)
     # export the model
-    dump(cv_score['estimator'], f"{save_name}.joblib")
+    dump(cv_score['estimator'], f"{save_name}_mdl.joblib")
     del cv_score['estimator']
+    # export scalars
+    # dump(Data.scaler_dict, f"{save_name}_sclrs.joblib")
     # append score, input features and the model's name to models.txt for future reference so that the model may be used
     if os.path.exists('models/models.txt'):
         f = open(f'{save_location}/models.txt', 'a+')
@@ -208,12 +215,12 @@ Cross Validation and Scoring Functions
 
 
 # Train a regressor and score it using cross-validation
-def regressorCV(data, reg, n_splits=5, total_train=False):
+def regressorCV(data, reg, n_splits=5, scorers=['r2'], total_train=False):
     X = data.x_scaled.values
     y = data.y_scaled.values.ravel()
-    cv_scores = cross_validate(reg, X, y, scoring=('r2', ), cv=n_splits,
+    cv_scores = cross_validate(reg, X, y, scoring=scorers, cv=n_splits,
                                return_train_score=True, return_estimator=True)
-    estimator = cv_scores['estimator'][np.argmax(cv_scores['test_r2'])]
+    estimator = cv_scores['estimator'][np.argmax(cv_scores['test_' + scorers[0]])]  # select by best test score
     del cv_scores['estimator']
     del cv_scores['fit_time']
     del cv_scores['score_time']
@@ -241,17 +248,24 @@ def regressorScore(data, reg, prefix=''):
 # Train a classifier and score it using cross-validation
 def classifierCV(data,
                  clf,
+                 scorers=['accuracy'],
                  cnd=None,
                  threshold=None,
                  n_splits=5,
                  total_train=False,
                  external_validation=0,  # % of dataset to use for external validation
-                 cv_method=StratifiedKFold  # stratifiedShuffleCV
+                 cv_method=StratifiedKFold  # options: https://scikit-learn.org/stable/modules/cross_validation.html
                  ):
     X = data.x_scaled.values
     if len(X) == 0:
         return {'subjects': 0}
     y = data.y.values.astype('int32').ravel()
+    # try:
+    #     y = data.y.values.astype('int32').ravel()
+    # except ValueError:
+    #     print(data.x.columns)
+    #     print(data.y)
+    #     exit()
 
     if external_validation != 0:
         X, X_ext, y, y_ext = train_test_split(X, y, test_size=external_validation, random_state=42)  # ext is 'test'
@@ -263,10 +277,18 @@ def classifierCV(data,
         clf0 = clf if threshold is None else threshold_clf(clf, cnd, threshold)
         clf0.fit(X_train, y_train)
         y_pred = clf0.predict(X_test)
+        y_train_pred = clf0.predict(X_train)
         mtrx = confusion_matrix(y_test, y_pred)
         cv_cols['Confusion Matrix'] = mtrx
-        cv_cols['train_acc'] = accuracy_score(y_train, clf0.predict(X_train))
-        cv_cols['test_acc'] = accuracy_score(y_test, y_pred)
+        for scorer in scorers:
+            # Get scorer function (THERE HAS TO BE A BETTER WAY!)
+            scr = str(SCORERS[scorer])
+            scr = scr[scr.find("(")+1:scr.find(")")]
+            scr = eval('skm.'+scr)
+            cv_cols['train_' + scorer] = scr(y_train, y_train_pred)
+            cv_cols['test_' + scorer] = scr(y_test, y_pred)
+        # cv_cols['train_acc'] = accuracy_score(y_train, clf0.predict(X_train))
+        # cv_cols['test_acc'] = accuracy_score(y_test, y_pred)
         if cnd is not None:
             cv_cols = {**cv_cols, **(cnd_score(mtrx, cnd, verbose=True))}
         cv_cols['estimator'] = clf0
@@ -277,7 +299,7 @@ def classifierCV(data,
         if 'Matrix' in cname:
             mean_cv_scores[cname] = np.sum(cv_scores[cname].values) / n_splits
 
-    mean_cv_scores['estimator'] = cv_scores['estimator'].values[np.argmax(cv_scores['test_acc'].values)]
+    mean_cv_scores['estimator'] = cv_scores['estimator'].values[np.argmax(cv_scores['test_' + scorers[0]].values)]
     for cname in ('tp', 'fn', 'fp', 'tn'):
         mean_cv_scores[cname] = int(mean_cv_scores[cname] * n_splits)
 

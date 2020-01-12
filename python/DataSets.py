@@ -107,7 +107,7 @@ class DataSet:
                 # Remove people with family histories for HBA1C
                 blood_df['SubjectID'] = cut_subject_ids(blood_df['SubjectID'])
                 blood_df = blood_df.merge(
-                    pd.read_excel('data/ShapeUp/Shapeup_Adults_Q2_Fixed_meeting_5-24-19.xlsx', sheet_name='History'),
+                    pd.read_excel(GITPATH + 'python/data/ShapeUp/Shapeup_Adults_Q2_Fixed_meeting_5-24-19.xlsx', sheet_name='History'),
                     on='SubjectID', how='outer')
                 blood_df = blood_df.loc[blood_df['Fam_Diabetes'] != 'Yes']
                 blood_df['SubjectID'] = standardize_subject_ids(blood_df['SubjectID'])
@@ -117,7 +117,7 @@ class DataSet:
                 blood_df['HBA1C_risk'] = discrete_class(blood_df, '_HBA1C', [5.6])  # 0 is healthy
                 # Heart risks
                 blood_df['LDL_risk'] = discrete_class(blood_df, 'LDL', [130])  # 0 is healthy
-                blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40])  # 2 (>60) is healthy
+                blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40])  # 1 (>40) is healthy
             if n_classes == 3:
                 # Diabetes risks
                 blood_df['GLU_risk'] = discrete_class(blood_df, 'GLU', [100, 125])  # 0 is healthy
@@ -180,7 +180,7 @@ class DataSet:
                 blood_df['HBA1C_risk'] = discrete_class(blood_df, '_HBA1C', [5.6])  # 0 is healthy
                 # Heart risks
                 blood_df['LDL_risk'] = discrete_class(blood_df, 'LDL', [130])  # 0 is healthy
-                blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40])  # 2 (>60) is healthy
+                blood_df['HDL_risk'] = discrete_class(blood_df, 'HDL', [40])  # 1 (>40) is healthy
             if n_classes == 3:
                 # Diabetes risks
                 blood_df['GLU_risk'] = discrete_class(blood_df, 'GLU', [100, 125])  # 0 is healthy
@@ -225,8 +225,7 @@ Usable Datasets
 
 # this class takes the mean of both the duplicate dexa values and styku subject ids .
 class StykuDataSet(DataSet):
-    def __init__(self, include_BIA=False, include_classes=False):
-        self.include_BIA = include_BIA
+    def __init__(self, include_classes=False):
         self.classes = include_classes
         super().__init__()
 
@@ -440,6 +439,7 @@ class CombinedDataSet(DataSet):
 
         ss20_df['SubjectID'] = ss20_df['SubjectID'].map(lambda id: "SS20_" + id)
 
+        # TODO: Ensure units are the same
         #styku_df = styku_df.apply(lambda x: x * 16.3871 / 1000 if x is int else x)  # Convert from in3 to L
         #ss20_df = ss20_df.apply(lambda x: x * 10 ** -6 if x is int else x) # Convert from mm3 to L
 
@@ -544,10 +544,10 @@ class ExtractedData:
     def __init__(self, x, y, scaler):
         self.x = x # x column
         self.y = y # y column
-        self.scaler = scaler # scalar
-        # self.scaler_params = scaler.get_params()
         self.x_scaled = scaler.transform(x)
         self.y_scaled = scaler.transform(y)
+        self.scaler = scaler # scalar
+        # self.scaler_dict = scaler.get_all_scalars(pd.concat([x, y], axis=1))
 
 
 class DataFrameScaler:
@@ -598,6 +598,12 @@ class DataFrameScaler:
                 df[column] = scaler.transform(df[column].to_frame())
         return df
 
+    # def get_all_scalars(self, df):
+    #     scalar_dict = {}
+    #     for cname in df.columns:
+    #         scalar_dict[cname] = self.__get_column_scaler(cname)
+    #     return scalar_dict
+
 
 '''
 Other DataSet Functions
@@ -605,9 +611,11 @@ Other DataSet Functions
 
 
 # Create a DataSet from a pandas dataframe
-def to_Dataset(df, subject_cname='SubjectID'):
+def to_DataSet(df, combine_common=False, subject_cname='SubjectID'):
     class AutoDataset(DataSet):
         def load_data(self):
+            if not(combine_common):
+                return df
             try:
                 # find subject IDs and combine with DXA, Blood, and Questionaire data
                 df['SubjectID'] = cut_subject_ids(df[subject_cname])  # remove scan suffixes
@@ -623,7 +631,7 @@ def to_Dataset(df, subject_cname='SubjectID'):
                 combined_df = combined_df.merge(clean_df, on='SubjectID', how='outer')
                 return combined_df
             except KeyError:
-                # if there are no subject indentifiers, do not combine with DXA
+                # if there are no subject identifiers, do not combine with DXA
                 warnings.warn(f'Could not find subject identifier column \"{subject_cname}\", loading without DXA.',
                               stacklevel=4)
                 return df

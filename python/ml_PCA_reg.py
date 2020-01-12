@@ -4,7 +4,7 @@ from utilities.data_transformers import column_filter
 from sklearn.linear_model import LinearRegression
 from ml_core import run_batch
 
-numbers = list(range(1, 100))
+numbers = list(range(50, 80))
 
 dataset = PCADataSet()
 data_config_dict = {

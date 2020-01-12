@@ -114,13 +114,14 @@ DataGrid Functions
 The code below is used to map arbitrary functions over DataGrids.
 '''
 
-def nary_product(fn, *dgs, multicore=False):
+
+def eval_product(fn, *dgs, n_cores=1):
     '''
     Takes 'Cartesian Product' of DataGrids and maps fn over their __data__ entries.
 
     :param fn: Function with sequential inputs to map over __data__ columns
     :param dgs: Ordered sequence of DataGrids
-    :param multicore: Boolean Parameter for parallel processing
+    :param n_cores: Number of processor cores to use in evaluation; -1 uses all.
     :return: DataGrid 'product' with product.__data__ = fn(dg1.__data__ x dg2.__data__ x ...)
     '''
     df_list = []
@@ -131,8 +132,8 @@ def nary_product(fn, *dgs, multicore=False):
     product_data = product.drop(nondata_cnames, axis=1)
     product = product[nondata_cnames]
     product['__data__'] = product_data.apply(require_tuple, axis=1) # apply require_tuple over rows
-    if multicore:
-        product['__data__'] = resolve_delayed([delayed(fn)(*tupl) for tupl in product['__data__']])
+    if n_cores != 1:
+        product['__data__'] = resolve_delayed([delayed(fn)(*tupl) for tupl in product['__data__']], n_cores=n_cores)
     else:
         product['__data__'] = [fn(*tupl) for tupl in product['__data__']]
     return product.drop('__merge__', axis=1)
@@ -153,21 +154,21 @@ def list_product(fn, dgs: list):
     return reduce(lambda x1, x2: binary_product(fn, x1, x2), dgs)  # reduce: f(x1, x2, x3) = f(f(x1, x2), x3)
 
 
-def inplace_eval(fn, *dgs, inherit_cols=0, multicore=False):
+def eval_inplace(fn, *dgs, inherit_cols=0, n_cores=1):
     '''
-    WIP: Maps fn over DataGrids __data__ entries inplace.
+    Maps fn over DataGrids __data__ entries inplace.
 
     :param fn: Function with sequential inputs to map over __data__ columns.
     :param dgs: Ordered sequence of DataGrids with the same number of ordered rows.
     :param inherit_cols: Index of dg in dgs to inherit non-__data__ columns from.
-    :param multicore: Boolean Parameter for parallel processing.
+    :param n_cores: Number of processor cores to use in evaluation; -1 uses all.
     :return: DataGrid 'product' with product.__data__ = fn(dg1.__data__, dg2.__data__, ...)
     '''
     data_list = np.array([dg.__data__.values for dg in dgs]).T
     data_list = [require_tuple(s) for s in data_list]
     product = dgs[inherit_cols]
-    if multicore:
-        product["__data__"] = resolve_delayed([delayed(fn)(*tupl) for tupl in data_list])
+    if n_cores != 1:
+        product["__data__"] = resolve_delayed([delayed(fn)(*tupl) for tupl in data_list], n_cores=n_cores)
     else:
         product["__data__"] = [fn(*tupl) for tupl in data_list]
     return product

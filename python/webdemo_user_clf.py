@@ -24,7 +24,7 @@ n_features = len(cnames)
 target_cname = 'LDL_risk'
 
 print(f'Training and storing model for {target_cname} prediction with {n_features} features from {type(dataset).__name__}')
-ext_train_save(model, dataset, cnames, target_cname, eval_type='classifier', cnd=0)
+ext_train_save(model, dataset, cnames, target_cname, eval_type='classifier', cv_params=dict(cnd=0))
 
 all_models = glob.glob('models/*.joblib')
 model_rel_path = max(all_models, key=os.path.getctime)

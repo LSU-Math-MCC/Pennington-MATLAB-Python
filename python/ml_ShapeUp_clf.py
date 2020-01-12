@@ -23,9 +23,9 @@ from ml_core import run_batch
 import datetime
 now = datetime.datetime.now()
 
-# dataset = StykuDataSet(include_classes=True)
+dataset = StykuDataSet(include_classes=True)
 # dataset = SS20DataSet(include_classes=True)
-dataset = CombinedDataSet(include_classes=True)
+# dataset = CombinedDataSet(include_classes=True)
 
 essential_transformers = []
 data_config_dict = {
@@ -111,7 +111,8 @@ results = run_batch(
     regressor,
     regressor_parameter_grid,
     eval_type='classifier',
-    cv_params=dict(cnd=0)
-    # show_best_runs=1
+    cv_params=dict(cnd=0),
+    # show_best_runs=1,
+    multicore=False
 )
 print(results)
