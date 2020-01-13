@@ -119,7 +119,7 @@ results = run_batch(
     # configure internal parameters for n-fold cross-validation and scoring
     cv_params=dict(
         n_splits=5,
-        scores=['r2', 'explained_variance']  # options: https://scikit-learn.org/stable/modules/model_evaluation.html
+        scorers=['r2', 'explained_variance']  # options: https://scikit-learn.org/stable/modules/model_evaluation.html
     ),
     # print the best 3 runs (sorted by test_r2) for each target and sex option
     show_best_runs=3

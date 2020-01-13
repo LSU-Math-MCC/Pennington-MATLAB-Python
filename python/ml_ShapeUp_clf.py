@@ -112,7 +112,6 @@ results = run_batch(
     regressor_parameter_grid,
     eval_type='classifier',
     cv_params=dict(cnd=0),
-    # show_best_runs=1,
-    multicore=False
+    # show_best_runs=1
 )
 print(results)
