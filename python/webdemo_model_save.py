@@ -1,5 +1,7 @@
-from utilities.common_functions import Map
 from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
+
+from utilities.common_functions import Map, timestamp
 from ml_core import ext_train_save
 from DataSets import StykuDataSet
 
@@ -27,19 +29,21 @@ trunk = Map(name="Trunk", short_name="TRUNK",
                 dexa =Map(volume="TRUNK_volume", fat_mass="TRUNK_FAT", lean_mass="TRUNK_LEAN", bmc = 'TRUNK_BMC',pmass="TRUNK_PFAT"),
                 styku=Map(volume="Styku_trunkVolume"),
                 ss20 =Map(volume="SS20_trunkVolume"))
+total = Map(name="Trunk", short_name="TRUNK",
+                dexa =Map(volume="TRUNK_volume", fat_mass="TOTAL_FAT", lean_mass="TOTAL_LEAN", bmc = 'WBTOT_BMC',pmass="TOTAL_PFAT"),
+                styku=Map(volume="Styku_TotalVolume"),
+                ss20 =Map(volume="SS20_TotalVolume"))
+body_parts = [left_arm, right_arm, left_leg, right_leg, head, trunk, total]
 
-#defining the different body parts
-body_parts = [left_arm, right_arm, left_leg, right_leg, head, trunk]
-
-targets = ["FAT", "LEAN"]
-
-
+targets = ["FAT", "LEAN", "PFAT", "BMC"]
 model = MLPRegressor(solver="lbfgs", activation="identity", max_iter=800, hidden_layer_sizes=(1,))
 dataset = StykuDataSet()
+
 bmi = ['BMI1']
+age = ['age']
 sex = ['SEX']
 volumes = ["TotalVolume", "headVolume", "rArmVolume", "lArmVolume", "rLegVolume", "lLegVolume", "trunkVolume"]
-m_common = ["waist circ", #"hip circ",
+m_common = ["waist circ", "hip circ",
             "rThighGirth", "rbicepGirth"]
 m_all = ["Chest circ", "waist circ", "hip circ", "rThighGirth", "lThighGirth",
                     "rCalfCirc", "lCalfCirc", "rWristGirth", "lWristGirth", "rForearm",
@@ -49,10 +53,14 @@ a_b_four = ["waist circ A_B", "hip circ A_B", "rThighGirth A_B", "rbicepGirth A_
 a_b_all = ["Chest circ A_B", "waist circ A_B", "hip circ A_B", "rThighGirth A_B", "lThighGirth A_B",
             "rCalfCirc A_B", "lCalfCirc A_B", "lWristGirth A_B", "rForearm A_B", "lForearmGirth A_B", "rbicepGirth A_B",
             "lBicepGirth A_B", "rAnkle A_B", "rWristGirth A_B", "Lankle A_B"]
+scaler_config = {
+    "SEX": LabelBinarizer,
+    "age": MinMaxScaler,
+    "default": StandardScaler
+}
+features = m_all + a_b_all + age + volumes + bmi + sex
 
-cnames = m_all + a_b_all + volumes
-
-
+timestamp = timestamp()
 for target in targets:
     for body_part in body_parts:
         if target == "FAT":
@@ -64,8 +72,5 @@ for target in targets:
         elif target == "BMC":
             target_cname = body_part.dexa.bmc
 
-        # model_name = f'{body_part.name.replace(" ","_")}_MLPRegressor'
-
-        print(f'[STATUS] Training on {target_cname}')
-        ext_train_save(model, dataset, cnames, target_cname,
-                       eval_type='regressor', save_location='models/perlimb')
+        print(f'[STATUS] Training and saving {type(model).__name__} on {target_cname}')
+        ext_train_save(model, dataset, features, target_cname, scaler_config=scaler_config, eval_type='regressor', timestamp=timestamp)

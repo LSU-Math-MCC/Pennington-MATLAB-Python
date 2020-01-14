@@ -284,6 +284,7 @@ class StykuDataSet(DataSet):
         combined_df['BMI'] = pd.to_numeric(combined_df['BMI'], errors='ignore')
 
         combined_df = combined_df.drop(columns="BMI_act")
+        combined_df = combineLR_ShapeUp(combined_df)
         return combined_df
 
 
@@ -329,6 +330,7 @@ class StykuDataSet_2(DataSet):
             lambda row: date.today().year - row['qff_dob_year'] if row['age'] == "" else row['age'], axis=1)
 
         combined_df['age'] = pd.to_numeric(combined_df['age'], errors='ignore')
+        combined_df = combineLR_ShapeUp(combined_df)
         return combined_df
 
 
@@ -418,7 +420,7 @@ class SS20DataSet(DataSet):
         combined_df['age'] = pd.to_numeric(combined_df['age'], errors='ignore')
         combined_df.drop_duplicates(subset='SubjectID', keep='last', inplace=True)
         # combined_df = combined_df.groupby(['SubjectID'], as_index=False).aggregate('mean')
-
+        combined_df = combineLR_ShapeUp(combined_df)
         return combined_df
         
 
@@ -544,8 +546,8 @@ class ExtractedData:
     def __init__(self, x, y, scaler):
         self.x = x # x column
         self.y = y # y column
-        self.x_scaled = scaler.transform(x)
-        self.y_scaled = scaler.transform(y)
+        self.x_scaled = scaler.fit_transform(x)
+        self.y_scaled = scaler.fit_transform(y)
         self.scaler = scaler # scalar
         # self.scaler_dict = scaler.get_all_scalars(pd.concat([x, y], axis=1))
 
@@ -582,27 +584,33 @@ class DataFrameScaler:
 
     def transform(self, df):
         df = df.copy()
-
-        # fit scalars
-        for column in df.columns: # enumerate of str cnames
-            for scaler in self.__get_column_scaler(column):  # Returns list of scalars to fit to column
-                frame = df[column].to_frame() # convert column to df
-                if hasattr(scaler, "partial_fit"):
-                    scaler.partial_fit(frame)
-                else:
-                    scaler.fit(frame) # fit scalar to df, e.g. compute the mean and std to be used for later scaling.
-
         # Apply scalars to columns
         for column in df.columns:
-            for scaler in self.__get_column_scaler(column): # Returns list of scalars to transform column
+            for scaler in self.__get_column_scaler(column):  # Returns list of scalars to transform column
                 df[column] = scaler.transform(df[column].to_frame())
         return df
 
-    # def get_all_scalars(self, df):
-    #     scalar_dict = {}
-    #     for cname in df.columns:
-    #         scalar_dict[cname] = self.__get_column_scaler(cname)
-    #     return scalar_dict
+    def fit(self, df):
+        # fit scalars
+        for column in df.columns:  # enumerate of str cnames
+            for scaler in self.__get_column_scaler(column):  # Returns list of scalars to fit to column
+                frame = df[column].to_frame()  # convert column to df
+                if hasattr(scaler, "partial_fit"):
+                    scaler.partial_fit(frame)
+                else:
+                    scaler.fit(frame)  # fit scalar to df, e.g. compute the mean and std to be used for later scaling.
+
+    def fit_transform(self, df):
+        self.fit(df)
+        df = self.transform(df)
+        return df
+
+    def inverse_transform(self, df):
+        # Scale the columns back to their original representation
+        for column in df.columns:
+            for scaler in self.__get_column_scaler(column):  # Returns list of scalars to transform column
+                df[column] = scaler.inverse_transform(df[column].to_frame())
+        return df
 
 
 '''
@@ -644,3 +652,30 @@ def hold_dataset(dataset, rewrite=False):
         os.makedirs('./extracted datasets')
     if not os.path.isfile(f"./extracted datasets/{name}") or rewrite:
         dataset.load_data().to_csv(f"./extracted datasets/{name}.csv")
+
+
+'''
+Specific DataSet Manipulation Functions
+'''
+
+
+def combineLR_ShapeUp(df):
+    df['ArmVolume'] = df[['rArmVolume', 'lArmVolume']].mean(axis=1)
+    df['LegVolume'] = df[['rLegVolume', 'lLegVolume']].mean(axis=1)
+    df['ThighGirth'] = df[['rThighGirth', 'lThighGirth']].mean(axis=1)
+    df['CalfCirc'] = df[['rCalfCirc', 'lCalfCirc']].mean(axis=1)
+    df['WristGirth'] = df[['rWristGirth', 'lWristGirth']].mean(axis=1)
+    df['ForearmGirth'] = df[['rForearm', 'lForearmGirth']].mean(axis=1)
+    df['BicepGirth'] = df[['rbicepGirth', 'lBicepGirth']].mean(axis=1)
+    df['AnkleGirth'] = df[['rAnkle', 'Lankle']].mean(axis=1)  # "rAnkle" and "Lankle" are ankle girths
+    df['ArmLength'] = df[['LarmLength', 'RArmLength']].mean(axis=1)
+    df['LegLength'] = df[['lLegLength', 'rLegLength']].mean(axis=1)
+    df['ThighGirth A_B'] = df[['rThighGirth A_B', 'lThighGirth A_B']].mean(axis=1)
+    df['CalfCirc A_B'] = df[['rCalfCirc A_B', 'lCalfCirc A_B']].mean(axis=1)
+    df['WristGirth A_B'] = df[['rWristGirth A_B', 'lWristGirth A_B']].mean(axis=1)
+    df['ForearmGirth A_B'] = df[['rForearm A_B', 'lForearmGirth A_B']].mean(axis=1)
+    df['BicepGirth A_B'] = df[['rbicepGirth A_B', 'lBicepGirth A_B']].mean(axis=1)
+    df['Ankle A_B'] = df[['rAnkle A_B', 'Lankle A_B']].mean(axis=1)
+    # df['SA_Arm'] = df[['SA_lArm', 'SA_rArm']].mean(axis=1)
+    # df['SA_Leg'] = df[['SA_lLeg', 'SA_rLeg']].mean(axis=1)
+    return df
