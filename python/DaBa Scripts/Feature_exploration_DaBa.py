@@ -1,28 +1,54 @@
 import math, pandas as pd, seaborn as sns
 import matplotlib.pyplot as plt
 
-def feature_explore_single(df, feature_cname):
-    print(df[feature_cname].describe())
-    # df.hist(column=feature_cname,
-    #         by='DEM_SEX',
-    #         # sharex=True,
-    #         histtype='barstacked',
-    #         label=feature_cname
-    #         )
-    dfm = df.loc[df['DEM_SEX'] == 'M']
-    dff = df.loc[df['DEM_SEX'] == 'F']
-    plt.hist([dfm[feature_cname], dff[feature_cname]],
-            histtype='barstacked',
-             label=feature_cname)
-    plt.show()
+df = pd.read_excel('../data/ShapeUp/pdDataStorage_v4.xlsx')
+m_common = ['DA_3DO3_CIRC_W', 'DA_3DO3_CIRC_H', 'DA_3DO3_CIRC_Th', 'DA_3DO3_CIRC_B']
+ER_all = ['DA_3DO3_ER_Ch', 'DA_3DO3_ER_W', 'DA_3DO3_ER_H', 'DA_3DO3_ER_Th', 'DA_3DO3_ER_C', 'DA_3DO3_ER_Wr', 'DA_3DO3_ER_F', 'DA_3DO3_ER_B', 'DA_3DO3_ER_A']
+all_targets = ['BC_DXA_FAT_TOT', 'BC_DXA_LST_TOT']
 
-    print(
-        pd.concat([
-        dfm[feature_cname].describe(),
-        dff[feature_cname].describe()
-    ], keys=['M','F'])
+def plot_correlation(
+        df: pd.DataFrame,
+        feature_cnames: list,
+        target_cnames: list,
+        fontsize = 8
+) -> None:
+    '''
+    Plot correlation matrix given features and targets, right now there is no distinction between the two, may start
+    highlighting target names.
+
+    :param df: dataframe
+    :param feature_cnames: list of column names
+    :param target_cnames: list of column names
+    :param fontsize: Fontsize for labels
+    :return: None. Image printed with plt.show()
+    '''
+    df = df[feature_cnames+target_cnames]
+    # Remove Sex from column list, it does not appear in matrix
+    if 'DEM_SEX' in df.columns:
+        # df['DEM_SEX'].map({'M': 0, 'F': 1}) # did not work with df.corr
+        del df['DEM_SEX']
+
+    # Draw heatmap of df
+    g = sns.heatmap(
+        df.dropna().corr(),  # make correlation matrix
+        annot=len(feature_cnames+target_cnames) < 10,
+        annot_kws={"fontsize":fontsize, "rotation":-45},
+        cbar_kws={"orientation": "vertical"}
     )
 
+    # Style options
+    g.set_aspect("equal")
+    bottom, top = g.get_ylim()
+    g.set_ylim(bottom + 0.5, top - 0.5)
+
+    g.set_yticklabels(df.columns, fontsize=fontsize, rotation=0)
+    # g.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    # x_ticks = list(df.columns)
+    # g.set_xticks(np.arange(len(x_ticks)))
+    # g.set_xticklabels(x_ticks, fontsize=fontsize, horizontalalignment='center')
+    plt.show()
+
+plot_correlation(df, ER_all+['DEM_SEX'], all_targets)
 
 def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
     """
@@ -45,6 +71,12 @@ def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
 
     n_feat = len(feature_cname)
     if n_feat == 1:
+        # df.hist(column=feature_cname,
+        #         by='DEM_SEX',
+        #         # sharex=True,
+        #         histtype='barstacked',
+        #         label=feature_cname
+        #         )
         plt.hist([dfm[feature_cname[0]], dff[feature_cname[0]]],
                  histtype='barstacked')
         plt.show()
@@ -84,11 +116,6 @@ def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
 
     del df_data['DEM_AGE']
     return df_data
-
-
-df = pd.read_excel('../data/ShapeUp/pdDataStorage_v4.xlsx')
-m_common = ['DA_3DO3_CIRC_W', 'DA_3DO3_CIRC_H', 'DA_3DO3_CIRC_Th', 'DA_3DO3_CIRC_B']
-ER_all = ['DA_3DO3_ER_Ch', 'DA_3DO3_ER_W', 'DA_3DO3_ER_H', 'DA_3DO3_ER_Th', 'DA_3DO3_ER_C', 'DA_3DO3_ER_Wr', 'DA_3DO3_ER_F', 'DA_3DO3_ER_B', 'DA_3DO3_ER_A']
 
 feature_explore(df, 'DA_3DO3_CIRC_Ch')
 df = feature_explore(df, m_common+ER_all,age_groups=True)
