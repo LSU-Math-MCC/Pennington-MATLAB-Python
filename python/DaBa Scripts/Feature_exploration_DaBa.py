@@ -48,7 +48,7 @@ def plot_correlation(
     # g.set_xticklabels(x_ticks, fontsize=fontsize, horizontalalignment='center')
     plt.show()
 
-plot_correlation(df, ER_all+['DEM_SEX'], all_targets)
+# plot_correlation(df, ER_all+['DEM_SEX'], all_targets)
 
 def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
     """
@@ -77,7 +77,7 @@ def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
         #         histtype='barstacked',
         #         label=feature_cname
         #         )
-        plt.hist([dfm[feature_cname[0]], dff[feature_cname[0]]],
+        plt.hist([dfm[feature_cname[0]].dropna(), dff[feature_cname[0]].dropna()],
                  histtype='barstacked')
         plt.show()
     else:
@@ -118,5 +118,5 @@ def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
     return df_data
 
 feature_explore(df, 'DA_3DO3_CIRC_Ch')
-df = feature_explore(df, m_common+ER_all,age_groups=True)
-print(df)
+df_data = feature_explore(df, m_common+ER_all,age_groups=True)
+print(df_data)
