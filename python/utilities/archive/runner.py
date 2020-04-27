@@ -96,12 +96,12 @@ def execute(datasets,
     best_df = pd.DataFrame() # Needed to keep track of best runs if export_best > 0
     for target in targets:
         if targets != [None]:
-            loader_params['label_cname'] = target
+            loader_params['target_cname'] = target
         else:
-            target = loader_params['label_cname']
+            target = loader_params['target_cname']
 
         for dataset in datasets:
-            print(f"[EXTRAC] Extracting {type(dataset).__name__} for {eval_type} on {loader_params['label_cname']}")
+            print(f"[EXTRAC] Extracting {type(dataset).__name__} for {eval_type} on {loader_params['target_cname']}")
             # extracts data and applies transformations from loader_params
             # param_map contains the arguments for extract data
             # each param_map is the same except for 'feature_cnames'
@@ -250,26 +250,26 @@ def execute(datasets,
         timestamp = int(datetime.datetime.now().strftime('%Y%m%d%H%M')[2:])
         best_df.index = range(len(best_df.index))
         print('[EXPORT] Best runs to be exported:')
-        print(best_df)
-        save = str(input('[EXPORT] Save evaluators to disk (y/[n])? '))
-        if save == 'y':
-            run_list = input('[EXPORT] List evaluators to save (space separated): ')
-            for run_idx in run_list.split():
-                run_data = best_df.iloc[int(run_idx)]
-                print(run_data)
-                save_name = f'models/{run_data["target"]}_{run_data["estimator"]}_{timestamp}-{run_idx}'
-                dump(run_data["estimator"], f"{save_name}.joblib")
-                if os.path.exists('models/models.txt'):
-                    f = open("models/models.txt", "a+")  # Append to models.txt
-                else:
-                    f = open("models/models.txt", "w+")  # Write models.txt
-                f.write(
-                    f'Run {timestamp}-{run_idx}: {run_data["estimator"]} on ({run_data["sex"]}) {run_data["target"]}\n'
-                    f'Input parameters: {run_data["param_grid"]}\n'
-                    f'train/test: {run_data["mean_train_r2"]}/{run_data["mean_test_r2"]}\n'
-                    f'total train: {run_data["total_train_r2"]}\n\n'
-                )
-                f.close()
+        print(best_df[['target', 'SEX', 'PCs', 'n_samples', 'mean_train_r2', 'mean_test_r2']])
+        # save = str(input('[EXPORT] Save evaluators to disk (y/[n])? '))
+        # if save == 'y':
+        #     run_list = input('[EXPORT] List evaluators to save (space separated): ')
+        #     for run_idx in run_list.split():
+        #         run_data = best_df.iloc[int(run_idx)]
+        #         print(run_data)
+        #         save_name = f'models/{run_data["target"]}_{run_data["estimator"]}_{timestamp}-{run_idx}'
+        #         dump(run_data["estimator"], f"{save_name}.joblib")
+        #         if os.path.exists('models/models.txt'):
+        #             f = open("models/models.txt", "a+")  # Append to models.txt
+        #         else:
+        #             f = open("models/models.txt", "w+")  # Write models.txt
+        #         f.write(
+        #             f'Run {timestamp}-{run_idx}: {run_data["estimator"]} on ({run_data["sex"]}) {run_data["target"]}\n'
+        #             f'Input parameters: {run_data["param_grid"]}\n'
+        #             f'train/test: {run_data["mean_train_r2"]}/{run_data["mean_test_r2"]}\n'
+        #             f'total train: {run_data["total_train_r2"]}\n\n'
+        #         )
+        #         f.close()
     return full_df
 
 
