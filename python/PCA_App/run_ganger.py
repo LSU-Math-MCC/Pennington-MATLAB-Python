@@ -22,8 +22,8 @@ DEFAULT_OUTPUT_SUFFIX = '_fitted'
 # TEMPLATETRANS = Path.getter() + 'python/PCA_App/ganger/data/template-60k-m_rot_trans.ply'
 # TEMPLATEMODIFIED = Path.getter() + 'python/PCA_App/ganger/data/template-60k-m-adjust.mkr'
 
-concurring = int(input("Enter number of Simultaneous runs: "))
-
+# concurring = int(input("Enter number of Simultaneous runs: "))
+concurring = 4 # NEED TO CHANGE BACK FOR REAL PIPELINE
 
 class GangGang:
     def __init__(self):
@@ -43,17 +43,17 @@ class GangGang:
                 if self.in_points[i] is not None:
                     f.write('loadMesh 0 '+ 'data/template-60k-m_rot_trans.ply' + '\n')
                     f.write('loadMarkers 0 '+ 'data/template-60k-m-adjust.mkr' + '\n')
-                    f.write('loadMesh 1 ' + self.in_meshes[i] + '\n')
+                    f.write('loadMesh 1 ' + self.Bin_meshes[i] + '\n')
                     f.write('loadMarkers 1 ' + self.in_points[i] + '\n')
                     #f.write('show 1'+ '\n')
 
-                    f.write('startMatch 1 1   0   0'+ '\n')
-                    f.write('startMatch 0 2   0   0.2 800'+ '\n')
-                    f.write('startMatch 0 10  0   0.2 40'+ '\n')
-                    f.write('startMatch 0 10  0.2 0.2 100'+ '\n')
-                    f.write('startMatch 0 5   1   0.3 100'+ '\n')
-                    f.write('startMatch 0 0.5 10  0.5 100'+ '\n')
-                    f.write('startMatch 0 0.1 20  0.3 20'+ '\n')
+                    f.write('startMatch 1 1   0   0' + '\n')
+                    f.write('startMatch 0 2   0   0.2 800' + '\n')
+                    f.write('startMatch 0 10  0   0.2 40' + '\n')
+                    f.write('startMatch 0 10  0.2 0.2 100' + '\n')
+                    f.write('startMatch 0 5   1   0.3 100' + '\n')
+                    f.write('startMatch 0 0.5 10  0.5 100' + '\n')
+                    f.write('startMatch 0 0.1 20  0.3 20' + '\n')
                     #f.write('show 1'+ '\n')
                     f.write('saveMesh ' + self.out_meshes[i] + '\n\n')
 

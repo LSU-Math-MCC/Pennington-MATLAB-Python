@@ -12,6 +12,7 @@ from python.PCA_App.point_reduction_script import FileConverter
 from python.utilities.FolderToFolder import MoverMan
 from PCA_App.runner_PCA_auto import PCA_ml
 from python.utilities.PathMaker import PathMan
+from python.utilities.data_transformers import cut_subject_ids
 
 ####################   Attempts to expand the field limit for 180k points      ##################################
 maxInt = sys.maxsize
@@ -93,6 +94,7 @@ def principal_component_analysis(coordinate_file, output_file_name):
 def main():
     PRS = FileConverter()
     PRS.easyScript()
+
     Path = PathMan()
     inputPath = Path.getter() + "python/PCA_App/process"
     outputPath = Path.getter() + "python/PCA_App/process/MKR/output"
@@ -103,13 +105,13 @@ def main():
     # identify input path, call parseArgs
     # args = Extract_Ply.parseArgs('C:/Users/domii/Desktop/All_Together_Now/process/fitted/')
 
-    gang3x = GangGang() # run Ganger
+    # gang3x = GangGang() # run Ganger
 
     # array containing the paths of all of the input .ply's
 
 
     # grabber = DirGrab(Path.getter() + 'python/PCA_App/process/MKR/output/fitted')
-    grabber = DirGrab(Path.getter() + 'python/PCA_App/process')
+    grabber = DirGrab(Path.getter() + 'python/PCA_App/process/fitted')  # CHANGED
 
 
     grabber.grabByExtension(".ply")
@@ -120,22 +122,22 @@ def main():
     # array containing list of all subjects by just subject ID(##ADL####) inside input folder
     subjects = rename_subs(ply_array)
 
-    # Code added by Clint -----
-
-    # -------------------------
-
     # reference gender .csv file and Ply script to get array of **all male and female subjects in the study
     mf_subs = sort_by_gender('subject_gender.csv')
     male_subjects = mf_subs[0]
     female_subjects = mf_subs[1]
 
     # defines the dataframe creates by Ply script
-    output_df = extract_ply(subjects, ply_array) # prints wrote subject ...
+
+
+    output_df = extract_ply(subjects, ply_array)  # prints wrote subject ...
+
+
     # output_df = output_df.T
     # print(output_df.head(10))
 
     # uncomment for debugging -----
-    # output_df.to_csv('extracted_ply.csv')
+    output_df.to_csv('extracted_ply.csv')
     # output_df = pd.read_csv('extracted_ply.csv')
     # -----------------------------
 
@@ -147,12 +149,15 @@ def main():
     female_table = female_table.T  # transposes dataframe
     # print(female_table.head(10))
 
+
+
     # run PCA on male and female subjects >> output .csv of PCA(weights?)
     # input either male or female table
+
     principal_component_analysis(male_table, 'male_pca.csv')
     principal_component_analysis(female_table, 'female_pca.csv')
 
-    ml = PCA_ml('male_pca.csv','female_pca.csv')
+    ml = PCA_ml('male_pca.csv','female_pca.csv', max_PCs=5)
 
     print(ml.results)
     ml.results.to_csv('reports/RegTrial_PCAAutoDataSet_LinearRegression.csv')
