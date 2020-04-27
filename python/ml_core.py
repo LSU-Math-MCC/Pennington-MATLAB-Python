@@ -1,23 +1,26 @@
-import os, csv, numpy as np, pandas as pd
+import os, csv, uuid, numpy as np, pandas as pd
 
 import utilities.datagrid as dg
-from DataSets import ExtractedData
+from DataSets import ExtractedData, to_DataSet
 from utilities.common_functions import append_dict, partition, df_reorder_columns, timestamp, require_tuple
 
 import sklearn.metrics as skm
 from sklearn.metrics import confusion_matrix, r2_score, accuracy_score, SCORERS, make_scorer
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, RepeatedStratifiedKFold
-from joblib import dump  # Similar to pickle, optimized for objects with large internal numpy arrays
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, RepeatedStratifiedKFold, ShuffleSplit
+from joblib import dump, load  # Similar to pickle, optimized for objects with large internal numpy arrays
 
 
-def run_batch(datasets,
+def run_batch(dataset,
               data_config,
               models,
               model_param_grid={},
+              dataset_name=None,
               ext_dataset=None,
+              ext_dataset_name=None,
               eval_type='regressor',
               cv_params={},
               show_best_runs=0,
+              save_prompt=False,
               n_cores=-1
               ):
     '''
@@ -27,7 +30,7 @@ def run_batch(datasets,
     the trade off we have for speed is a decrease in verbosity.
     TODO: Add progress indicators and a verbosity option to either run_batch or eval_product.
 
-    :param datasets: List of DataSet type objects with identical feature names.
+    :param dataset: List of DataSet type objects with identical feature names.
     :param data_config: Dictionary containing information on how the datasets should be extracted and scaled.
         :key target_cnames: List of column names to be used as targets.
         :key feature_options: {group_name: {option: [features]}}
@@ -43,9 +46,13 @@ def run_batch(datasets,
     :param cv_params: Dictionary of parameters to be passed to cv_method, which is either classifierCV or regressorCV.
         (see possible arguments in 'Cross Validation and Scoring Functions' section below)
     :param show_best_runs: Int indicating the best n runs to print for each target and sex option
+    :param save_prompt: Whether to prompt the use if best runs shown (from :show_best_runs) should be saved
     :param n_cores: Number of processor cores to use in evaluation over DataGrids; -1 (default) uses all
     :return: DataFrame containing run information, scoring information and estimators (trained models)
     '''
+    # options for dataframe input
+    if isinstance(dataset, pd.DataFrame):
+        dataset = to_DataSet(dataset)
     # setup cross-validation and scoring method, different for regression and classification
     if eval_type[0] == 'c':
         cv_method = classifierCV
@@ -55,7 +62,7 @@ def run_batch(datasets,
         score_method = regressorScore
 
     # create DataGrids
-    dataset_dg = dg.singleton_datagrid(datasets, 'DataSet')
+    dataset_dg = dg.singleton_datagrid(dataset, 'DataSet')
     target_dg = dg.singleton_datagrid(data_config['target_cnames'], 'Target')
     trnsfrm_dg = dg.list_product(lambda x, y: x + y, dg.option_datagrid_list(data_config['transform_options']))
     cname_dg = dg.list_product(lambda x, y: x + y, dg.option_datagrid_list(data_config['feature_options']))
@@ -93,7 +100,7 @@ def run_batch(datasets,
         ext_dataset_dg = dg.singleton_datagrid(ext_dataset, 'ExtDataSet')
         ext_data_dg = dg.eval_product((lambda ext_dataset, target, trnsfrm, cnames:
             ext_dataset.extract_data(cnames, target, scaler_config=(data_config['scalar_config']), data_transformers=trnsfrm)),
-                                      ext_dataset_dg, target_dg, trnsfrm_dg, cname_dg, n_cores=multicore)
+                                      ext_dataset_dg, target_dg, trnsfrm_dg, cname_dg, n_cores=n_cores)
 
         # ensure that ext_data_dg has the same rows as results_df
         if model_param_grid != {}:
@@ -116,11 +123,20 @@ def run_batch(datasets,
         # results_df['FPR0'] = results_df['FPR'].map(lambda x: 1 - x if x != 0 else x)  # used to sort by FPR for classification runs
         block_size = int(len(results_dg) / (len(dataset_dg) * len(target_dg) * len(trnsfrm_dg)))
         run_blocks = partition(results_df, block_size)
-        run_blocks = [df.nlargest(show_best_runs, columns=['test_r2']) for df in run_blocks]
+        run_blocks = [df.nlargest(show_best_runs, columns=['avg_test_r2']) for df in run_blocks]
         best_runs = pd.concat(run_blocks)
         print('[STATUS] Best Runs:\n', best_runs)
-        # save = str(input('[EXPORT] Save evaluators to disk (y/[n])? '))
-
+        save = str(input('[EXPORT] Save evaluators to disk (y/[n])? ')) if save_prompt else 'n'
+        if save_prompt and save == 'y':
+            # best_runs['Data'] = best_runs.index.map(lambda x: data_dg['__data__'][x % len(data_dg)])
+            best_runs['Features'] = best_runs.index.map(lambda x: x % (len(cname_dg) * len(dataset_dg) * len(trnsfrm_dg)))
+            uuid_dict = {feature_code: uuid.uuid1().hex for feature_code in best_runs['Features'].unique()}
+            best_runs['UUID'] = best_runs['Features'].map(uuid_dict)
+            best_runs['Features'] = best_runs['Features'].map(lambda x: cname_dg['__data__'][x % len(cname_dg)])
+            data_dict = {type(DataSet).__name__: DataSet for DataSet in dataset}
+            best_runs['DataSet'] = best_runs['DataSet'].map(data_dict)
+            # print(f'[STATUS] Training and saving {type(model).__name__} on {target_cname}')
+            print(best_runs)
     return results_df
 
 
@@ -188,27 +204,33 @@ def ext_train_save(model,
         cv_method = regressorCV
     if model_name is None:
         model_name = type(model).__name__
-    save_name = f"{save_location}/{target_cname}_{model_name}_{timestamp}"  # location and save name of extracted model
+    save_name = f"{target_cname}_{model_name}_{timestamp}"  # location and save name of extracted model
     Data = dataset if isinstance(dataset, ExtractedData) else dataset.extract_data(feature_cnames, target_cname, scaler_config)
     # train and score the model
     cv_score = cv_method(Data, model, **cv_params)
     # export the model
-    dump(cv_score['estimator'], f"{save_name}_mdl.joblib")
+    dump(cv_score['estimator'], f"{save_location}/{save_name}_mdl.joblib")
     del cv_score['estimator']
     # export scalars
     if scaler_config != {}:
-        dump(Data.scaler, f"{save_name}_sclrs.joblib")
+        if os.path.exists(f'{save_location}/{timestamp}_scalers.joblib'):
+            scalers = load(f'{save_location}/{timestamp}_scalers.joblib')
+            scalers.fit(Data.y)
+            dump(scalers, f"{save_location}/{timestamp}_scalers.joblib")
+        else:
+            dump(Data.scaler, f"{save_location}/{timestamp}_scalers.joblib")
+    # write model information to the models csv file
     if os.path.exists(f'{save_location}/models.csv'):
         f = open(f'{save_location}/models.csv', 'a+', newline='')
     else:
         f = open(f'{save_location}/models.csv', 'w+', newline='')
-        f.write('Target, Model, Type, Location, Features, Scores \n')
-    writer = csv.DictWriter(f, fieldnames=['Target', 'Model', 'Type', 'Location', 'Features', 'Scores'])
+        f.write('Target, Model, Type, Name, Features, Scores \n')
+    writer = csv.DictWriter(f, fieldnames=['Target', 'Model', 'Type', 'Name', 'Features', 'Scores'])
     writer.writerow({
         'Target': target_cname,
         'Model': model_name,
         'Type': eval_type,
-        'Location': save_name,
+        'Name': save_name,
         'Features': feature_cnames,
         'Scores': dict(cv_score)
     })
@@ -219,10 +241,12 @@ def ext_train_save(model,
 Cross Validation and Scoring Functions
     Any function ended in 'Score' expects to score a pre-trained model for the :reg parameter.
 '''
-
+# scorer_dict = {**{
+#     'RMSE':
+# }, **SCORERS}
 
 # Train a regressor and score it using cross-validation
-def regressorCV(data, reg, n_splits=5, scorers=['r2'], total_train=False):
+def regressorCV(data, reg, n_splits=5, scorers=['r2'], total_train=False, return_params=False):
     X = data.x_scaled.values
     y = data.y_scaled.values.ravel()
     cv_scores = cross_validate(reg, X, y, scoring=scorers, cv=n_splits,
@@ -231,14 +255,19 @@ def regressorCV(data, reg, n_splits=5, scorers=['r2'], total_train=False):
     del cv_scores['estimator']
     del cv_scores['fit_time']
     del cv_scores['score_time']
-    cv_scores = {key: sum(value) / n_splits for key, value in cv_scores.items()}
+    cv_scores_avg = {'avg_' + key: sum(value) / n_splits for key, value in cv_scores.items()}
+    cv_scores_std = {'std_' + key: value.std() for key, value in cv_scores.items()}
+    cv_scores_all = {**cv_scores_avg, **cv_scores_std, **{'all_' + k: v for k,v in cv_scores.items()}}
+
     if total_train:
         reg0 = reg.fit(X, y)
-        cv_scores = {**cv_scores, **(regressorScore(data, reg0, prefix='total_train_'))}
-        del cv_scores['total_train_subjects']
+        cv_scores_all = {**cv_scores_all, **(regressorScore(data, reg0, prefix='total_train_'))}
+        del cv_scores_all['total_train_subjects']
         estimator = reg0
-    cv_scores['estimator'] = estimator
-    return {**{'subjects':len(y)}, **cv_scores}
+    cv_scores_all['estimator'] = estimator
+    if return_params:
+        cv_scores_all = {**cv_scores_all, **{'coef': estimator.coef_, 'intercept': estimator.intercept_}}
+    return {**{'subjects':len(y)}, **cv_scores_all}
 
 
 # Score a TRAINED regressor given standard scoring input
