@@ -174,5 +174,5 @@ def RefValueTable(df, stats_dict=stats_dict_default):
         stats_df[stat_name] = df.apply(stat_func, axis=0)
     return stats_df.T
 
-print(get_stats(df[m_common+m_manual]))
+print(RefValueTable(df[m_common+m_manual]))
 print(df[m_common+m_manual].describe())  # default describe funtion from pandas
