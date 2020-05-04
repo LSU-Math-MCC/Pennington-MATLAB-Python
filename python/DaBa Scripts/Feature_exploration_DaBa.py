@@ -1,10 +1,11 @@
-import math, pandas as pd, seaborn as sns
+import math, pandas as pd, seaborn as sns, numpy as np
 import matplotlib.pyplot as plt
 
 df = pd.read_excel('../data/ShapeUp/pdDataStorage_v4.xlsx')
 m_common = ['DA_3DO3_CIRC_W', 'DA_3DO3_CIRC_H', 'DA_3DO3_CIRC_Th', 'DA_3DO3_CIRC_B']
 ER_all = ['DA_3DO3_ER_Ch', 'DA_3DO3_ER_W', 'DA_3DO3_ER_H', 'DA_3DO3_ER_Th', 'DA_3DO3_ER_C', 'DA_3DO3_ER_Wr', 'DA_3DO3_ER_F', 'DA_3DO3_ER_B', 'DA_3DO3_ER_A']
 all_targets = ['BC_DXA_FAT_TOT', 'BC_DXA_LST_TOT']
+m_manual = ['CA_CIRC_Th_R', 'CA_CIRC_H', 'CA_CIRC_W', 'CA_CIRC_B_R']
 
 def plot_correlation(
         df: pd.DataFrame,
@@ -47,7 +48,6 @@ def plot_correlation(
     # g.set_xticks(np.arange(len(x_ticks)))
     # g.set_xticklabels(x_ticks, fontsize=fontsize, horizontalalignment='center')
     plt.show()
-
 # plot_correlation(df, ER_all+['DEM_SEX'], all_targets)
 
 def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
@@ -116,7 +116,63 @@ def feature_explore(df, feature_cname, age_groups=False) -> pd.DataFrame:
 
     del df_data['DEM_AGE']
     return df_data
+# feature_explore(df, 'DA_3DO3_CIRC_Ch')
+# df_data = feature_explore(df, m_common+ER_all,age_groups=True)
+# print(df_data)
 
-feature_explore(df, 'DA_3DO3_CIRC_Ch')
-df_data = feature_explore(df, m_common+ER_all,age_groups=True)
-print(df_data)
+def feature_explore_stats(df, feature_cname, age_groups=False) -> pd.DataFrame:
+    # feature_explore (stratifies sex and age) but only return feature statistic dataframe (no histograms)
+    if isinstance(feature_cname, str):
+        feature_cname = [feature_cname]
+
+    dfm = df.loc[df['DEM_SEX'] == 'M']
+    dfm = dfm[feature_cname + ['DEM_AGE']]
+    dff = df.loc[df['DEM_SEX'] == 'F']
+    dff = dff[feature_cname + ['DEM_AGE']]
+
+    if age_groups:
+        # describe by age group if option is True
+        age_groups = {**{"18 to 29": [18, 29]},
+                      **{str(n) + " to " + str(n + 9): [n, n + 9] for n in range(30, 61, 10)},
+                      **{"70 to 90": [70, 90]}}
+        dfm_list = []
+        dff_list = []
+        for group_name, group_range in age_groups.items():
+            dfm_list += [dfm.loc[(group_range[0] <= dfm['DEM_AGE']) & (dfm['DEM_AGE'] <= group_range[1])].describe()]
+            dff_list += [dff.loc[(group_range[0] <= dff['DEM_AGE']) & (dff['DEM_AGE'] <= group_range[1])].describe()]
+        dfm = pd.concat(dfm_list, keys=age_groups.keys())
+        dff = pd.concat(dff_list, keys=age_groups.keys())
+        df_data = pd.concat([dfm, dff], keys=['M', 'F'])
+    else:
+        df_data = pd.concat([dfm.describe(), dff.describe()], keys=['M','F'])
+
+    del df_data['DEM_AGE']
+    return df_data
+
+
+stats_dict_default = {
+    "count": lambda df: np.sum(~np.isnan(df)),
+    "mean": np.nanmean,
+    "std": np.nanstd,
+    "var": np.nanvar,
+    "min": np.nanmin,
+    "25%": lambda df: np.nanquantile(df, q=.25),
+    "50%": lambda df: np.nanquantile(df, q=.5),
+    "75%": lambda df: np.nanquantile(df, q=.75),
+    "max": np.nanmax,
+}
+def RefValueTable(df, stats_dict=stats_dict_default):
+    '''
+    Print dataframe of statistics from custom dictionary of statistical functions. No stratification is performed on df.
+
+    :param df: pd.DataFrame
+    :param stats_dict: dictionary with {"func_name": func} key value pairs
+    :return: pd.DataFrame
+    '''
+    stats_df = pd.DataFrame()
+    for stat_name, stat_func in stats_dict.items():
+        stats_df[stat_name] = df.apply(stat_func, axis=0)
+    return stats_df.T
+
+print(get_stats(df[m_common+m_manual]))
+print(df[m_common+m_manual].describe())  # default describe funtion from pandas
