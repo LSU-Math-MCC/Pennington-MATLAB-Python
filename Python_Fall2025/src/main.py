@@ -8,6 +8,11 @@ This script demonstrates the body measurement system by:
 4. Printing all measurements to console
 """
 
+import argparse
+import contextlib
+import sys
+from pathlib import Path
+
 import trimesh
 from .body import Body
 
@@ -58,17 +63,48 @@ def print_section_header(title):
     print("=" * 60)
 
 
+class Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, text):
+        for stream in self.streams:
+            stream.write(text)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+def auto_diary_path(mesh_file):
+    try:
+        rel_mesh = Path(mesh_file).with_suffix(".txt")
+        if rel_mesh.is_absolute():
+            rel_mesh = rel_mesh.relative_to(Path.cwd())
+        return Path("output") / rel_mesh
+    except ValueError:
+        return Path("output") / f"{Path(mesh_file).stem}.txt"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the body measurement visualization demo.")
+    parser.add_argument("mesh_file", nargs="?", default="model_files/man.obj")
+    parser.add_argument("--diary", default="auto", help="'auto' or a relative path for captured stdout")
+    parser.add_argument("--show", action="store_true", help="Open the interactive 3D visualization")
+    return parser.parse_args()
+
+
 # ============================================================================
 # Main Visualization
 # ============================================================================
-if __name__ == "__main__":
+def run_demo(mesh_file, *, show=False, **_):
     print("\n" + "=" * 60)
     print("  BODY MEASUREMENT SYSTEM - VISUALIZATION DEMO")
     print("=" * 60)
     print("\nLoading body model...\n")
     
-    # Load body model
-    body = Body("model_files/man.obj")
+    # Load body 
+    body = Body(mesh_file)
     scene = trimesh.Scene()
     
     # ========================================================================
@@ -209,10 +245,19 @@ if __name__ == "__main__":
     print(f"    Calf Girth: {body.measurements['right leg']['calf girth']:.2f} cm")
     print(f"    Thigh Girth: {body.measurements['right leg']['thigh girth']:.2f} cm")
     
-    print("\n" + "=" * 60)
-    print("  Displaying 3D visualization...")
-    print("=" * 60 + "\n")
-    
-    # Show the 3D scene
-    scene.show()
-    
+    if show:
+        print("\n" + "=" * 60)
+        print("  Displaying 3D visualization...")
+        print("=" * 60 + "\n")
+        scene.show()
+    else:
+        print("\nVisualization skipped. Pass --show to open the 3D viewer.")
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    options = vars(args)
+    diary_path = auto_diary_path(args.mesh_file) if options["diary"] == "auto" else Path(options["diary"])
+    diary_path.parent.mkdir(parents=True, exist_ok=True)
+    with diary_path.open("w", encoding="utf-8") as diary, contextlib.redirect_stdout(Tee(sys.stdout, diary)):
+        run_demo(**options)
