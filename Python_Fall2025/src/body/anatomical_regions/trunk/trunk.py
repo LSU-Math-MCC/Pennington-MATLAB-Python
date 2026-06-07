@@ -6,7 +6,7 @@ from scipy.spatial import cKDTree
 
 from ....utils.convexity_search import convexity_search
 
-from ..anatomical_region import Anatomical_Region
+from ..anatomical_region import Anatomical_Region, get_geometry_config
 
 
 class Trunk(Anatomical_Region):
@@ -224,7 +224,8 @@ class Trunk(Anatomical_Region):
         
         crotch_point_nearest = convexity_search(new_mesh, 
                                         rays=32,
-                                        origin=viable_point)
+                                        origin=viable_point,
+                                        slice_width=get_geometry_config(new_mesh)["convexity_slice_width"])
         
         crotch_point_idx = kdtree.query(crotch_point_nearest)[1]
         crotch_point = new_mesh.vertices[crotch_point_idx]
@@ -271,7 +272,8 @@ class Trunk(Anatomical_Region):
             Armpit vertex as np.ndarray
         """
         # Define lateral band width (region along body side)
-        lateral_band_width = 0.08  # 8cm band
+        geometry_config = get_geometry_config(mesh)
+        lateral_band_width = geometry_config["armpit_lateral_band"]
         
         # Create band centered on hip x-coordinate
         lateral_min_x = hip_point[0] - lateral_band_width / 2
@@ -304,7 +306,7 @@ class Trunk(Anatomical_Region):
             z_increase = current_z - prev_z
             
             # Armpit is where vertical progress stops (arm bends away from torso)
-            if z_increase < 0.005:  # Less than 0.5cm increase
+            if z_increase < geometry_config["armpit_z_stop"]:
                 armpit_candidate = current_point
                 break
             
@@ -313,7 +315,12 @@ class Trunk(Anatomical_Region):
         
         # Refine using convexity search (armpit is concave)
         try:
-            armpit_refined = convexity_search(mesh, rays=32, origin=armpit_candidate)
+            armpit_refined = convexity_search(
+                mesh,
+                rays=32,
+                origin=armpit_candidate,
+                slice_width=geometry_config["convexity_slice_width"],
+            )
             
             # Get actual mesh vertex using KDTree
             armpit_idx = kdtree.query(armpit_refined)[1]

@@ -1,10 +1,59 @@
 from abc import ABC, abstractmethod
 from typing import Literal
 
+import numpy as np
 import trimesh
 
 LEFT_OR_RIGHT = Literal["left", "right"]
 ANATOMICAL_REGION = Literal["head", "trunk", "left arm", "right arm", "left leg", "right leg"]
+
+UNIT_TO_CM = {"mm": 0.1, "cm": 1.0, "dm": 10.0, "m": 100.0}
+INTERNAL_UNIT = "dm"
+INTERNAL_TO_CM = UNIT_TO_CM[INTERNAL_UNIT]
+BASELINE_UNITS = INTERNAL_UNIT
+BASELINE_MEDIAN_EDGE_LENGTH = 0.11999404151873497
+
+BASELINE_GEOMETRY_CONSTANTS = {
+    "armpit_lateral_band": 0.08,
+    "armpit_z_stop": 0.005,
+    "convexity_slice_width": 0.005,
+    "arm_slice_step": 0.01,
+    "leg_foot_slice_step": 0.0254,
+    "leg_slice_step": 0.025,
+}
+
+DEFAULT_GEOMETRY_CONFIG = {
+    "units": BASELINE_UNITS,
+    "internal_units": INTERNAL_UNIT,
+    "unit_to_internal": 1.0,
+    "internal_to_cm": INTERNAL_TO_CM,
+    "median_edge_length": BASELINE_MEDIAN_EDGE_LENGTH,
+    "density_scale": 1.0,
+    **BASELINE_GEOMETRY_CONSTANTS,
+}
+
+
+def build_geometry_config(mesh: trimesh.Trimesh, units: str) -> dict:
+    unit_to_internal = UNIT_TO_CM[units] / INTERNAL_TO_CM
+    median_edge_length = float(np.median(mesh.edges_unique_length)) * unit_to_internal
+    density_scale = median_edge_length / BASELINE_MEDIAN_EDGE_LENGTH
+    return {
+        **DEFAULT_GEOMETRY_CONFIG,
+        "units": units,
+        "unit_to_internal": unit_to_internal,
+        "median_edge_length": median_edge_length,
+        "density_scale": density_scale,
+        **{k: v * density_scale for k, v in BASELINE_GEOMETRY_CONSTANTS.items()},
+    }
+
+
+def get_geometry_config(mesh: trimesh.Trimesh) -> dict:
+    return mesh.metadata.get("geometry_config", DEFAULT_GEOMETRY_CONFIG)
+
+
+def to_cm(value, geometry_config: dict) -> float:
+    return value * geometry_config["internal_to_cm"]
+
 
 class Anatomical_Region(ABC):
     """

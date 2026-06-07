@@ -1,7 +1,7 @@
 from functools import cache
 import numpy as np
 import trimesh
-from ..anatomical_region import Anatomical_Region, LEFT_OR_RIGHT
+from ..anatomical_region import Anatomical_Region, LEFT_OR_RIGHT, get_geometry_config
 
 
 class Arm(Anatomical_Region):
@@ -266,7 +266,7 @@ class Arm(Anatomical_Region):
         search_z_max = z_min + arm_height * 0.3
         
         # Create slice heights
-        slice_step = 0.01  # 1cm steps
+        slice_step = get_geometry_config(mesh)["arm_slice_step"]
         z_heights = np.arange(search_z_min, search_z_max, slice_step)
         
         if len(z_heights) == 0:
@@ -375,7 +375,7 @@ class Arm(Anatomical_Region):
         search_z_max = z_min + arm_height * 0.3
         
         # Create slice heights
-        slice_step = 0.01  # 1cm steps
+        slice_step = get_geometry_config(mesh)["arm_slice_step"]
         z_heights = np.arange(search_z_min, search_z_max, slice_step)
         
         if len(z_heights) == 0:

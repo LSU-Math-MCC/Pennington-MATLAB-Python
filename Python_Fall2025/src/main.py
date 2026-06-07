@@ -15,6 +15,13 @@ from pathlib import Path
 
 import trimesh
 from .body import Body
+from .body.anatomical_regions.anatomical_region import (
+    BASELINE_GEOMETRY_CONSTANTS,
+    BASELINE_UNITS,
+    INTERNAL_UNIT,
+    UNIT_TO_CM,
+    to_cm,
+)
 
 
 # ============================================================================
@@ -91,20 +98,36 @@ def parse_args():
     parser.add_argument("mesh_file", nargs="?", default="model_files/man.obj")
     parser.add_argument("--diary", default="auto", help="'auto' or a relative path for captured stdout")
     parser.add_argument("--show", action="store_true", help="Open the interactive 3D visualization")
+    parser.add_argument(
+        "--units",
+        choices=UNIT_TO_CM.keys(),
+        default=BASELINE_UNITS,
+        help="Coordinate units used by the input mesh. Mesh is converted to internal dm.",
+    )
     return parser.parse_args()
 
 
 # ============================================================================
 # Main Visualization
 # ============================================================================
-def run_demo(mesh_file, *, show=False, **_):
+def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, **_):
     print("\n" + "=" * 60)
     print("  BODY MEASUREMENT SYSTEM - VISUALIZATION DEMO")
     print("=" * 60)
     print("\nLoading body model...\n")
     
-    # Load body 
-    body = Body(mesh_file)
+    body = Body(mesh_file, units=units)
+    geometry_config = body.geometry_config
+
+    print(f"Geometry units: input={units}, internal={INTERNAL_UNIT}, output=cm")
+    print(f"Mesh vertices: {len(body.mesh.vertices)}")
+    print(f"Mesh height: {to_cm(body.mesh.extents.max(), geometry_config):.3f} cm")
+    print(f"Density scale: {geometry_config['density_scale']:.3f}")
+    print("Geometry constants:")
+    for key in sorted(BASELINE_GEOMETRY_CONSTANTS):
+        print(f"  {key}: {geometry_config[key]:.6f} {INTERNAL_UNIT}")
+    print()
+
     scene = trimesh.Scene()
     
     # ========================================================================
@@ -191,59 +214,41 @@ def run_demo(mesh_file, *, show=False, **_):
                 path.visual.vertex_colors = [0, 0, 0, 255]  # Black
             scene.add_geometry(path)
     
-    # ========================================================================
-    # Print All Measurements
-    # ========================================================================
-    
-    # HEAD MEASUREMENTS
     print_section_header("HEAD MEASUREMENTS")
-    collar_to_scalp = body.measurements["head"]["collar to scalp length"]
-    print(f"  Collar to Scalp Length: {collar_to_scalp:.2f} cm")
-    
-    # TRUNK MEASUREMENTS
+    print(f"  Collar to Scalp Length: {to_cm(body.measurements['head']['collar to scalp length'], geometry_config):.2f} cm")
+
     print_section_header("TRUNK MEASUREMENTS")
-    trunk_length = body.measurements["trunk"]["trunk length"]
-    print(f"  Trunk Length: {trunk_length:.2f} cm")
-    
-    crotch_height = body.measurements["trunk"]["crotch height"]
-    print(f"  Crotch Height: {crotch_height:.2f} cm")
-    
-    chest_circ = body.measurements["trunk"]["chest circumference"]
-    print(f"  Chest Circumference: {chest_circ:.2f} cm")
-    
-    waist_circ = body.measurements["trunk"]["waist circumference"]
-    print(f"  Waist Circumference: {waist_circ:.2f} cm")
-    
-    hip_circ = body.measurements["trunk"]["hip circumference"]
-    print(f"  Hip Circumference: {hip_circ:.2f} cm")
-    
-    # ARM MEASUREMENTS
+    print(f"  Trunk Length: {to_cm(body.measurements['trunk']['trunk length'], geometry_config):.2f} cm")
+    print(f"  Crotch Height: {to_cm(body.measurements['trunk']['crotch height'], geometry_config):.2f} cm")
+    print(f"  Chest Circumference: {to_cm(body.measurements['trunk']['chest circumference'], geometry_config):.2f} cm")
+    print(f"  Waist Circumference: {to_cm(body.measurements['trunk']['waist circumference'], geometry_config):.2f} cm")
+    print(f"  Hip Circumference: {to_cm(body.measurements['trunk']['hip circumference'], geometry_config):.2f} cm")
+
     print_section_header("ARM MEASUREMENTS")
     print("\n  LEFT ARM:")
-    print(f"    Length: {body.measurements['left arm']['arm length']:.2f} cm")
-    print(f"    Wrist Girth: {body.measurements['left arm']['wrist girth']:.2f} cm")
-    print(f"    Forearm Girth: {body.measurements['left arm']['forearm girth']:.2f} cm")
-    print(f"    Bicep Girth: {body.measurements['left arm']['bicep girth']:.2f} cm")
-    
+    print(f"    Length: {to_cm(body.measurements['left arm']['arm length'], geometry_config):.2f} cm")
+    print(f"    Wrist Girth: {to_cm(body.measurements['left arm']['wrist girth'], geometry_config):.2f} cm")
+    print(f"    Forearm Girth: {to_cm(body.measurements['left arm']['forearm girth'], geometry_config):.2f} cm")
+    print(f"    Bicep Girth: {to_cm(body.measurements['left arm']['bicep girth'], geometry_config):.2f} cm")
+
     print("\n  RIGHT ARM:")
-    print(f"    Length: {body.measurements['right arm']['arm length']:.2f} cm")
-    print(f"    Wrist Girth: {body.measurements['right arm']['wrist girth']:.2f} cm")
-    print(f"    Forearm Girth: {body.measurements['right arm']['forearm girth']:.2f} cm")
-    print(f"    Bicep Girth: {body.measurements['right arm']['bicep girth']:.2f} cm")
-    
-    # LEG MEASUREMENTS
+    print(f"    Length: {to_cm(body.measurements['right arm']['arm length'], geometry_config):.2f} cm")
+    print(f"    Wrist Girth: {to_cm(body.measurements['right arm']['wrist girth'], geometry_config):.2f} cm")
+    print(f"    Forearm Girth: {to_cm(body.measurements['right arm']['forearm girth'], geometry_config):.2f} cm")
+    print(f"    Bicep Girth: {to_cm(body.measurements['right arm']['bicep girth'], geometry_config):.2f} cm")
+
     print_section_header("LEG MEASUREMENTS")
     print("\n  LEFT LEG:")
-    print(f"    Length: {body.measurements['left leg']['leg length']:.2f} cm")
-    print(f"    Ankle Girth: {body.measurements['left leg']['ankle girth']:.2f} cm")
-    print(f"    Calf Girth: {body.measurements['left leg']['calf girth']:.2f} cm")
-    print(f"    Thigh Girth: {body.measurements['left leg']['thigh girth']:.2f} cm")
-    
+    print(f"    Length: {to_cm(body.measurements['left leg']['leg length'], geometry_config):.2f} cm")
+    print(f"    Ankle Girth: {to_cm(body.measurements['left leg']['ankle girth'], geometry_config):.2f} cm")
+    print(f"    Calf Girth: {to_cm(body.measurements['left leg']['calf girth'], geometry_config):.2f} cm")
+    print(f"    Thigh Girth: {to_cm(body.measurements['left leg']['thigh girth'], geometry_config):.2f} cm")
+
     print("\n  RIGHT LEG:")
-    print(f"    Length: {body.measurements['right leg']['leg length']:.2f} cm")
-    print(f"    Ankle Girth: {body.measurements['right leg']['ankle girth']:.2f} cm")
-    print(f"    Calf Girth: {body.measurements['right leg']['calf girth']:.2f} cm")
-    print(f"    Thigh Girth: {body.measurements['right leg']['thigh girth']:.2f} cm")
+    print(f"    Length: {to_cm(body.measurements['right leg']['leg length'], geometry_config):.2f} cm")
+    print(f"    Ankle Girth: {to_cm(body.measurements['right leg']['ankle girth'], geometry_config):.2f} cm")
+    print(f"    Calf Girth: {to_cm(body.measurements['right leg']['calf girth'], geometry_config):.2f} cm")
+    print(f"    Thigh Girth: {to_cm(body.measurements['right leg']['thigh girth'], geometry_config):.2f} cm")
     
     if show:
         print("\n" + "=" * 60)

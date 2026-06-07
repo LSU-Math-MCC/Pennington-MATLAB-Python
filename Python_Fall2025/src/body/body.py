@@ -1,7 +1,12 @@
 import trimesh
 
 from ..mesh import Mesh
-from .anatomical_regions.anatomical_region import Anatomical_Region, ANATOMICAL_REGION
+from .anatomical_regions.anatomical_region import (
+    ANATOMICAL_REGION,
+    DEFAULT_GEOMETRY_CONFIG,
+    Anatomical_Region,
+    build_geometry_config,
+)
 from .anatomical_regions import Arm, Head, Leg, Trunk
 
 class Body(Mesh):
@@ -112,7 +117,7 @@ class Body(Mesh):
     Anatomical_Region : Abstract base class for body part implementations
     """
 
-    def __init__(self, mesh_file):
+    def __init__(self, mesh_file, units="dm"):
         """
         Load a mesh file and initialize a fully analyzed human body model.
         
@@ -147,9 +152,18 @@ class Body(Mesh):
         --------
         Mesh.__init__ : Parent class constructor handling mesh cleaning and normalization
         """
-        mesh = trimesh.load_mesh(mesh_file)
+        if isinstance(mesh_file, trimesh.Trimesh):
+            mesh = mesh_file.copy()
+            self.geometry_config = mesh.metadata.get("geometry_config", DEFAULT_GEOMETRY_CONFIG)
+        else:
+            mesh = trimesh.load_mesh(mesh_file)
+            self.geometry_config = build_geometry_config(mesh, units)
+            mesh.vertices *= self.geometry_config["unit_to_internal"]
+            mesh.metadata["geometry_config"] = self.geometry_config
+
         super().__init__(mesh)
         self.mesh = self.orient_mesh(mesh)
+        self.mesh.metadata["geometry_config"] = self.geometry_config
         
         # Body parts
 
