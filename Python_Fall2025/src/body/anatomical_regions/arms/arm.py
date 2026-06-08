@@ -169,10 +169,45 @@ class Arm(Anatomical_Region):
         #     print(f"Error: No parts found after splitting {side} side!")
         #     return np.array([])
         
-        # 4. Find the part with the highest vertex
-        z_maxes = [part.vertices[:,2].max() for part in parts]
-        arm_index = np.argmax(z_maxes)
-        arm_mesh = parts[arm_index]
+        # 4. Find the real arm, not tiny cap fragments or a sliced torso side.
+        height = np.ptp(mesh.vertices[:, 2])
+        crotch = Trunk._locate_crotch(mesh)
+        min_vertices = max(20, int(0.01 * len(mesh.vertices)))
+        outward = -1 if side == "left" else 1
+        candidates = []
+        fallback_candidates = []
+        for part in parts:
+            vertices = part.vertices
+            if len(vertices) < min_vertices:
+                continue
+            z_min = vertices[:, 2].min()
+            z_max = vertices[:, 2].max()
+            if np.ptp(vertices[:, 2]) > 0.6 * height:
+                continue
+            if z_min < crotch[2] - 0.10 * height:
+                continue
+            fallback_candidates.append(part)
+            if z_max < armpit[2] - 0.05 * height:
+                continue
+            if z_min > armpit[2] - 0.10 * height:
+                continue
+            candidates.append(part)
+
+        parts_to_score = candidates or fallback_candidates or parts
+        arm_mesh = max(
+            parts_to_score,
+            key=lambda part: (
+                np.mean((part.vertices[:, 0] - armpit[0]) * outward > 0),
+                np.ptp(part.vertices[:, 2]),
+                len(part.vertices),
+            )
+        )
+
+        print(
+            f"{side}_arm_mesh: vertices={len(arm_mesh.vertices)}, "
+            f"z=[{arm_mesh.vertices[:, 2].min():.4f}, {arm_mesh.vertices[:, 2].max():.4f}], "
+            f"armpit={armpit}"
+        )
         
         return arm_mesh
 
@@ -210,23 +245,12 @@ class Arm(Anatomical_Region):
     @cache
     def _locate_shoulder(mesh: trimesh.Trimesh, side: str):
         """
-        pseudo:
-        Shoulder = extreme X point among the top ~10% highest vertices.
-        Right shoulder = max X.
-        Left shoulder = min X.
+        Shoulder = highest point on the segmented arm.
         """
         print("Called locate_shoulder (Arm)")
         
-        vertices = np.asarray(mesh.vertices)
-        z_cut = np.percentile(vertices[:, 2], 90)
-        upper = vertices[vertices[:, 2] >= z_cut]
-
-        if side == "right":
-            shoulder = upper[np.argmax(upper[:, 0])]
-        else:
-            shoulder = upper[np.argmin(upper[:, 0])]
-
-        return shoulder
+        arm_mesh = Arm._get_submesh(side, mesh)
+        return arm_mesh.vertices[np.argmax(arm_mesh.vertices[:, 2])]
 
     @staticmethod
     @cache
