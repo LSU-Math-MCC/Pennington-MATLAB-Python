@@ -212,6 +212,25 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("  Displaying 3D visualization...")
     print("=" * 60 + "\n")
+
+
+           # ========================================================================
+    # Save Measurements to CSV
+    # ========================================================================
+    rows = []
+
+    for part_name, measurements in body.measurements.items():
+        for measurement_name, value in measurements.items():
+            rows.append({
+                "body_part": part_name,
+                "measurement": measurement_name,
+                "value_cm": value
+            })
+
+    df = pd.DataFrame(rows)
+    df.to_csv("body_measurements.csv", index=False)
+
+    print("\nSaved measurements to body_measurements.csv")
     
     # Show the 3D scene
     scene.show()
