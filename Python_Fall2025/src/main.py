@@ -70,6 +70,77 @@ def print_section_header(title):
     print("=" * 60)
 
 
+def iter_points(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from iter_points(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from iter_points(item)
+    else:
+        try:
+            if len(value) == 3:
+                yield value
+        except TypeError:
+            pass
+
+
+def save_diagnostic_image(body, image_path):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    projections = [
+        ("Front", 0, 2, "x", "z"),
+        ("Side", 1, 2, "y", "z"),
+        ("Top", 0, 1, "x", "y"),
+    ]
+    mesh_colors = {
+        "head": "#39a9a9",
+        "trunk": "#5d82a8",
+        "left arm": "#39a9a9",
+        "right arm": "#39a9a9",
+        "left leg": "#39a9a9",
+        "right leg": "#39a9a9",
+    }
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 7), dpi=160)
+    all_vertices = np.asarray(body.mesh.vertices)
+
+    for ax, (title, a, b, xlabel, ylabel) in zip(axes, projections):
+        for part_name, mesh in body.subregion_meshes.items():
+            vertices = np.asarray(mesh.vertices)
+            if len(vertices) > 2500:
+                vertices = vertices[:: max(1, len(vertices) // 2500)]
+            ax.scatter(vertices[:, a], vertices[:, b], s=0.35, c=mesh_colors[part_name], alpha=0.35)
+
+        for part_drawings in body.drawings.values():
+            for path in part_drawings.values():
+                vertices = np.asarray(path.vertices)
+                for entity in path.entities:
+                    pts = vertices[np.asarray(entity.points)]
+                    ax.plot(pts[:, a], pts[:, b], c="black", lw=1.2)
+
+        for part_landmarks in body.landmarks.values():
+            for point in iter_points(part_landmarks):
+                point = np.asarray(point)
+                ax.scatter(point[a], point[b], s=24, c="#d94b4b", edgecolors="none")
+
+        ax.set_title(title)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_xlim(all_vertices[:, a].min(), all_vertices[:, a].max())
+        ax.set_ylim(all_vertices[:, b].min(), all_vertices[:, b].max())
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.tick_params(labelsize=7, length=2, pad=1)
+        ax.grid(True, linewidth=0.3, alpha=0.25)
+
+    fig.tight_layout()
+    fig.savefig(image_path, bbox_inches="tight")
+    plt.close(fig)
+
+
 class Tee:
     def __init__(self, *streams):
         self.streams = streams
@@ -93,11 +164,22 @@ def auto_diary_path(mesh_file):
         return Path("output") / f"{Path(mesh_file).stem}.txt"
 
 
+def auto_image_path(mesh_file):
+    return auto_diary_path(mesh_file).with_suffix(".png")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the body measurement visualization demo.")
     parser.add_argument("mesh_file", nargs="?", default="model_files/man.obj")
     parser.add_argument("--diary", default="auto", help="'auto' or a relative path for captured stdout")
     parser.add_argument("--show", action="store_true", help="Open the interactive 3D visualization")
+    parser.add_argument(
+        "--save-image",
+        nargs="?",
+        const="auto",
+        default=None,
+        help="Save a headless PNG render. Pass a path or use without a value for auto.",
+    )
     parser.add_argument(
         "--units",
         choices=UNIT_TO_CM.keys(),
@@ -110,7 +192,7 @@ def parse_args():
 # ============================================================================
 # Main Visualization
 # ============================================================================
-def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, **_):
+def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **_):
     print("\n" + "=" * 60)
     print("  BODY MEASUREMENT SYSTEM - VISUALIZATION DEMO")
     print("=" * 60)
@@ -249,6 +331,12 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, **_):
     print(f"    Ankle Girth: {to_cm(body.measurements['right leg']['ankle girth'], geometry_config):.2f} cm")
     print(f"    Calf Girth: {to_cm(body.measurements['right leg']['calf girth'], geometry_config):.2f} cm")
     print(f"    Thigh Girth: {to_cm(body.measurements['right leg']['thigh girth'], geometry_config):.2f} cm")
+
+    if save_image:
+        image_path = auto_image_path(mesh_file) if save_image == "auto" else Path(save_image)
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        save_diagnostic_image(body, image_path)
+        print(f"\nSaved visualization image: {image_path}")
     
     if show:
         print("\n" + "=" * 60)
