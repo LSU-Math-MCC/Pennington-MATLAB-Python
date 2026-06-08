@@ -120,10 +120,17 @@ def convexity_search(mesh: trimesh.Trimesh,
             ray_origins=ray_origins,
             ray_directions=ray_directions
         )[0]
+
+        if len(intersections) < 3:
+            continue
         
         center = np.mean(intersections, axis=0)
         assigned = assign_points_to_rays(intersections, ray_directions, center)
         outer_section = pick_outermost_points(assigned, center)
+
+        if len(outer_section) < 3:
+            continue
+
         loops = order_loop_from_points(outer_section)
         
         convexity_score = compute_convexity(loops)
@@ -131,6 +138,9 @@ def convexity_search(mesh: trimesh.Trimesh,
             return center
         convexity_scores.append((convexity_score, center))
     
+    if not convexity_scores:
+        return origin
+
     convexity_scores.sort(key=lambda x: x[0], reverse=True)  # sort by score, not (score, ndarray)
     return convexity_scores[0][1]
         
@@ -189,7 +199,10 @@ def assign_points_to_rays(points, directions, centroid):
     vectors = points - centroid  # shift to geometric center
     
     for p, v in zip(points, vectors):
-        unit_v = v / np.linalg.norm(v)
+        norm = np.linalg.norm(v)
+        if norm == 0:
+            continue
+        unit_v = v / norm
         dots = directions @ unit_v
         idx = np.argmax(dots)  # most aligned ray
         assigned[idx].append(p)
