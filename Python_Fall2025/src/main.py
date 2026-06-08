@@ -379,16 +379,36 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
     print(f"    Thigh Girth: {to_cm(body.measurements['left leg']['thigh girth'], geometry_config):.2f} cm")
 
     print("\n  RIGHT LEG:")
-    print(f"    Length: {to_cm(body.measurements['right leg']['leg length'], geometry_config):.2f} cm")
-    print(f"    Ankle Girth: {to_cm(body.measurements['right leg']['ankle girth'], geometry_config):.2f} cm")
-    print(f"    Calf Girth: {to_cm(body.measurements['right leg']['calf girth'], geometry_config):.2f} cm")
-    print(f"    Thigh Girth: {to_cm(body.measurements['right leg']['thigh girth'], geometry_config):.2f} cm")
+    print(f"    Length: {body.measurements['right leg']['leg length']:.2f} cm")
+    print(f"    Ankle Girth: {body.measurements['right leg']['ankle girth']:.2f} cm")
+    print(f"    Calf Girth: {body.measurements['right leg']['calf girth']:.2f} cm")
+    print(f"    Thigh Girth: {body.measurements['right leg']['thigh girth']:.2f} cm")
+    
+    print("\n" + "=" * 60)
+    print("  Displaying 3D visualization...")
+    print("=" * 60 + "\n")
 
-    if save_image:
-        image_path = auto_image_path(mesh_file) if save_image == "auto" else Path(save_image)
-        image_path.parent.mkdir(parents=True, exist_ok=True)
-        save_diagnostic_image(body, image_path)
-        print(f"\nSaved visualization image: {image_path}")
+
+           # ========================================================================
+    # Save Measurements to CSV
+    # ========================================================================
+    rows = []
+
+    for part_name, measurements in body.measurements.items():
+        for measurement_name, value in measurements.items():
+            rows.append({
+                "body_part": part_name,
+                "measurement": measurement_name,
+                "value_cm": value
+            })
+
+    df = pd.DataFrame(rows)
+    df.to_csv("body_measurements.csv", index=False)
+
+    print("\nSaved measurements to body_measurements.csv")
+    
+    # Show the 3D scene
+    scene.show()
     
     if show:
         print("\n" + "=" * 60)
