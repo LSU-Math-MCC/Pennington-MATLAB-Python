@@ -5,12 +5,48 @@ This module provides utilities for performing boolean operations on meshes
 by comparing vertices and faces between meshes.
 """
 
+import ast
+import inspect
 import numpy as np
 import trimesh
 from scipy.spatial import cKDTree
 
 
-def mesh_difference(mesh_a: trimesh.Trimesh, mesh_b: trimesh.Trimesh, tolerance: float = 1e-6) -> trimesh.Trimesh:
+def _mesh_difference_arg_names():
+    frame = inspect.currentframe()
+    caller = frame.f_back.f_back if frame and frame.f_back else None
+    if caller is None:
+        return "mesh_a", "mesh_b", "unknown caller"
+
+    filename = caller.f_code.co_filename.replace("\\", "/").split("/")[-1]
+    caller_label = f"{filename}:{caller.f_lineno}::{caller.f_code.co_name}"
+    context = inspect.getframeinfo(caller).code_context
+    if not context:
+        return "mesh_a", "mesh_b", caller_label
+
+    source_line = context[0].strip()
+    try:
+        tree = ast.parse(source_line)
+    except SyntaxError:
+        return "mesh_a", "mesh_b", caller_label
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func_name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
+        if func_name == "mesh_difference" and len(node.args) >= 2:
+            mesh_a_name = ast.get_source_segment(source_line, node.args[0]) or "mesh_a"
+            mesh_b_name = ast.get_source_segment(source_line, node.args[1]) or "mesh_b"
+            return mesh_a_name, mesh_b_name, caller_label
+
+    return "mesh_a", "mesh_b", caller_label
+
+
+def mesh_difference(
+    mesh_a: trimesh.Trimesh,
+    mesh_b: trimesh.Trimesh,
+    tolerance: float = 1e-6,
+) -> trimesh.Trimesh:
     """
     Compute the mesh difference A \\\\ B (all of A that's not in B).
     
@@ -97,6 +133,15 @@ def mesh_difference(mesh_a: trimesh.Trimesh, mesh_b: trimesh.Trimesh, tolerance:
     scipy.spatial.cKDTree : Used for fast nearest neighbor queries
     """
     
+    mesh_a_name, mesh_b_name, caller = _mesh_difference_arg_names()
+
+    if len(mesh_b.vertices) == 0:
+        print(
+            f"mesh_difference: {mesh_a_name} ({len(mesh_a.vertices)} vertices) "
+            f"- {mesh_b_name} (0 vertices) [{caller}] -> skipped empty subtract mesh"
+        )
+        return mesh_a.copy()
+
     # Build a KDTree for fast nearest neighbor queries on mesh B vertices
     tree_b = cKDTree(mesh_b.vertices)
     
@@ -107,9 +152,13 @@ def mesh_difference(mesh_a: trimesh.Trimesh, mesh_b: trimesh.Trimesh, tolerance:
     vertices_to_keep_mask = distances > tolerance
     vertices_to_keep_indices = np.where(vertices_to_keep_mask)[0]
     
-    print(f"Mesh A has {len(mesh_a.vertices)} vertices")
-    print(f"Mesh B has {len(mesh_b.vertices)} vertices")
-    print(f"Vertices in A not in B: {np.sum(vertices_to_keep_mask)}")
+    kept_vertices = int(np.sum(vertices_to_keep_mask))
+    removed_vertices = len(mesh_a.vertices) - kept_vertices
+    print(
+        f"mesh_difference: {mesh_a_name} ({len(mesh_a.vertices)} vertices) "
+        f"- {mesh_b_name} ({len(mesh_b.vertices)} vertices) -> "
+        f"{kept_vertices} kept, {removed_vertices} removed [{caller}]"
+    )
     
     # If all vertices are being kept, just return a copy
     if np.all(vertices_to_keep_mask):
@@ -144,7 +193,7 @@ def mesh_difference(mesh_a: trimesh.Trimesh, mesh_b: trimesh.Trimesh, tolerance:
     
     result = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
     
-    print(f"Result mesh has {len(result.vertices)} vertices and {len(result.faces)} faces")
+    print(f"mesh_difference result: {len(result.vertices)} vertices, {len(result.faces)} faces")
     
     return result
 

@@ -7,7 +7,7 @@ from scipy.spatial import cKDTree
 
 from ....mesh.boolean_ops import mesh_difference
 
-from ..anatomical_region import Anatomical_Region, LEFT_OR_RIGHT
+from ..anatomical_region import Anatomical_Region, LEFT_OR_RIGHT, get_geometry_config
 
 class Leg(Anatomical_Region):
     """
@@ -241,7 +241,7 @@ class Leg(Anatomical_Region):
         search_z_max = z_min + leg_height * 0.125
         
         # Create slice heights approximately 1 inch (0.0254 meters) apart
-        slice_step = 0.0254
+        slice_step = get_geometry_config(mesh)["leg_foot_slice_step"]
         z_heights = np.arange(search_z_min, search_z_max, slice_step)
         
         if len(z_heights) == 0:
@@ -379,7 +379,7 @@ class Leg(Anatomical_Region):
         search_z_max = z_min + leg_height * 0.25
         
         # Create slice heights approximately 1 inch apart
-        slice_step = 0.025
+        slice_step = get_geometry_config(mesh)["leg_slice_step"]
         z_heights = np.arange(search_z_min, search_z_max, slice_step)
                 
         min_perimeter = float('inf')
@@ -466,7 +466,7 @@ class Leg(Anatomical_Region):
         search_z_max = z_min + leg_height * 0.50
         
         # Create slice heights approximately 1 inch apart
-        slice_step = 0.025
+        slice_step = get_geometry_config(mesh)["leg_slice_step"]
         z_heights = np.arange(search_z_min, search_z_max, slice_step)
                 
         max_perimeter = 0.0

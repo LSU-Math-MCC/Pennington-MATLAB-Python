@@ -131,7 +131,7 @@ def convexity_search(mesh: trimesh.Trimesh,
             return center
         convexity_scores.append((convexity_score, center))
     
-    convexity_scores.sort(key=lambda x: x, reverse=True)
+    convexity_scores.sort(key=lambda x: x[0], reverse=True)  # sort by score, not (score, ndarray)
     return convexity_scores[0][1]
         
 def assign_points_to_rays(points, directions, centroid):
@@ -364,11 +364,12 @@ def compute_convexity(loop):
     --------
     shapely.geometry.Polygon : Used for area computation
     """
+    if len(loop) < 3: return 0.0  # a ring needs >=3 vertices (a triangle); fewer can't form a polygon
     loop_2d = loop[:, :2]
     poly = Polygon(loop_2d)
 
     if not poly.is_valid or poly.area == 0:
-        return 0, 0, 0
+        return 0.0  # consistent float so caller's `score >= ...` never sees a tuple
 
     area = poly.area
     hull = poly.convex_hull

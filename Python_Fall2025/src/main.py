@@ -8,8 +8,20 @@ This script demonstrates the body measurement system by:
 4. Printing all measurements to console
 """
 
+import argparse
+import contextlib
+import sys
+from pathlib import Path
+
 import trimesh
 from .body import Body
+from .body.anatomical_regions.anatomical_region import (
+    BASELINE_GEOMETRY_CONSTANTS,
+    BASELINE_UNITS,
+    INTERNAL_UNIT,
+    UNIT_TO_CM,
+    to_cm,
+)
 
 
 # ============================================================================
@@ -58,17 +70,146 @@ def print_section_header(title):
     print("=" * 60)
 
 
+def iter_points(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from iter_points(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from iter_points(item)
+    else:
+        try:
+            if len(value) == 3:
+                yield value
+        except TypeError:
+            pass
+
+
+def save_diagnostic_image(body, image_path):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    projections = [
+        ("Front", 0, 2, "x", "z"),
+        ("Side", 1, 2, "y", "z"),
+        ("Top", 0, 1, "x", "y"),
+    ]
+    mesh_colors = {
+        "head": "#39a9a9",
+        "trunk": "#5d82a8",
+        "left arm": "#39a9a9",
+        "right arm": "#39a9a9",
+        "left leg": "#39a9a9",
+        "right leg": "#39a9a9",
+    }
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 7), dpi=160)
+    all_vertices = np.asarray(body.mesh.vertices)
+
+    for ax, (title, a, b, xlabel, ylabel) in zip(axes, projections):
+        for part_name, mesh in body.subregion_meshes.items():
+            vertices = np.asarray(mesh.vertices)
+            if len(vertices) > 2500:
+                vertices = vertices[:: max(1, len(vertices) // 2500)]
+            ax.scatter(vertices[:, a], vertices[:, b], s=0.35, c=mesh_colors[part_name], alpha=0.35)
+
+        for part_drawings in body.drawings.values():
+            for path in part_drawings.values():
+                vertices = np.asarray(path.vertices)
+                for entity in path.entities:
+                    pts = vertices[np.asarray(entity.points)]
+                    ax.plot(pts[:, a], pts[:, b], c="black", lw=1.2)
+
+        for part_landmarks in body.landmarks.values():
+            for point in iter_points(part_landmarks):
+                point = np.asarray(point)
+                ax.scatter(point[a], point[b], s=24, c="#d94b4b", edgecolors="none")
+
+        ax.set_title(title)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_xlim(all_vertices[:, a].min(), all_vertices[:, a].max())
+        ax.set_ylim(all_vertices[:, b].min(), all_vertices[:, b].max())
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.tick_params(labelsize=7, length=2, pad=1)
+        ax.grid(True, linewidth=0.3, alpha=0.25)
+
+    fig.tight_layout()
+    fig.savefig(image_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+class Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, text):
+        for stream in self.streams:
+            stream.write(text)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+def auto_diary_path(mesh_file):
+    try:
+        rel_mesh = Path(mesh_file).with_suffix(".txt")
+        if rel_mesh.is_absolute():
+            rel_mesh = rel_mesh.relative_to(Path.cwd())
+        return Path("output") / rel_mesh
+    except ValueError:
+        return Path("output") / f"{Path(mesh_file).stem}.txt"
+
+
+def auto_image_path(mesh_file):
+    return auto_diary_path(mesh_file).with_suffix(".png")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the body measurement visualization demo.")
+    parser.add_argument("mesh_file", nargs="?", default="model_files/man.obj")
+    parser.add_argument("--diary", default="auto", help="'auto' or a relative path for captured stdout")
+    parser.add_argument("--show", action="store_true", help="Open the interactive 3D visualization")
+    parser.add_argument(
+        "--save-image",
+        nargs="?",
+        const="auto",
+        default=None,
+        help="Save a headless PNG render. Pass a path or use without a value for auto.",
+    )
+    parser.add_argument(
+        "--units",
+        choices=UNIT_TO_CM.keys(),
+        default=BASELINE_UNITS,
+        help="Coordinate units used by the input mesh. Mesh is converted to internal dm.",
+    )
+    return parser.parse_args()
+
+
 # ============================================================================
 # Main Visualization
 # ============================================================================
-if __name__ == "__main__":
+def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **_):
     print("\n" + "=" * 60)
     print("  BODY MEASUREMENT SYSTEM - VISUALIZATION DEMO")
     print("=" * 60)
     print("\nLoading body model...\n")
     
-    # Load body model
-    body = Body("model_files/man.obj")
+    body = Body(mesh_file, units=units)
+    geometry_config = body.geometry_config
+
+    print(f"Geometry units: input={units}, internal={INTERNAL_UNIT}, output=cm")
+    print(f"Mesh vertices: {len(body.mesh.vertices)}")
+    print(f"Mesh height: {to_cm(body.mesh.extents.max(), geometry_config):.3f} cm")
+    print(f"Density scale: {geometry_config['density_scale']:.3f}")
+    print("Geometry constants:")
+    for key in sorted(BASELINE_GEOMETRY_CONSTANTS):
+        print(f"  {key}: {geometry_config[key]:.6f} {INTERNAL_UNIT}")
+    print()
+
     scene = trimesh.Scene()
     
     # ========================================================================
@@ -155,54 +296,36 @@ if __name__ == "__main__":
                 path.visual.vertex_colors = [0, 0, 0, 255]  # Black
             scene.add_geometry(path)
     
-    # ========================================================================
-    # Print All Measurements
-    # ========================================================================
-    
-    # HEAD MEASUREMENTS
     print_section_header("HEAD MEASUREMENTS")
-    collar_to_scalp = body.measurements["head"]["collar to scalp length"]
-    print(f"  Collar to Scalp Length: {collar_to_scalp:.2f} cm")
-    
-    # TRUNK MEASUREMENTS
+    print(f"  Collar to Scalp Length: {to_cm(body.measurements['head']['collar to scalp length'], geometry_config):.2f} cm")
+
     print_section_header("TRUNK MEASUREMENTS")
-    trunk_length = body.measurements["trunk"]["trunk length"]
-    print(f"  Trunk Length: {trunk_length:.2f} cm")
-    
-    crotch_height = body.measurements["trunk"]["crotch height"]
-    print(f"  Crotch Height: {crotch_height:.2f} cm")
-    
-    chest_circ = body.measurements["trunk"]["chest circumference"]
-    print(f"  Chest Circumference: {chest_circ:.2f} cm")
-    
-    waist_circ = body.measurements["trunk"]["waist circumference"]
-    print(f"  Waist Circumference: {waist_circ:.2f} cm")
-    
-    hip_circ = body.measurements["trunk"]["hip circumference"]
-    print(f"  Hip Circumference: {hip_circ:.2f} cm")
-    
-    # ARM MEASUREMENTS
+    print(f"  Trunk Length: {to_cm(body.measurements['trunk']['trunk length'], geometry_config):.2f} cm")
+    print(f"  Crotch Height: {to_cm(body.measurements['trunk']['crotch height'], geometry_config):.2f} cm")
+    print(f"  Chest Circumference: {to_cm(body.measurements['trunk']['chest circumference'], geometry_config):.2f} cm")
+    print(f"  Waist Circumference: {to_cm(body.measurements['trunk']['waist circumference'], geometry_config):.2f} cm")
+    print(f"  Hip Circumference: {to_cm(body.measurements['trunk']['hip circumference'], geometry_config):.2f} cm")
+
     print_section_header("ARM MEASUREMENTS")
     print("\n  LEFT ARM:")
-    print(f"    Length: {body.measurements['left arm']['arm length']:.2f} cm")
-    print(f"    Wrist Girth: {body.measurements['left arm']['wrist girth']:.2f} cm")
-    print(f"    Forearm Girth: {body.measurements['left arm']['forearm girth']:.2f} cm")
-    print(f"    Bicep Girth: {body.measurements['left arm']['bicep girth']:.2f} cm")
-    
+    print(f"    Length: {to_cm(body.measurements['left arm']['arm length'], geometry_config):.2f} cm")
+    print(f"    Wrist Girth: {to_cm(body.measurements['left arm']['wrist girth'], geometry_config):.2f} cm")
+    print(f"    Forearm Girth: {to_cm(body.measurements['left arm']['forearm girth'], geometry_config):.2f} cm")
+    print(f"    Bicep Girth: {to_cm(body.measurements['left arm']['bicep girth'], geometry_config):.2f} cm")
+
     print("\n  RIGHT ARM:")
-    print(f"    Length: {body.measurements['right arm']['arm length']:.2f} cm")
-    print(f"    Wrist Girth: {body.measurements['right arm']['wrist girth']:.2f} cm")
-    print(f"    Forearm Girth: {body.measurements['right arm']['forearm girth']:.2f} cm")
-    print(f"    Bicep Girth: {body.measurements['right arm']['bicep girth']:.2f} cm")
-    
-    # LEG MEASUREMENTS
+    print(f"    Length: {to_cm(body.measurements['right arm']['arm length'], geometry_config):.2f} cm")
+    print(f"    Wrist Girth: {to_cm(body.measurements['right arm']['wrist girth'], geometry_config):.2f} cm")
+    print(f"    Forearm Girth: {to_cm(body.measurements['right arm']['forearm girth'], geometry_config):.2f} cm")
+    print(f"    Bicep Girth: {to_cm(body.measurements['right arm']['bicep girth'], geometry_config):.2f} cm")
+
     print_section_header("LEG MEASUREMENTS")
     print("\n  LEFT LEG:")
-    print(f"    Length: {body.measurements['left leg']['leg length']:.2f} cm")
-    print(f"    Ankle Girth: {body.measurements['left leg']['ankle girth']:.2f} cm")
-    print(f"    Calf Girth: {body.measurements['left leg']['calf girth']:.2f} cm")
-    print(f"    Thigh Girth: {body.measurements['left leg']['thigh girth']:.2f} cm")
-    
+    print(f"    Length: {to_cm(body.measurements['left leg']['leg length'], geometry_config):.2f} cm")
+    print(f"    Ankle Girth: {to_cm(body.measurements['left leg']['ankle girth'], geometry_config):.2f} cm")
+    print(f"    Calf Girth: {to_cm(body.measurements['left leg']['calf girth'], geometry_config):.2f} cm")
+    print(f"    Thigh Girth: {to_cm(body.measurements['left leg']['thigh girth'], geometry_config):.2f} cm")
+
     print("\n  RIGHT LEG:")
     print(f"    Length: {body.measurements['right leg']['leg length']:.2f} cm")
     print(f"    Ankle Girth: {body.measurements['right leg']['ankle girth']:.2f} cm")
@@ -235,3 +358,19 @@ if __name__ == "__main__":
     # Show the 3D scene
     scene.show()
     
+    if show:
+        print("\n" + "=" * 60)
+        print("  Displaying 3D visualization...")
+        print("=" * 60 + "\n")
+        scene.show()
+    else:
+        print("\nVisualization skipped. Pass --show to open the 3D viewer.")
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    options = vars(args)
+    diary_path = auto_diary_path(args.mesh_file) if options["diary"] == "auto" else Path(options["diary"])
+    diary_path.parent.mkdir(parents=True, exist_ok=True)
+    with diary_path.open("w", encoding="utf-8") as diary, contextlib.redirect_stdout(Tee(sys.stdout, diary)):
+        run_demo(**options)
