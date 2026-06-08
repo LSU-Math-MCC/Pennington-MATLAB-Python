@@ -23,6 +23,7 @@ from .body.anatomical_regions.anatomical_region import (
     to_cm,
 )
 
+MESH_SUFFIXES = {".obj"}
 
 # ============================================================================
 # Color Palette - Professional Blue/Teal Scheme
@@ -154,37 +155,68 @@ class Tee:
             stream.flush()
 
 
-def auto_diary_path(mesh_file):
+def auto_output_path(mesh_file, subdir, suffix):
     try:
-        rel_mesh = Path(mesh_file).with_suffix(".txt")
+        rel_mesh = Path(mesh_file).with_suffix(suffix)
         if rel_mesh.is_absolute():
             rel_mesh = rel_mesh.relative_to(Path.cwd())
-        return Path("output") / rel_mesh
+        return Path("output") / subdir / rel_mesh
     except ValueError:
-        return Path("output") / f"{Path(mesh_file).stem}.txt"
+        return Path("output") / subdir / f"{Path(mesh_file).stem}{suffix}"
+
+
+def auto_diary_path(mesh_file):
+    return auto_output_path(mesh_file, "logs", ".txt")
 
 
 def auto_image_path(mesh_file):
-    return auto_diary_path(mesh_file).with_suffix(".png")
+    return auto_output_path(mesh_file, "images", ".png")
+
+
+def iter_mesh_files(path):
+    path = Path(path)
+    if path.is_dir():
+        return sorted(
+            file for file in path.rglob("*")
+            if file.is_file() and file.suffix.lower() in MESH_SUFFIXES
+        )
+    return [path]
+
+
+def infer_units(mesh_file, units):
+    if units != "auto":
+        return units
+
+    return "dm" if Path(mesh_file).name == "man.obj" else "mm"
+
+
+def resolve_output_path(mesh_file, option, subdir, suffix, batch):
+    if option == "auto":
+        return auto_output_path(mesh_file, subdir, suffix)
+
+    path = Path(option)
+    if batch:
+        return path / auto_output_path(mesh_file, subdir, suffix).relative_to(Path("output") / subdir)
+    return path
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the body measurement visualization demo.")
     parser.add_argument("mesh_file", nargs="?", default="model_files/man.obj")
-    parser.add_argument("--diary", default="auto", help="'auto' or a relative path for captured stdout")
+    parser.add_argument("--diary", default="auto", help="'auto' for output/logs/... or a path for captured stdout")
     parser.add_argument("--show", action="store_true", help="Open the interactive 3D visualization")
     parser.add_argument(
         "--save-image",
         nargs="?",
         const="auto",
         default=None,
-        help="Save a headless PNG render. Pass a path or use without a value for auto.",
+        help="Save a headless PNG render. Pass a path or use without a value for output/images/...",
     )
     parser.add_argument(
         "--units",
-        choices=UNIT_TO_CM.keys(),
-        default=BASELINE_UNITS,
-        help="Coordinate units used by the input mesh. Mesh is converted to internal dm.",
+        choices=("auto", *UNIT_TO_CM.keys()),
+        default="auto",
+        help="Coordinate units used by the input mesh. 'auto' uses dm for man.obj and mm otherwise.",
     )
     return parser.parse_args()
 
@@ -198,6 +230,7 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
     print("=" * 60)
     print("\nLoading body model...\n")
     
+    units = infer_units(mesh_file, units)
     body = Body(mesh_file, units=units)
     geometry_config = body.geometry_config
 
@@ -304,6 +337,7 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
     print(f"  Crotch Height: {to_cm(body.measurements['trunk']['crotch height'], geometry_config):.2f} cm")
     print(f"  Chest Circumference: {to_cm(body.measurements['trunk']['chest circumference'], geometry_config):.2f} cm")
     print(f"  Waist Circumference: {to_cm(body.measurements['trunk']['waist circumference'], geometry_config):.2f} cm")
+    print(f"  Stomach Peak Circumference: {to_cm(body.measurements['trunk']['stomach peak circumference'], geometry_config):.2f} cm")
     print(f"  Hip Circumference: {to_cm(body.measurements['trunk']['hip circumference'], geometry_config):.2f} cm")
 
     print_section_header("ARM MEASUREMENTS")
@@ -350,7 +384,28 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
 if __name__ == "__main__":
     args = parse_args()
     options = vars(args)
-    diary_path = auto_diary_path(args.mesh_file) if options["diary"] == "auto" else Path(options["diary"])
-    diary_path.parent.mkdir(parents=True, exist_ok=True)
-    with diary_path.open("w", encoding="utf-8") as diary, contextlib.redirect_stdout(Tee(sys.stdout, diary)):
-        run_demo(**options)
+    mesh_files = iter_mesh_files(args.mesh_file)
+    batch = len(mesh_files) > 1 or Path(args.mesh_file).is_dir()
+    failures = []
+
+    for mesh_file in mesh_files:
+        run_options = dict(options, mesh_file=mesh_file)
+        if options["save_image"]:
+            run_options["save_image"] = resolve_output_path(mesh_file, options["save_image"], "images", ".png", batch)
+
+        diary_path = resolve_output_path(mesh_file, options["diary"], "logs", ".txt", batch)
+        diary_path.parent.mkdir(parents=True, exist_ok=True)
+        with diary_path.open("w", encoding="utf-8") as diary, contextlib.redirect_stdout(Tee(sys.stdout, diary)):
+            try:
+                if batch:
+                    print(f"Batch item: {mesh_file}")
+                run_demo(**run_options)
+            except Exception as exc:
+                failures.append((mesh_file, exc))
+                print(f"\nERROR processing {mesh_file}: {exc}")
+
+    if failures:
+        print("\nBatch failures:")
+        for mesh_file, exc in failures:
+            print(f"  {mesh_file}: {exc}")
+        sys.exit(1)
