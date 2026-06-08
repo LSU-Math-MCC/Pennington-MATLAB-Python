@@ -14,14 +14,27 @@ import sys
 from pathlib import Path
 
 import trimesh
-from .body import Body
-from .body.anatomical_regions.anatomical_region import (
-    BASELINE_GEOMETRY_CONSTANTS,
-    BASELINE_UNITS,
-    INTERNAL_UNIT,
-    UNIT_TO_CM,
-    to_cm,
-)
+try:
+    from .body import Body
+    from .body.anatomical_regions.anatomical_region import (
+        BASELINE_GEOMETRY_CONSTANTS,
+        BASELINE_UNITS,
+        INTERNAL_UNIT,
+        UNIT_TO_CM,
+        to_cm,
+    )
+except ImportError:
+    if __package__ not in (None, ""):
+        raise
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from src.body import Body
+    from src.body.anatomical_regions.anatomical_region import (
+        BASELINE_GEOMETRY_CONSTANTS,
+        BASELINE_UNITS,
+        INTERNAL_UNIT,
+        UNIT_TO_CM,
+        to_cm,
+    )
 
 MESH_SUFFIXES = {".obj"}
 
@@ -203,6 +216,11 @@ def resolve_output_path(mesh_file, option, subdir, suffix, batch):
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the body measurement visualization demo.")
     parser.add_argument("mesh_file", nargs="?", default="model_files/man.obj")
+    parser.add_argument(
+        "--out",
+        default="output/bench/testset",
+        help="Output directory when mesh_file is 'testset'.",
+    )
     parser.add_argument("--diary", default="auto", help="'auto' for output/logs/... or a path for captured stdout")
     parser.add_argument("--show", action="store_true", help="Open the interactive 3D visualization")
     parser.add_argument(
@@ -383,7 +401,19 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
 
 if __name__ == "__main__":
     args = parse_args()
+    if args.mesh_file == "testset":
+        try:
+            from .testset_benchmark import run_benchmark
+        except ImportError:
+            if __package__ not in (None, ""):
+                raise
+            from src.testset_benchmark import run_benchmark
+
+        run_benchmark(args.out)
+        sys.exit(0)
+
     options = vars(args)
+    options.pop("out", None)
     mesh_files = iter_mesh_files(args.mesh_file)
     batch = len(mesh_files) > 1 or Path(args.mesh_file).is_dir()
     failures = []
