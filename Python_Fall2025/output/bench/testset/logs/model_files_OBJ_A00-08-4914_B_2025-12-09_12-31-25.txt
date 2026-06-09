@@ -1,0 +1,163 @@
+
+============================================================
+  BODY MEASUREMENT SYSTEM - VISUALIZATION DEMO
+============================================================
+
+Loading body model...
+
+Called __init__ (Head)
+Called __init__ (Trunk)
+Called __init__ (Arm)
+Called __init__ (Arm)
+Called __init__ (Leg)
+Called __init__ (Leg)
+Called locate_shoulder (Arm)
+Called locate_armpits (Trunk)
+Called locate_hips (Trunk)
+Crotch maxmin raised z -5.2020 -> -2.6040
+Crotch topology neck z=-2.1745, ratio=0.779, threshold=0.774
+Crotch topology raised z -2.6040 -> -2.2760
+Armpit candidates: left=section-merge z=2.3870 rel=0.523 score=10.32; right=section-merge z=2.4240 rel=0.585 score=10.69
+Armpits: left=[-1.4695 -0.1115  2.387 ], right=[1.3305 0.0445 2.424 ]
+Split mesh into 144 parts
+left_arm_mesh: vertices=720, z=[-1.4880, 4.8267], armpit=[-1.4695 -0.1115  2.387 ]
+Called locate_shoulder (Arm)
+Split mesh into 160 parts
+right_arm_mesh: vertices=743, z=[-1.2860, 5.0610], armpit=[1.3305 0.0445 2.424 ]
+mesh_difference: mesh (4997 vertices) - left_arm_mesh (720 vertices) -> 4347 kept, 650 removed [leg.py:151::_get_submesh]
+mesh_difference result: 4346 vertices, 8650 faces
+mesh_difference: body_without_arm (4346 vertices) - right_arm_mesh (743 vertices) -> 3677 kept, 669 removed [leg.py:152::_get_submesh]
+mesh_difference result: 3677 vertices, 7270 faces
+Called locate_hips (Trunk)
+Crotch maxmin raised z -5.2020 -> -2.6040
+Crotch topology neck z=-1.4333, ratio=0.845, threshold=0.841
+Crotch topology raised z -2.6040 -> -1.4750
+mesh_difference: trunk_mesh (4997 vertices) - left_leg_mesh (1104 vertices) -> 4107 kept, 890 removed [measurements.py:16::get_submesh]
+mesh_difference result: 4107 vertices, 8157 faces
+mesh_difference: mesh (4997 vertices) - left_arm_mesh (720 vertices) -> 4347 kept, 650 removed [leg.py:151::_get_submesh]
+mesh_difference result: 4346 vertices, 8650 faces
+mesh_difference: body_without_arm (4346 vertices) - right_arm_mesh (743 vertices) -> 3677 kept, 669 removed [leg.py:152::_get_submesh]
+mesh_difference result: 3677 vertices, 7270 faces
+Called locate_hips (Trunk)
+Crotch maxmin raised z -5.2020 -> -2.6040
+Crotch topology neck z=-1.4333, ratio=0.845, threshold=0.841
+Crotch topology raised z -2.6040 -> -1.4750
+mesh_difference: trunk_mesh (4107 vertices) - right_leg_mesh (1186 vertices) -> 3161 kept, 946 removed [measurements.py:18::get_submesh]
+mesh_difference result: 3161 vertices, 6240 faces
+mesh_difference: trunk_mesh (3161 vertices) - left_arm_mesh (720 vertices) -> 2511 kept, 650 removed [measurements.py:20::get_submesh]
+mesh_difference result: 2510 vertices, 4900 faces
+mesh_difference: trunk_mesh (2510 vertices) - right_arm_mesh (743 vertices) -> 1841 kept, 669 removed [measurements.py:22::get_submesh]
+mesh_difference result: 1841 vertices, 3520 faces
+mesh_difference: trunk_mesh (1841 vertices) - head_mesh (731 vertices) -> 1244 kept, 597 removed [measurements.py:24::get_submesh]
+mesh_difference result: 1243 vertices, 2297 faces
+Called locate_tip_of_nose (Head)
+Called locate_highest_point_of_arm (Arm)
+Called locate_wrist (Arm)
+Called locate_highest_point_of_arm (Arm)
+Called locate_wrist (Arm)
+Called locate_foot (Leg)
+Called locate_ankle (Leg)
+Called locate_foot (Leg)
+Called locate_ankle (Leg)
+Called measure_collar_to_scalp_length (Head)
+Called measure_crotch_height (Trunk)
+Called measure_hip_circumference (Trunk)
+mesh_difference: body_without_arms (4997 vertices) - left_arm_mesh (720 vertices) -> 4347 kept, 650 removed [measurements.py:35::body_without_arms]
+mesh_difference result: 4346 vertices, 8650 faces
+mesh_difference: body_without_arms (4346 vertices) - right_arm_mesh (743 vertices) -> 3677 kept, 669 removed [measurements.py:37::body_without_arms]
+mesh_difference result: 3677 vertices, 7270 faces
+Crotch maxmin raised z -5.2020 -> -2.6040
+Crotch topology neck z=-1.4333, ratio=0.845, threshold=0.841
+Crotch topology raised z -2.6040 -> -1.4750
+chest search window: z=[2.3455, 3.4272], shoulder_z=4.8267
+chest_full_level: z=3.2469, area=6.0681, perimeter=9.3230, front=1.2834, back=1.2402
+chest_axilla_level: z=4.5088, area=3.8781, perimeter=7.8564, front=0.8267, back=0.8183
+hip_full_level: z=-0.0581, area=8.4287, perimeter=10.5177, front=1.3812, back=1.4179
+stomach_waist_level: z=1.6245, area=5.2593, perimeter=8.3003, front=1.2356, back=1.1184
+natural_waist_level: z=2.1653, area=4.7567, perimeter=7.7997, front=1.1790, back=1.1114
+Called measure_chest_circumference (Trunk)
+Called measure_waist_circumference (Trunk)
+Called measure_stomach_peak_circumference (Trunk)
+Called _measure_trunk_length (Trunk)
+Crotch point: [-0.0895  0.6805 -2.276 ]
+Collar point: [0.0155  0.2515  5.06457]
+Computed trunk length (||crotch - collar||_(x,z)) = 7.341
+Called measure_wrist_girth (Arm)
+Called measure_arm_length (Arm)
+Called measure_forearm_girth (Arm)
+Called measure_bicep_girth (Arm)
+Called measure_wrist_girth (Arm)
+Called measure_arm_length (Arm)
+Called measure_forearm_girth (Arm)
+Called measure_bicep_girth (Arm)
+Called measure_leg_length (Leg)
+Called measure_ankle_girth (Leg)
+Called measure_calf_girth (Leg)
+Called measure_thigh_girth (Leg)
+Called measure_leg_length (Leg)
+Called measure_ankle_girth (Leg)
+Called measure_calf_girth (Leg)
+Called measure_thigh_girth (Leg)
+Geometry units: input=mm, internal=dm, output=cm
+Mesh vertices: 4997
+Mesh height: 154.900 cm
+Density scale: 1.647
+Geometry constants:
+  arm_slice_step: 0.016474 dm
+  armpit_lateral_band: 0.131794 dm
+  armpit_z_stop: 0.008237 dm
+  convexity_slice_width: 0.008237 dm
+  leg_foot_slice_step: 0.041845 dm
+  leg_slice_step: 0.041186 dm
+
+
+============================================================
+  HEAD MEASUREMENTS
+============================================================
+  Collar to Scalp Length: 26.87 cm
+
+============================================================
+  TRUNK MEASUREMENTS
+============================================================
+  Trunk Length: 73.41 cm
+  Crotch Height: 54.69 cm
+  Chest Circumference: 93.23 cm
+  Waist Circumference: 78.00 cm
+  Stomach Peak Circumference: 83.00 cm
+  Hip Circumference: 105.18 cm
+
+============================================================
+  ARM MEASUREMENTS
+============================================================
+
+  LEFT ARM:
+    Length: 42.03 cm
+    Wrist Girth: 16.61 cm
+    Forearm Girth: 26.24 cm
+    Bicep Girth: 30.83 cm
+
+  RIGHT ARM:
+    Length: 42.09 cm
+    Wrist Girth: 17.37 cm
+    Forearm Girth: 27.11 cm
+    Bicep Girth: 35.60 cm
+
+============================================================
+  LEG MEASUREMENTS
+============================================================
+
+  LEFT LEG:
+    Length: 79.06 cm
+    Ankle Girth: 23.91 cm
+    Calf Girth: 39.36 cm
+    Thigh Girth: 48.02 cm
+
+  RIGHT LEG:
+    Length: 78.38 cm
+    Ankle Girth: 23.59 cm
+    Calf Girth: 39.56 cm
+    Thigh Girth: 54.89 cm
+
+Saved visualization image: output\bench\testset\images\model_files_OBJ_A00-08-4914_B_2025-12-09_12-31-25.png
+
+Visualization skipped. Pass --show to open the 3D viewer.

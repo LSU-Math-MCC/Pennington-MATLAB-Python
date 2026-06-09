@@ -74,3 +74,6 @@ models/
 .vscode/
 coverage.xml
 .coverage
+agents.md
+
+output/bench/testset/images/

@@ -2,6 +2,117 @@ from functools import cache
 import numpy as np
 import trimesh
 from ..anatomical_region import Anatomical_Region, LEFT_OR_RIGHT, get_geometry_config
+from ....utils.section_geometry import empty_measurement, line_path
+
+
+def _loop_length(points: np.ndarray) -> float:
+    points = np.asarray(points)
+    if len(points) < 2:
+        return 0.0
+    loop = points[:-1] if np.allclose(points[0], points[-1]) else points
+    return float(np.linalg.norm(np.diff(np.vstack([loop, loop[0]]), axis=0), axis=1).sum())
+
+
+def _arm_slice_loop(path_2d) -> tuple[np.ndarray, float] | None:
+    loops = [np.asarray(loop) for loop in getattr(path_2d, "discrete", []) if len(loop) >= 3]
+    if not loops:
+        from scipy.spatial import ConvexHull
+
+        vertices = np.asarray(getattr(path_2d, "vertices", []))[:, :2]
+        if len(vertices) >= 3:
+            try:
+                loops.append(vertices[ConvexHull(vertices).vertices])
+            except Exception:
+                loops.append(vertices)
+    if not loops:
+        return None
+    measured = [(loop[:-1] if np.allclose(loop[0], loop[-1]) else loop, _loop_length(loop)) for loop in loops]
+    lengths = np.array([length for _, length in measured])
+    threshold = max(1e-9, 0.15 * lengths.max())
+    candidates = [(loop, length) for loop, length in measured if length >= threshold]
+    return min(candidates or measured, key=lambda row: row[1])
+
+
+def _arm_loop_path(loop_2d: np.ndarray, z: float, inverse_transform: np.ndarray) -> trimesh.path.Path3D:
+    loop_2d = np.asarray(loop_2d)[:, :2]
+    vertices_3d_aligned = np.column_stack([loop_2d[:, 0], loop_2d[:, 1], np.full(len(loop_2d), z)])
+    vertices_3d_original = trimesh.transform_points(vertices_3d_aligned, inverse_transform)
+    indices = np.arange(len(vertices_3d_original) + 1)
+    indices[-1] = 0
+    return trimesh.path.Path3D(
+        entities=[trimesh.path.entities.Line(indices)],
+        vertices=vertices_3d_original,
+    )
+
+
+def _aligned_arm_mesh(mesh: trimesh.Trimesh, side: LEFT_OR_RIGHT) -> tuple[trimesh.Trimesh, np.ndarray]:
+    """Return a copy of the arm aligned to z plus the inverse transform back to body space."""
+    from ....mesh.mesh import Mesh
+
+    arm_mesh_copy = Arm._get_submesh(side, mesh).copy()
+    transform_matrix = Mesh.align_mesh_to_z_axis(arm_mesh_copy)
+    return arm_mesh_copy, np.linalg.inv(transform_matrix)
+
+
+def _arm_section_measurement(
+    arm_mesh: trimesh.Trimesh,
+    z: float,
+    inverse_transform: np.ndarray,
+) -> tuple[float, trimesh.path.Path3D]:
+    """Measure one aligned horizontal arm section and map its loop back to body space."""
+    slice_2d = arm_mesh.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+    if slice_2d is None:
+        return empty_measurement()
+    loop_data = _arm_slice_loop(slice_2d)
+    if loop_data is None:
+        return empty_measurement()
+    loop_2d, perimeter = loop_data
+    return float(perimeter), _arm_loop_path(loop_2d, z, inverse_transform)
+
+
+def _largest_fraction_loop(arm_mesh: trimesh.Trimesh, fractions: np.ndarray) -> tuple[float, float, np.ndarray] | None:
+    """Find the largest clean loop across fractional arm heights."""
+    z_min = arm_mesh.vertices[:, 2].min()
+    arm_height = arm_mesh.vertices[:, 2].max() - z_min
+    best = None
+    for fraction in fractions:
+        z = z_min + arm_height * fraction
+        slice_2d = arm_mesh.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+        if slice_2d is None:
+            continue
+        loop_data = _arm_slice_loop(slice_2d)
+        if loop_data is None:
+            continue
+        loop_2d, perimeter = loop_data
+        if best is None or perimeter > best[1]:
+            best = (z, perimeter, loop_2d)
+    return best
+
+
+def _stable_wrist_loop(arm_mesh: trimesh.Trimesh, slice_step: float) -> tuple[np.ndarray, float, float] | None:
+    """Pick the smallest stable lower-arm section while ignoring tiny finger/open-boundary slivers."""
+    z_min = arm_mesh.vertices[:, 2].min()
+    z_max = arm_mesh.vertices[:, 2].max()
+    arm_height = z_max - z_min
+    z_heights = np.arange(z_min + arm_height * 0.12, z_min + arm_height * 0.36, slice_step)
+    if len(z_heights) == 0:
+        z_heights = np.array([z_min + arm_height * 0.24])
+    sections = []
+    for z in z_heights:
+        slice_2d = arm_mesh.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+        if slice_2d is None:
+            continue
+        loop_data = _arm_slice_loop(slice_2d)
+        if loop_data is None:
+            continue
+        loop_2d, perimeter = loop_data
+        sections.append((loop_2d, float(perimeter), z))
+    if not sections:
+        return None
+    perimeters = np.array([perimeter for _, perimeter, _ in sections])
+    floor = max(0.55 * np.median(perimeters), 0.35 * np.percentile(perimeters, 80))
+    stable = [section for section in sections if section[1] >= floor]
+    return min(stable or sections, key=lambda section: section[1])
 
 
 class Arm(Anatomical_Region):
@@ -176,6 +287,54 @@ class Arm(Anatomical_Region):
         outward = -1 if side == "left" else 1
         candidates = []
         fallback_candidates = []
+
+        def geodesic_arm_candidate():
+            from scipy.sparse import coo_matrix
+            from scipy.sparse.csgraph import dijkstra
+
+            vertices = sliced_mesh.vertices
+            edges = sliced_mesh.edges_unique
+            if len(vertices) == 0 or len(edges) == 0:
+                return None
+            edge_lengths = np.linalg.norm(vertices[edges[:, 0]] - vertices[edges[:, 1]], axis=1)
+            graph = coo_matrix(
+                (
+                    np.r_[edge_lengths, edge_lengths],
+                    (np.r_[edges[:, 0], edges[:, 1]], np.r_[edges[:, 1], edges[:, 0]]),
+                ),
+                shape=(len(vertices), len(vertices)),
+            ).tocsr()
+            seed = int(np.argmin(np.linalg.norm(vertices - armpit, axis=1)))
+            distances = dijkstra(graph, indices=seed, limit=0.35 * height)
+            vertex_mask = np.isfinite(distances)
+            eligible = np.flatnonzero(vertex_mask & (vertices[:, 2] >= armpit[2] - 0.42 * height))
+            if len(eligible) >= 2:
+                distal = eligible[np.argmax((vertices[eligible, 0] - armpit[0]) * outward)]
+                shoulder = int(np.argmax(vertices[:, 2]))
+                start = vertices[shoulder, [0, 2]]
+                end = vertices[distal, [0, 2]]
+                axis = end - start
+                axis_length_sq = max(float(np.dot(axis, axis)), 1e-9)
+                points = vertices[:, [0, 2]]
+                t = np.clip(((points - start) @ axis) / axis_length_sq, 0.0, 1.0)
+                closest = start + t[:, None] * axis
+                distance_to_axis = np.linalg.norm(points - closest, axis=1)
+                side_width = max(np.ptp(vertices[vertex_mask, 0]), 1e-9)
+                tube_radius = max(0.26 * side_width, 0.035 * height)
+                vertex_mask &= distance_to_axis <= tube_radius
+            face_indices = np.flatnonzero(vertex_mask[sliced_mesh.faces].all(axis=1))
+            if len(face_indices) == 0:
+                return None
+            candidate = sliced_mesh.submesh([face_indices], append=True, repair=False)
+            candidate.remove_unreferenced_vertices()
+            pieces = candidate.split(only_watertight=False)
+            if len(pieces):
+                candidate = max(pieces, key=lambda part: len(part.vertices))
+            return candidate if len(candidate.vertices) >= min_vertices else None
+
+        def reaches_underarm(candidate):
+            return candidate is not None and candidate.vertices[:, 2].max() >= armpit[2] + 0.02 * height
+
         for part in parts:
             vertices = part.vertices
             if len(vertices) < min_vertices:
@@ -193,6 +352,11 @@ class Arm(Anatomical_Region):
                 continue
             candidates.append(part)
 
+        if not candidates:
+            geodesic_candidate = geodesic_arm_candidate()
+            if reaches_underarm(geodesic_candidate):
+                candidates.append(geodesic_candidate)
+
         parts_to_score = candidates or fallback_candidates or parts
         arm_mesh = max(
             parts_to_score,
@@ -202,6 +366,27 @@ class Arm(Anatomical_Region):
                 len(part.vertices),
             )
         )
+
+        if (
+            np.ptp(arm_mesh.vertices[:, 2]) > 0.6 * height
+            or arm_mesh.vertices[:, 2].min() < crotch[2] - 0.10 * height
+        ):
+            geodesic_candidate = geodesic_arm_candidate()
+            if reaches_underarm(geodesic_candidate):
+                print(f"{side}_arm_mesh: geodesic recovery replaced connected side component")
+                arm_mesh = geodesic_candidate
+
+        geodesic_candidate = geodesic_arm_candidate()
+        if reaches_underarm(geodesic_candidate):
+            arm_depth = np.ptp(arm_mesh.vertices[:, 1])
+            geodesic_depth = np.ptp(geodesic_candidate.vertices[:, 1])
+            if (
+                geodesic_depth < 0.88 * arm_depth
+                and np.ptp(geodesic_candidate.vertices[:, 2]) > 0.70 * np.ptp(arm_mesh.vertices[:, 2])
+                and len(geodesic_candidate.vertices) > 0.35 * len(arm_mesh.vertices)
+            ):
+                print(f"{side}_arm_mesh: geodesic tube removed torso-side slab")
+                arm_mesh = geodesic_candidate
 
         print(
             f"{side}_arm_mesh: vertices={len(arm_mesh.vertices)}, "
@@ -269,71 +454,22 @@ class Arm(Anatomical_Region):
         Returns the actual centroid position (not snapped to mesh vertices).
         """
         print("Called locate_wrist (Arm)")
-        
-        # Get arm mesh for this side
-        arm_mesh = Arm._get_submesh(side, mesh)
-        
-        # Orient arm upright to z-axis
-        from ....mesh.mesh import Mesh
-        arm_mesh_copy = arm_mesh.copy()
-        
-        # Align arm to z-axis and get transformation matrix
-        transform_matrix = Mesh.align_mesh_to_z_axis(arm_mesh_copy)
-        
-        # Get z bounds of the arm
-        z_min = arm_mesh_copy.vertices[:, 2].min()
-        z_max = arm_mesh_copy.vertices[:, 2].max()
-        arm_height = z_max - z_min
-        
-        # Search for wrist in the lower portion of the arm
-        search_z_min = z_min + arm_height * 0.1
-        search_z_max = z_min + arm_height * 0.3
-        
-        # Create slice heights
+
+        arm_mesh_copy, inverse_transform = _aligned_arm_mesh(mesh, side)
         slice_step = get_geometry_config(mesh)["arm_slice_step"]
-        z_heights = np.arange(search_z_min, search_z_max, slice_step)
-        
-        if len(z_heights) == 0:
-            z_heights = np.array([(search_z_min + search_z_max) / 2])
-        
-        min_perimeter = float('inf')
-        wrist_centroid_aligned = None
-        fallback_centroid = None
-        
-        # Find the slice with minimum perimeter
-        for z in z_heights:
-            slice_2d = arm_mesh_copy.section(
-                plane_origin=[0, 0, z],
-                plane_normal=[0, 0, 1]
-            )
-            
-            if slice_2d is not None:
-                # Keep track of first valid slice as fallback
-                if fallback_centroid is None:
-                    fallback_centroid = np.array([slice_2d.centroid[0], slice_2d.centroid[1], z])
-                
-                # Use raw perimeter (simpler, no convex hull needed)
-                perimeter = slice_2d.length
-                
-                if perimeter < min_perimeter:
-                    min_perimeter = perimeter
-                    # Get centroid of the 2D slice (in aligned coordinate system)
-                    wrist_centroid_aligned = np.array([slice_2d.centroid[0], slice_2d.centroid[1], z])
-        
-        # Use fallback if no valid perimeter was found
-        if wrist_centroid_aligned is None:
-            wrist_centroid_aligned = fallback_centroid
-        
-        # If still no valid centroid, use a point in the middle of search range
-        if wrist_centroid_aligned is None:
-            wrist_centroid_aligned = np.array([0, 0, (search_z_min + search_z_max) / 2])
+        wrist_section = _stable_wrist_loop(arm_mesh_copy, slice_step)
+        if wrist_section is None:
+            z_min = arm_mesh_copy.vertices[:, 2].min()
+            z_max = arm_mesh_copy.vertices[:, 2].max()
+            wrist_centroid_aligned = np.array([0, 0, z_min + 0.24 * (z_max - z_min)])
+        else:
+            loop_2d, _, z = wrist_section
+            wrist_centroid_aligned = np.array([loop_2d[:, 0].mean(), loop_2d[:, 1].mean(), z])
         
         # Map the centroid position back to original coordinate system
         # Convert to homogeneous coordinates
         wrist_homogeneous = np.append(wrist_centroid_aligned, 1.0)
         
-        # Apply inverse transformation to map back to original space
-        inverse_transform = np.linalg.inv(transform_matrix)
         wrist_centroid_original = (inverse_transform @ wrist_homogeneous)[:3]
         
         return wrist_centroid_original
@@ -380,86 +516,14 @@ class Arm(Anatomical_Region):
             (girth_value, path_in_original_coordinates)
         """
         print("Called measure_wrist_girth (Arm)")
-        
-        # Get arm mesh for this side
-        arm_mesh = Arm._get_submesh(side, mesh)
-        
-        # Orient arm upright to z-axis
-        from ....mesh.mesh import Mesh
-        arm_mesh_copy = arm_mesh.copy()
-        transform_matrix = Mesh.align_mesh_to_z_axis(arm_mesh_copy)
-        
-        # Get z bounds of the arm
-        z_min = arm_mesh_copy.vertices[:, 2].min()
-        z_max = arm_mesh_copy.vertices[:, 2].max()
-        arm_height = z_max - z_min
-        
-        # Search for wrist in the lower portion of the arm (same range as landmark detection)
-        search_z_min = z_min + arm_height * 0.1
-        search_z_max = z_min + arm_height * 0.3
-        
-        # Create slice heights
+
+        arm_mesh_copy, inverse_transform = _aligned_arm_mesh(mesh, side)
         slice_step = get_geometry_config(mesh)["arm_slice_step"]
-        z_heights = np.arange(search_z_min, search_z_max, slice_step)
-        
-        if len(z_heights) == 0:
-            z_heights = np.array([(search_z_min + search_z_max) / 2])
-        
-        min_perimeter = float('inf')
-        best_slice = None
-        best_z = None
-        
-        # Find the slice with minimum perimeter
-        for z in z_heights:
-            slice_2d = arm_mesh_copy.section(
-                plane_origin=[0, 0, z],
-                plane_normal=[0, 0, 1]
-            )
-            
-            if slice_2d is not None:
-                perimeter = slice_2d.length
-                
-                if perimeter < min_perimeter:
-                    min_perimeter = perimeter
-                    best_slice = slice_2d
-                    best_z = z
-        
-        # If no valid perimeter found, return 0 and empty path
-        if min_perimeter == float('inf'):
-            empty_path = trimesh.load_path(np.array([[0, 0, 0]]))
-            return (0.0, empty_path)
-        
-        # The 2D slice is a Path2D with properly ordered vertices
-        # We need to convert it to 3D while preserving the vertex order from the entities
-        vertices_2d_ordered = best_slice.vertices
-        
-        # Get the proper ordering from the Path2D entities
-        if len(best_slice.entities) > 0:
-            # Extract vertex indices in the correct order from the path entities
-            ordered_indices = []
-            for entity in best_slice.entities:
-                ordered_indices.extend(entity.points)
-            # Remove duplicates while preserving order
-            seen = set()
-            ordered_indices = [i for i in ordered_indices if not (i in seen or seen.add(i))]
-            vertices_2d_ordered = vertices_2d_ordered[ordered_indices]
-        
-        # Convert to 3D in aligned coordinates
-        vertices_3d_aligned = np.column_stack([
-            vertices_2d_ordered[:, 0],  # x
-            vertices_2d_ordered[:, 1],  # y
-            np.full(len(vertices_2d_ordered), best_z)  # z
-        ])
-        
-        # Transform back to original coordinates
-        inverse_transform = np.linalg.inv(transform_matrix)
-        vertices_3d_original = trimesh.transform_points(vertices_3d_aligned, inverse_transform)
-        
-        # Create closed loop path
-        indices = np.arange(len(vertices_3d_original) + 1)
-        indices[-1] = 0  # Close the loop
-        entities = [trimesh.path.entities.Line(indices)]
-        path_3d = trimesh.path.Path3D(entities=entities, vertices=vertices_3d_original)
+        wrist_section = _stable_wrist_loop(arm_mesh_copy, slice_step)
+        if wrist_section is None:
+            return empty_measurement()
+        best_loop, min_perimeter, best_z = wrist_section
+        path_3d = _arm_loop_path(best_loop, best_z, inverse_transform)
         
         return (float(min_perimeter), path_3d)
 
@@ -498,12 +562,7 @@ class Arm(Anatomical_Region):
         diff = wrist - midpoint
         distance = np.sqrt(diff[0]**2 + diff[2]**2)
         
-        # Create Path3D line segment from midpoint to wrist
-        vertices = np.array([midpoint, wrist])
-        entities = [trimesh.path.entities.Line([0, 1])]
-        path_3d = trimesh.path.Path3D(entities=entities, vertices=vertices)
-        
-        return (float(distance), path_3d)
+        return (float(distance), line_path([midpoint, wrist]))
 
     @staticmethod
     @cache
@@ -517,60 +576,13 @@ class Arm(Anatomical_Region):
             (girth_value, path_in_original_coordinates)
         """
         print("Called measure_forearm_girth (Arm)")
-        
-        # Get arm mesh for this side
-        arm_mesh = Arm._get_submesh(side, mesh)
-        
-        # Orient arm upright to z-axis
-        from ....mesh.mesh import Mesh
-        arm_mesh_copy = arm_mesh.copy()
-        transform_matrix = Mesh.align_mesh_to_z_axis(arm_mesh_copy)
-        
-        # Get z bounds of the arm
+
+        arm_mesh_copy, inverse_transform = _aligned_arm_mesh(mesh, side)
         z_min = arm_mesh_copy.vertices[:, 2].min()
         z_max = arm_mesh_copy.vertices[:, 2].max()
         arm_height = z_max - z_min
-        
-        # Slice at 25% up from finger tip (z_min) towards shoulder (z_max)
         z_slice = z_min + arm_height * 0.5
-        
-        slice_2d = arm_mesh_copy.section(
-            plane_origin=[0, 0, z_slice],
-            plane_normal=[0, 0, 1]
-        )
-        
-        if slice_2d is None:
-            empty_path = trimesh.load_path(np.array([[0, 0, 0]]))
-            return (0.0, empty_path)
-        
-        # Get properly ordered vertices from the Path2D
-        vertices_2d_ordered = slice_2d.vertices
-        if len(slice_2d.entities) > 0:
-            ordered_indices = []
-            for entity in slice_2d.entities:
-                ordered_indices.extend(entity.points)
-            seen = set()
-            ordered_indices = [i for i in ordered_indices if not (i in seen or seen.add(i))]
-            vertices_2d_ordered = vertices_2d_ordered[ordered_indices]
-        
-        # Convert to 3D in aligned coordinates
-        vertices_3d_aligned = np.column_stack([
-            vertices_2d_ordered[:, 0],
-            vertices_2d_ordered[:, 1],
-            np.full(len(vertices_2d_ordered), z_slice)
-        ])
-        
-        # Transform back to original coordinates
-        inverse_transform = np.linalg.inv(transform_matrix)
-        vertices_3d_original = trimesh.transform_points(vertices_3d_aligned, inverse_transform)
-        
-        # Create closed loop path
-        indices = np.arange(len(vertices_3d_original) + 1)
-        indices[-1] = 0
-        entities = [trimesh.path.entities.Line(indices)]
-        path_3d = trimesh.path.Path3D(entities=entities, vertices=vertices_3d_original)
-        
-        return (float(slice_2d.length), path_3d)
+        return _arm_section_measurement(arm_mesh_copy, z_slice, inverse_transform)
 
     @staticmethod
     @cache
@@ -584,57 +596,12 @@ class Arm(Anatomical_Region):
             (girth_value, path_in_original_coordinates)
         """
         print("Called measure_bicep_girth (Arm)")
-        
-        # Get arm mesh for this side
-        arm_mesh = Arm._get_submesh(side, mesh)
-        
-        # Orient arm upright to z-axis
-        from ....mesh.mesh import Mesh
-        arm_mesh_copy = arm_mesh.copy()
-        transform_matrix = Mesh.align_mesh_to_z_axis(arm_mesh_copy)
-        
-        # Get z bounds of the arm
-        z_min = arm_mesh_copy.vertices[:, 2].min()
-        z_max = arm_mesh_copy.vertices[:, 2].max()
-        arm_height = z_max - z_min
-        
-        # Slice at 75% up from finger tip (z_min) towards shoulder (z_max)
-        z_slice = z_min + arm_height * 0.75
-        
-        slice_2d = arm_mesh_copy.section(
-            plane_origin=[0, 0, z_slice],
-            plane_normal=[0, 0, 1]
-        )
-        
-        if slice_2d is None:
-            empty_path = trimesh.load_path(np.array([[0, 0, 0]]))
-            return (0.0, empty_path)
-        
-        # Get properly ordered vertices from the Path2D
-        vertices_2d_ordered = slice_2d.vertices
-        if len(slice_2d.entities) > 0:
-            ordered_indices = []
-            for entity in slice_2d.entities:
-                ordered_indices.extend(entity.points)
-            seen = set()
-            ordered_indices = [i for i in ordered_indices if not (i in seen or seen.add(i))]
-            vertices_2d_ordered = vertices_2d_ordered[ordered_indices]
-        
-        # Convert to 3D in aligned coordinates
-        vertices_3d_aligned = np.column_stack([
-            vertices_2d_ordered[:, 0],
-            vertices_2d_ordered[:, 1],
-            np.full(len(vertices_2d_ordered), z_slice)
-        ])
-        
-        # Transform back to original coordinates
-        inverse_transform = np.linalg.inv(transform_matrix)
-        vertices_3d_original = trimesh.transform_points(vertices_3d_aligned, inverse_transform)
-        
-        # Create closed loop path
-        indices = np.arange(len(vertices_3d_original) + 1)
-        indices[-1] = 0
-        entities = [trimesh.path.entities.Line(indices)]
-        path_3d = trimesh.path.Path3D(entities=entities, vertices=vertices_3d_original)
-        
-        return (float(slice_2d.length), path_3d)
+
+        arm_mesh_copy, inverse_transform = _aligned_arm_mesh(mesh, side)
+        best = _largest_fraction_loop(arm_mesh_copy, np.linspace(0.45, 0.62, 12))
+        if best is None:
+            return empty_measurement()
+        z_slice, perimeter, loop_2d = best
+        path_3d = _arm_loop_path(loop_2d, z_slice, inverse_transform)
+
+        return (float(perimeter), path_3d)
