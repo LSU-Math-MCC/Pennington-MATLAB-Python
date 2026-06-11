@@ -26,4 +26,4 @@ This project stems from the <b>Math Consultation Clinic</b> (MC^2) group at LSU.
 </ul>
 
 # Status
-As of Summer 2026, this project is being conducted under the guidance of Dr. Peter Wolenski, Professor of Mathematics at LSU.
+As of Summer 2026, this project is being conducted under the guidance of Dr. Peter R. Wolenski, Russell B. Long Professor of Mathematics at LSU.
