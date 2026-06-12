@@ -1,5 +1,5 @@
 # Overview
-The <b>Pennington MATLAB to Python</b> project is a collaborative undergraduate research effort led by the <b>LSU Department of Mathematics</b> and the <b>Pennington Biomedical Research Center</b>. The primary goal is to translate legacy body-scanning and metabolic analysis written in MATLAB code into a free, open-source, and possibly more efficient Python script.
+The <b>Pennington MATLAB to Python</b> project is a collaborative undergraduate and graduate research effort led by the <b>LSU Department of Mathematics</b> and the <b>Pennington Biomedical Research Center</b>. The primary goal is to translate legacy body-scanning and metabolic analysis written in MATLAB code into a free, open-source, and possibly more efficient Python script.
 
 # Why Python?
 <ul>
