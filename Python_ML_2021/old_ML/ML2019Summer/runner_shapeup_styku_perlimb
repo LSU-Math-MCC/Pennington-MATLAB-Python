@@ -1,0 +1,239 @@
+import pandas as pd
+import shapeup_common_pujan
+from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import Lasso, Ridge
+from sklearn.preprocessing import StandardScaler, LabelEncoder,MinMaxScaler
+from datasets_pujan import DataSet
+from paramutils import combine_options
+from runner_pujan import execute
+from Floating_methods_pujan import perlimbstring, Map, column_filter, standardize_units,standardize_subject_ids,standardize_units_2
+import time
+
+#keeping sources here for now in order to manage the input files while we amend the dataset entry
+def sources(scans=True):
+    sources = []
+    dxa = pd.read_csv("data/DXA.csv")
+    #The trunk BMC is divided into multiple other columns. The following code creates a new DXA column that sums up all those other columns
+    dxa['TRUNK_BMC'] = dxa.apply(lambda x: x['LRIB_BMC'] + x['RRIB_BMC']+x['T_S_BMC'] + x['L_S_BMC'] + x['PELV_BMC'], axis=1)
+    sources.append(dxa)
+    sources.append(pd.read_csv("data/Styku_a_over_b.csv"))
+    sources.append(pd.read_excel("data/Pennington_BodPod.xlsx"))
+    sources.append(pd.read_excel("data/DXA_Q2_plusRegional_brief.xlsx").rename(
+        columns={"Subject ID": "SubjectID"}))  # Remove space in column
+
+    sources.append(pd.read_csv('data/Questionnaire.csv'))
+    sources.append(pd.read_csv('data/Manual.csv'))
+    sources.append(pd.read_csv('data/Blood.csv'))
+
+
+    # sources.append(pd.read_excel("data/ObjOrganizerStyku_v6.xlsx").rename(columns={
+    #    "waist circ": "waist_circ", "hip circ": "hip_circ"}))
+
+
+    scan = "Styku"
+    df = pd.read_excel(f"data/ObjOrganizer{scan}_v6.xlsx", na_values="[]")
+    names = df["Name"]
+    df.rename(columns={col: f"{scan}_{col.replace(' ', '_')}" for col in df.columns},
+              inplace=True)  # Rename columns with dataset
+    df["SubjectID"] = standardize_subject_ids(names)
+    df = standardize_units_2(df)
+    sources.append(df)
+    return sources
+
+    '''
+    if scans:
+        for scan in "SS20", "Styku":
+            df = pd.read_excel(f"data/ObjOrganizer{scan}_v6.xlsx", na_values="[]")
+            names = df["Name"]
+            df.rename(columns={col: f"{scan}_{col.replace(' ', '_')}" for col in df.columns},
+                      inplace=True)  # Rename columns with dataset
+            df["SubjectID"] = standardize_subject_ids(names)
+            sources.append(df)
+    return sources
+    '''
+
+class ModifiedDataSet(DataSet):
+    def load_data(self):
+        combined_df = None
+        for df in sources():
+            df["SubjectID"] = standardize_subject_ids(df["SubjectID"])
+            combined_df = combined_df.merge(df, on="SubjectID", how="outer",
+                                            suffixes=('_1', '_2')) if combined_df is not None else df
+        return standardize_units(combined_df, body_parts)
+
+
+def data_callback(data_list):
+    pass
+
+
+
+start = time.time() #I'm using this to measure the run time of this program
+
+dftest = pd.DataFrame()
+
+#This is implementing the dot notation for the different parts. For example. left_arm.dexa.lean_mass refers to the LARM_LEAN column form the dataset (the dexa dataset appended into to the combined Shapeup())
+left_arm  = Map(name="Left Arm", short_name="LARM",
+                dexa =Map(volume="LARM_volume", fat_mass="LARM_FAT", lean_mass="LARM_LEAN" , bmc= "LARM_BMC"),
+                styku=Map(volume="Styku_lArmVolume"),
+                ss20 =Map(volume="SS20_lArmVolume"))
+right_arm = Map(name="Right Arm", short_name="RARM",
+                dexa =Map(volume="RARM_volume", fat_mass="RARM_FAT", lean_mass="RARM_LEAN", bmc= "RARM_BMC"),
+                styku=Map(volume="Styku_rArmVolume"),
+                ss20 =Map(volume="SS20_rArmVolume"))
+left_leg  = Map(name="Left Leg", short_name="LLEG",
+                dexa =Map(volume="LLEG_volume", fat_mass="L_LEG_FAT", lean_mass="L_LEG_LEAN" ,bmc= "LLEG_BMC"),
+                styku=Map(volume="Styku_lLegVolume"),
+                ss20 =Map(volume="SS20_lLegVolume"))
+right_leg = Map(name="Right Leg", short_name="RLEG",
+                dexa =Map(volume="RLEG_volume", fat_mass="R_LEG_FAT", lean_mass="R_LEG_LEAN" ,bmc= "RLEG_BMC"),
+                styku=Map(volume="Styku_rLegVolume"),
+                ss20 =Map(volume="SS20_rLegVolume"))
+head = Map(name="Head", short_name="HEAD",
+                dexa =Map(volume="HEAD_volume", fat_mass="HEAD_FAT", lean_mass="HEAD_LEAN",bmc= "HEAD_BMC"),
+                styku=Map(volume="Styku_headVolume"),
+                ss20 =Map(volume="SS20_headVolume"))
+trunk = Map(name="Trunk", short_name="TRUNK",
+                dexa =Map(volume="TRUNK_volume", fat_mass="TRUNK_FAT", lean_mass="TRUNK_LEAN", bmc = 'TRUNK_BMC'),
+                styku=Map(volume="Styku_trunkVolume"),
+                ss20 =Map(volume="SS20_trunkVolume"))
+#defining the different body parts
+body_parts = [left_arm, right_arm, left_leg, right_leg, head, trunk]
+
+
+#assigning the features [body part name, measurements for the body part, a/b values , Volume ]. These are the names of the column in the Dataset
+body_part_features = (
+    (left_arm,   ["LarmLength", "lForearmGirth", "lBicepGirth", "lWristGirth"], ["l_forearm_a_over_b", "l_bicep_a_over_b", "l_wrist_a_over_b"],["lArmVolume"]),
+    (right_arm,  ["RArmLength", "rForearm", "rbicepGirth", "rWristGirth"], ["r_forearm_a_over_b", "r_bicep_a_over_b", "r_wrist_a_over_b"],["rArmVolume"]),
+
+    # (head,   ["CollarScalp"], [],["headVolume"]), #currently missing a_b_values and other measurements
+    (left_leg,   ["lLegLength", "lCalfCirc", "Lankle", "lThighGirth"], ["lCalf_a_over_b", "l_ankle_a_over_b", "lThigh_a_over_b"],["lLegVolume"]),
+    (right_leg,  ["rLegLength", "rCalfCirc", "rAnkle", "rThighGirth"], ["rCalf_a_over_b", "r_ankle_a_over_b", "rThigh_a_over_b"],["rLegVolume"]),
+    (trunk , ["Chest_circ", "waist_circ", "hip_circ","crotchHeight","TrunkLength"],["chest_a_over_b", "waist_a_over_b", "hip_a_over_b"],["trunkVolume"])
+)
+
+MDF = ModifiedDataSet()
+essential_transformers = shapeup_common_pujan.essential_transformers
+
+loader_params = dict(
+    data_transformers=essential_transformers,
+    scaler_config={"SEX": LabelEncoder,
+                    "age": MinMaxScaler,
+                   "default": StandardScaler},
+)
+
+loader_param_grid = dict(
+    data_transformers={
+        "__cols": "SEX",
+        "M": essential_transformers + [column_filter("SEX", "M")],
+        "F": essential_transformers + [column_filter("SEX", "F")],
+        "M/F": essential_transformers,
+    },
+)
+#these are just different regressors for our prediction system. Erin and Claire have an extensive research for the optimal hyper-parameters
+
+#regressor = MLPRegressor(max_iter=900,
+ #                       solver="lbfgs",
+  #                       batch_size=8,
+   #                      activation="identity",
+    #                     hidden_layer_sizes=tuple())
+#
+regressor = Lasso(max_iter=1000, alpha=0.009, tol = .001)
+
+#regressor = Ridge(alpha=1.9, max_iter=None, tol=0.001, solver="auto")
+regressor_parameter_grid = dict(
+)
+
+save_name = "mfking_report"
+
+
+targets = ["FAT", "LEAN","BMC"] #names of the targets to work on. The conditional in the next for loop assigns which label we are using for each body part. The dot notation allows for easy assignments.
+
+#for example, when the body part is left arm, the label cname is LARM_{whichever target we use}
+for target in targets:
+
+    print(f"[STATUS] Running regressor on {target}")
+    for body_part, measurement_cnames, ab_cnames, vol_cnames in body_part_features:
+        # loader_param_grid["label_cname"] = [label_cname]
+        #print(f"[STATUS] Running regressor on {target}")
+
+        #might need to find a better conditional on this for all the different target types
+        if target == "FAT":
+            label_cname = body_part.dexa.fat_mass
+        elif target == "LEAN":
+            label_cname = body_part.dexa.lean_mass
+        elif target == "BMC":
+            label_cname = body_part.dexa.bmc
+        loader_params['label_cname'] = label_cname
+
+        #comment out the loader params for different specifications, As of now, its all on.
+        loader_param_grid["feature_cnames"] = combine_options({
+            "bmi": {
+                "N": [],
+                "Y": ["BMI1"]
+            },
+            "a_b": {
+                "N": [],
+                "Y": ab_cnames,
+            },
+            "volume": {
+                "N": [],
+                "Y": perlimbstring(vol_cnames),
+            },
+            "measurements": {
+                "Y": perlimbstring(measurement_cnames),
+                "N":[],
+            }
+        }, additional_options=["SEX"])
+
+        results = execute( MDF, # ShapeUpDataSet()
+                      loader_params,
+                      loader_param_grid,
+                      regressor,
+                      regressor_parameter_grid,
+                      save_name=f"{save_name}-{body_part.short_name}-{label_cname}",
+                      save_df_report=False,
+                      extract_data_callback=data_callback,
+                      include_regressor_and_mlpdata=False
+                      )
+        results.insert(1, 'Body_part',  body_part.short_name)
+        results.insert(1, 'Regressor', target)
+        dftest = pd.concat([dftest,results])
+
+
+print(dftest)
+
+dftest.to_excel("data/Styku_perlimb_results_lasso.xlsx")
+end = time.time()
+times = (end - start)/60
+print("Run time=%d mins" %times)
+
+'''
+this one is for predicted /vs actual data and lists it for each subject. FOR THIS TO RUN, MUST ENABLE  include_regressor_and_mlpdata in Execute to be true.
+
+
+    use = list(loader_param_grid["feature_cnames"].columns)
+    use.remove("__data__")
+    # Subject-wise comparison of test vs predicted values
+    for idx, row in results.iterrows():
+        best_regressor = row["best_regressor"]
+        mlp_data = row["mlp_data"]
+        # print("$types:")
+        # print(type(best_regressor))
+        # print(type(mlp_data))
+        # print(mlp_data.y)
+        predicted_df = mlp_data.predict(best_regressor).rename(columns={label_cname: "prediction"})
+        actual_df = mlp_data.y.rename(columns={label_cname: "actual"})
+        df = actual_df.merge(predicted_df, left_index=True, right_index=True)
+        df["body_part"] = body_part.short_name
+        for feature_cname in loader_param_grid["feature_cnames"].columns:
+            if feature_cname != "__data__":
+                df[feature_cname] = row[feature_cname]
+        print(df)
+
+    # save_df(results, f"{save_name}-{body_part.short_name}")
+    # print(results)
+'''
+
+#df = MDF.load_data()
+#df.to_excel("data/Alex'sExcelSheet.xlsx")
+

@@ -1,0 +1,21 @@
+/python/PCA_App/process/fitted/60k_fitted.rar
+/python/PCA_App/extracted_ply.csv
+/WCI/
+
+# Generated outputs and reports removed during the GitHub import cleanup.
+/python/PCA_App/process/MKR/output/
+/python/PCA_App/reports/
+/python/reports/
+
+# Local environments and notebook/editor noise.
+/misc/PCA/venv/
+/misc/PCA2/pyt3/
+**/.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+# Local archives and large binary experiment outputs should stay out of Git.
+*.zip
+*.rar
+*.joblib
+*.pkl
