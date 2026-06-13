@@ -1,0 +1,195 @@
+﻿Code,Description
+RIAGENDR,Gender
+RIDAGEYR,Age (years)
+RACETH,"Race (1, white; 2, black; 3, Mexican American; 4, other)"
+bmxwt,Weight (kg)
+bmxht,Standing height (cm)
+bmxbmi,Body Mass Index (kg/m^2)
+bmxwaist,Waist circumference (cm)
+MEAN_SBP,n/a
+MEAN_DBP,n/a
+lbxglu,Fasting glucose (mg/dL)
+lbxin,Insulin (uU/mL)
+insulin,n/a
+lbxtr,Triglyceride (mg/dL)
+lbdldl,LDL - cholesterol (mg/dL)
+lbxtc,Total cholesterol (mg/dL)
+lbdhdl,HDL - Cholesterol (mg/dL)
+phafsthr,"Total length of 'food fast', hours"
+phdsesn,Session in which SP was examined
+SMQ020,These next questions are about cigarette smoking and other tobacco use. {Have you/Has SP} smoked at least 100 cigarettes in {your/his/her} entire life?
+SMQ040,{Do you/Does SP} now smoke cigarettes..
+DIQ010,"The next questions are about specific medical conditions. {Other than during pregnancy, {have you/has SP}/{Have you/Has SP}} ever been told by a doctor or health professional that {you have/{he/she/SP} has} diabetes or sugar diabetes?"
+DIQ050,{Is SP/Are you} now taking insulin
+DIQ070,{Is SP/Are you} now taking diabetic pills to lower {{his/her}/your} blood sugar? These are sometimes called oral agents or oral hypoglycemic agents.
+MCQ160B,Has a doctor or other health professional ever told {you/SP} that {you/s/he} . . .had congestive heart failure?
+MCQ160C,Has a doctor or other health professional ever told {you/SP} that {you/s/he} . . .had coronary (kor-o-nare-ee) heart disease?
+MCQ160D,"Has a doctor or other health professional ever told {you/SP} that {you/s/he} . . .had angina (an-gi-na), also called angina pectoris?"
+MCQ160E,Has a doctor or other health professional ever told {you/SP} that {you/s/he} . . .had a heart attack (also called myocardial infarction (my-o-car-dee-al in-fark-shun))?
+MCQ160F,Has a doctor or other health professional ever told {you/SP} that {you/s/he} . . .had a stroke?
+MCQ220,{Have you/Has SP} ever been told by a doctor or other health professional that {you/s/he} had cancer or a malignancy (ma-lig-nan-see) of any kind?
+MCQ250A,"Including living and deceased, were any of {SP's/ your} biological that is, blood relatives including grandparents, parents, brothers, sisters ever told by a health professional that they had . . .diabetes?"
+MCQ250F,"Including living and deceased, were any of {SP's/ your} biological that is, blood relatives including grandparents, parents, brothers, sisters ever told by a health professional that they had . . .high blood pressure or stroke before the age of 50?"
+MCQ250G,"Including living and deceased, were any of {SP's/ your} biological that is, blood relatives including grandparents, parents, brothers, sisters ever told by a health professional that they had . . .heart attack or angina before the age of 50?"
+BPQ020,"{Have you/Has SP} ever been told by a doctor or other health professional that {you/s/he} had hypertension, also called high blood pressure?"
+BPQ030,"{Were you/Was SP} told on 2 or more different visits that {you/s/he} had hypertension, also called high blood pressure?"
+BPQ050A,HELP AVAILABLE (Are you/Is SP) now taking prescribed medicine
+BPQ080,{Have you/Has SP} ever been told by a doctor or other health professional that {your/his/her} blood cholesterol level was high?
+BPQ100D,(Are you/Is SP) now following this advice to take prescribed medicine?
+PAD020,"The next series of questions are about physical activities that {you/SP} {have/has} done over the past 30 days. First I will ask about activities that are related to transportation. Then I'll ask about physical activities that {you/he/she} do at school or in {your/his/her} leisure time. Over the past 30 days, {have/has} {you/SP} walked or bicycled as part of getting to and from work, or school, or to do errands?"
+PAQ050Q,"[Over the past 30 days], how often did {you/SP} do this? [Walk or bicycle as part of getting to and from work, or school, or to do errands.] PROBE: How many times per day, per week, or per month did {you/s/he} do these activities?"
+PAQ050U,UNIT OF MEASURE.
+PAD080,"On those days when {you/SP} walked or bicycled, about how long did {you/s/he} spend altogether doing this (minutes)?"
+PAQ100,"Over the past 30 days, did {you/SP} do any tasks in or around {your/his/her} home or yard for at least 10 minutes that required moderate or greater physical effort? By moderate physical effort I mean, tasks that caused light sweating or a slight to moder ate increase in {your/his/her} heart rate or breathing. [Such as raking leaves, mowing the lawn or heavy cleaning.]"
+PAD120,"[Over the past 30 days], how often did {you/SP} do these tasks in or around {your/his/her} home or yard, that is tasks requiring at least moderate effort? [Such as raking leaves, mowing the lawn or heavy cleaning.] PROBE: How many times per day, per week, or per month did {you/s/he} do these activities?"
+PAD160,About how long did {you/SP} do these tasks each time (minutes)?
+PAQ180,"Please tell me which of these four sentences best describes {your/SP's} usual daily activities? [Daily activities may include {your/his/her} work, housework if {you are/s/he is} a homemaker, going to and attending classes if {you are/s/he is} a student, and what {you/s/he} normally {do/does} throughout a typical day if {you are/he/she is} a retiree or unemployed.] . . ."
+PAD200,"The next questions are about physical activities including exercise, sports, and physically active hobbies that {you/SP} may have done in {your/his/her} leisure time or at school over the past 30 days. First I will ask you about vigorous activities that cause heavy sweating or large increases in breathing or heart rate. Then I will ask you about moderate activities that cause only light sweating or a slight to moderate increase in breathing or heart rate. Over the past 30 days, did {you/SP} do any vigorous activities for at least 10 minutes that caused heavy sweating, or large increases in breathing or heart rate? Some examples are running, lap swimming, aerobics classes or fast bicycling."
+PAD320,"[Over the past 30 days], did {you/SP} do moderate activities for at least 10 minutes that cause only light sweating or a slight to moderate increase in breathing or heart rate? Some examples are brisk walking, bicycling for pleasure, golf, and dancing ."
+PAD440,"Over the past 30 days, did {you/SP} do any physical activities specifically designed to strengthen {your/his/her} muscles such as lifting weights, push-ups or sit-ups? Include all such activities even if you have mentioned them before."
+PAD460,"[Over the past 30 days], how often did {you/SP} do these physical activities? [Activities designed to strengthen {your/his/her} muscles such as lifting weights, push-ups or sit-ups.]"
+PAQ480,"Now I will ask about TV watching or computer use. Over the past 30 days, on a typical day how much time altogether did {you/SP} spend on a typical day sitting and watching TV or videos or using a computer outside of work? Would you say . . ."
+PAQ500,"How does the amount of activity that you reported {for SP} for the past 30 days compare with {your/his/her} physical activity for the past 12 months? Over the past 30 days, {were you/was he/she} . . ."
+PAQ520,"(MEC Interview Version) Compared with most {boys/girls} {your/SP's} age, would you say that {you are/SP is}... (SP Interview Version) Compared with most {men/boys/women/girls} {your/SP's} age, would you say that {you are/s/he is} . . ."
+PAQ540,"Compared with {yourself/himself/herself} 10 years ago, would you say that {you are/SP is} . . ."
+Smoke,n/a
+DMDEDUC2,What is the highest grade or level of school {you have/SP has} completed or the highest degree {you have/s/he has} received?
+DMDSCHOL,{Are you/Is SP} now . . .
+DMDMARTL,Marital Status
+DMDHHSIZ,Total number of people in the Household
+INDHHINC,Total household income (reported as a range value in dollars)
+INDFMINC,Total family income (reported as a range value in dollars)
+INDFMPIR,A ratio of family income to poverty guidelines
+BMXTRI,Triceps skinfold (mm)
+BMXSUB,Subscapular skinfold (mm)
+BMXRECUM,Recumbent length (cm)
+BMXHEAD,Head circumference (cm)
+BMXLEG,Upper leg length (cm)
+BMILEG,Upper leg length comment 
+BMXCALF,Maximal calf circumference (cm)
+BMICALF,Maximal calf comment
+BMXARML,Upper arm length (cm)
+BMIARML,Upper arm length comment
+BMXARMC,Arm circumference (cm)
+BMIARMC,Arm circumference comment
+BMIWAIST,Waist circumference comment
+BMXTHICR,Thvih circumference (cm)
+BMITHICR,Thigh circumference comment
+BMITRI,Ticeps skinfold comment
+BMISUB,Subscapular skinfold comment
+BMAAMP,Amputations?
+BMAUREXT,Amputations:  upper right extremity?
+BMAUPREL,Amputations:  upper right.  Above or below elbow?
+BMAULEXT,Amputations:  upper left extremity?
+BMAUPLEL,Ampputations:  upper left.  Above or below elbow?
+BMALOREX,Amputations:  lower right extremity?
+BMALORKN,Amputations:  lower right.  Above or below knee?
+BMALLEXT,Amputations:  lower left extremity?
+BMALLKNE,Amputations:  lower left.  Above or below the knee?
+RHQ010,The next series of questions are about {your/SP's} reproductive history. I will begin by asking about {your/SP's} periods or menstrual cycles. How old {were you/was SP} when {you/SP} had {your/her} first menstrual period?
+RHQ020,{Were you/Was SP}...
+_MULT_,Imputation Version
+DXAEXSTS,Exam Status
+DXITOT,Overal Imputation Indicator
+DXIHE,Head Imputation Indicator
+DXXHEA,Head Area (cm^2)
+DXAHEBV,Head Bone Invalidity Code
+DXXHEBMC,Head Bone Mineral Content (g)
+DXXHEBMD,Head Bone Mineral Density (g/cm^2)
+DXAHETV,Head Tissue Invalidity Code
+DXXHEFAT,Head Fat (g)
+DXDHELE,Head Lean excl BMC (g)
+DXXHELI,Head Lean incl BMC (g)
+DXDHETOT,Head Total (g)
+DXDHEPF,Head Percent Fat
+DXILA,Left Arm Imputation Indicator
+DXXLAA,Left Arm Area (cm^2)
+DXALABV,Left Arm Bone Invalidity Code
+DXXLABMC,Left Arm BMC (g)
+DXXLABMD,Left Arm BMD (g/cm^2)
+DXALATV,Left Arm Tissue Invalidity Code
+DXXLAFAT,Left Arm Fat (g)
+DXDLALE,Left Arm Lean excl BMC (g)
+DXXLALI,Left Arm Lean incl BMC (g)
+DXDLATOT,Left Arm Total (g)
+DXDLAPF,Left Arm Percent Fat
+DXILL,Left Leg Imputation Indicator
+DXXLLA,Left Leg Area (cm^2)
+DXALLBV,Left Leg Bone Invalidity Code
+DXXLLBMC,Left Leg BMC (g)
+DXXLLBMD,Left Leg BMD (g/cm^2)
+DXALLTV,Left Leg Tissue Invalidity Code
+DXXLLFAT,Left Leg Fat (g)
+DXDLLLE,Left Leg Lean excl BMC (g)
+DXXLLLI,Left Leg Lean incl BMC (g)
+DXDLLTOT,Left Leg Total (g)
+DXDLLPF,Left Leg Percent Fat
+DXIRA,Right Arm Imputation Indicator
+DXXRAA,Right Arm Area (cm^2)
+DXARABV,Right Arm Bone Invalidity Code
+DXXRABMC,Right Arm BMC (g)
+DXXRABMD,Right Arm BMD (g/cm^2)
+DXARATV,Right Arm Tissue Invalidity Code
+DXXRAFAT,Right Arm Fat (g)
+DXDRALE,Right Arm Lean excl BMC (g)
+DXXRALI,Right Arm Lean incl BMC (g)
+DXDRATOT,Right Arm Total (g)
+DXDRAPF,Right Arm Percent Fat
+DXIRL,Right Leg Imputation Indicator
+DXXRLA,Right Leg Area (cm^2)
+DXARLBV,Right Leg Bone Invalidity Code
+DXXRLBMC,Right Leg BMC (g)
+DXXRLBMD,Right Leg BMD(g/cm^2)
+DXARLTV,Right Leg Tissue Invalidity Code
+DXXRLFAT,Right Leg Fat (g)
+DXDRLLE,Right Leg Lean excl BMC (g)
+DXXRLLI,Right Leg Lean incl BMC (g)
+DXDRLTOT,Right Leg Total (g)
+DXDRLPF,Right Leg Percent Fat
+DXILR,Left Ribs Imputation Indicator
+DXXLRA,Left Ribs Area (cm^2)
+DXXLRBMC,Left Ribs BMC (g)
+DXXLRBMD,Left Ribs BMD (g/cm^2)
+DXIRR,Right Ribs Imputation Indicator
+DXXRRA,Right Ribs Area (cm^2)
+DXXRRBMC,Right Ribs BMC (g)
+DXXRRBMD,Right Ribs BMD (g/cm^2)
+DXITS,Thoracic Spine Imputation Indicator
+DXXTSA,Thoracic Spine Area (cm^2)
+DXXTSBMC,Thoracic Spine BMC (g)
+DXXTSBMD,Thoracic Spine BMD (g/cm^2)
+DXILS,Lumbar Spine Imputation Indicator
+DXXLSA,Lumbar Spine Area (cm^2)
+DXXLSBMC,Lumbar Spine BMC (g)
+DXXLSBMD,Lumbar Spine BMD (g/cm^2)
+DXIPE,Pelvis Imputation Indicator
+DXXPEA,Pelvis Area (cm^2)
+DXXPEBMC,Pelvis BMC (g)
+DXXPEBMD,Pelvis BMD (g/cm^2)
+DXITR,Trunk Imputation Indicator
+DXDTRA,Trunk Bone area (cm^2)
+DXATRBV,Trunk Bone Invalidity Code
+DXDTRBMC,Trunk BMC (g)
+DXDTRBMD,Trunk Bone BMD (g/cm^2)
+DXATRTV,Trunk Tissue Invalidity Code
+DXXTRFAT,Trunk Fat (g)
+DXDTRLE,Trunk Lean excl BMC (g)
+DXXTRLI,Trunk Lean incl BMC (g)
+DXDTRTOT,Trunk Total (g)
+DXDTRPF,Trunk Percent Fat
+DXDSTA,Subtotal Area (cm^2)
+DXDSTBMC,Subtotal BMC (g)
+DXDSTBMD,Subtotal BMD (g/cm^2)
+DXDSTFAT,Subtotal Fat (g)
+DXDSTLE,Subtotal Lean excl BMC (g)
+DXDSTLI,Subtotal Lean incl BMC (g)
+DXDSTTOT,Subtotal (Total excl Head) (g)
+DXDSTPF,Subtotal Percent Fat
+DXDTOA,Total Area (cm^2)
+DXDTOBMC,Total Bone Mineral Content (g)
+DXDTOBMD,Total Bone Mineral Density (g/cm^2)
+DXDTOFAT,Total Fat (g)
+DXDTOLE,Total Lean excl BMC (g)
+DXDTOLI,Total Lean incl BMC (g)
+DXDTOTOT,Total Lean+Fat (g)
+DXDTOPF,Total Percent Fat

@@ -1,0 +1,13 @@
+loadMesh 0 data/template-60k-m_rot_trans.ply
+loadMarkers 0 data/template-60k-m-adjust.mkr
+loadMesh 1 C:/Users/Clint/PycharmProjects/body-shape-ml/python/PCA_App/process\02ADL0164_B.ply
+loadMarkers 1 C:/Users/Clint/PycharmProjects/body-shape-ml/python/PCA_App/process\02ADL0164_B.mkr
+startMatch 1 1   0   0
+startMatch 0 2   0   0.2 800
+startMatch 0 10  0   0.2 40
+startMatch 0 10  0.2 0.2 100
+startMatch 0 5   1   0.3 100
+startMatch 0 0.5 10  0.5 100
+startMatch 0 0.1 20  0.3 20
+saveMesh C:/Users/Clint/PycharmProjects/body-shape-ml/python/PCA_App/process/fitted/02ADL0164_B_fitted.ply
+

@@ -1,0 +1,115 @@
+ # Sets param_maps and column_maps from loader_param_grid
+    param_maps, column_maps = zip(*iter_params(loader_param_grid, additional_params=loader_params))
+    # extracted_data_list - List of data.x ('data') and data.y ('target') extracted from csv file for each 'segment'
+    extracted_data_list = resolve_delayed(delayed(dataset.extract_data)(**param_map) for param_map in param_maps) # Iteresting external wrapping with resolve_delayed
+    # Were he extracts data and applies transformations from loader_params
+    # param_map contains the arguments for extract data
+    # each param_map is the same except for 'feature_cnames'
+    if callable(extract_data_callback): # https://www.geeksforgeeks.org/callable-in-python/
+        extract_data_callback(extracted_data_list)
+
+    print("[STATUS] RUNNING...")
+    grid_search_results = []
+    if write_validation:
+        # open validation report for writing: 'w' - save as f
+        f = open(f"reports/{save_name}-validation.txt", "w")
+    # zip is essentially cartesian product, allows to set tuples
+    for data, param_map, column_map in zip(extracted_data_list, param_maps, column_maps):
+        if show_hist:
+            # Only use of hist_df
+            hist_df(pd.concat([data.x, data.y], axis=1), bins=15)
+            # hist_df(pd.concat([data.x_scaled, data.y_scaled], axis=1), bins=15)
+        # Writes a "segment" for each set of options (rows of output) defining column_map, feature_cnames, data.x.columns
+        if write_validation:
+            feature_cnames = param_map['feature_cnames']
+            cols = list(data.x.columns.values)
+            f.write(f"column_map: {column_map}\nfeature_cnames: {feature_cnames}\ndata.x.columns: {data.x.columns}\n\ndata.y.columns: {data.y.columns}\nparam_map: {param_map}\n\n\n")
+            f.flush()
+        # Setting up to train the regressors.
+        grid_search_results.append(delayed(run_grid_search)(data, regressor, regressor_param_grid, cv=cv))
+    if write_validation:
+        f.close()
+
+    grid_search_results = resolve_delayed(grid_search_results) # Removing the delayed tag, training regressors
+    master_df = None
+    for (df, best), column_map, data in zip(grid_search_results, column_maps, extracted_data_list):
+        # __accuracy(best, data)
+        if include_regressor_and_mlpdata:
+            df["best_regressor"] = best
+            df["mlp_data"] = data
+        master_df = df_append(master_df, df, column_map) # adds column_map.items() information (tree branch) to row
+    if save_df_report:
+        save_df(master_df, save_name)
+    # Moves everything not ending in _r2 or _r2adj to middle (front in this case)
+    return df_reorder_columns(master_df, send_back=[col for col in master_df.columns if col.endswith("_r2") or col.endswith("_r2adj")])
+
+def __accuracy(mlp, data):
+    y_predict = data.predict(mlp)
+
+    df = pd.DataFrame({"Actual": data.y.squeeze(), "Predicted": y_predict.squeeze()}, index=data.y.index)
+    df["diff"] = (df["Actual"] - df["Predicted"]).abs()
+    df = df.sort_values("diff", ascending=False)
+    print(df)
+    graph_predicted_vs_actual(df["Predicted"], df["Actual"])
+
+def run_grid_search(data, regressor, parameter_grid, cv=3, display=["mean", "min", "max", "std", "r2", "r2adj"]):
+    clf = GridSearchCV(regressor,
+                       parameter_grid, # regressor_parameter_grid
+                       n_jobs=-1,
+                       return_train_score=True,
+                       cv=cv if cv is not None else [(np.asarray(range(0, len(data.x))), np.asarray(range(0, len(data.x))))]
+                       ) # https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html
+    clf.fit(data.x_scaled, data.y_scaled.values.ravel())
+    # save_df(pd.concat([data.x, data.y], axis=1), "grid")
+    # save_df(pd.concat([data.x_scaled, data.y_scaled], axis=1), "grid_scaled")
+
+    params = clf.cv_results_['params']
+    best = clf.best_estimator_
+    # __accuracy(best, data)
+
+    num_splits = sum(1 for key in clf.cv_results_.keys() if key.startswith("split") and key.endswith("_test_score"))
+    num_runs = len(clf.cv_results_['mean_test_score'])
+
+    # https://docs.scipy.org/doc/numpy/reference/generated/numpy.asarray.html
+    test_scores = [np.asarray([clf.cv_results_[f"split{split}_test_score"][run] for split in range(num_splits)])
+                   for run in range(num_runs)]
+    train_scores = [np.asarray([clf.cv_results_[f"split{split}_train_score"][run] for split in range(num_splits)])
+                    for run in range(num_runs)]
+    # train_scores = [[clf.cv_results_[f"split{split}_train_score"][run] for split in range(num_splits)] for run
+    #                 in range(num_runs)]
+
+    def adjusted_r2(r2_scores_list):
+        return adjusted_r2_score(np.asarray(r2_scores_list), len(data.x.columns), len(data.x))
+
+
+    # Creating a list of tuples in 'alphabetical order'
+    columns = OrderedDict()
+    for param_name in params[0]:
+        columns[param_name] = [param[param_name] for param in params]
+
+    sets = [("_train_", train_scores), ("_test_", test_scores)] if cv is not None else [("_", train_scores)]
+    for score_name, score_fn in [("r2", lambda x: x), ("r2adj", adjusted_r2)]:
+        if score_name not in display:
+            continue
+        for set_name, set_data in sets:
+            for metric in ["mean", "min", "max", "std"]:
+                if metric not in display:
+                    continue
+                columns[f"{metric}{set_name}{score_name}"] = [getattr(score_fn(entry), metric)() for entry in set_data]
+
+
+    columns["n_samples"] = len(data.x)
+    return pd.DataFrame(data=columns), best
+
+
+def gen_layers(start, end, step=1, levels=1):
+    layers = []
+    for i in range(start, end + 1, step):
+        layers.append((i,))
+        if levels > 1:
+            for j in range(start, end + 1, step):
+                layers.append((i, j))
+            if levels > 2:
+                for k in range(start, end + 1, step):
+                    layers.append((i, j, k))
+    return layers
