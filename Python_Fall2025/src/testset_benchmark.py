@@ -168,6 +168,7 @@ def run_benchmark(out_dir="output/bench/testset"):
             "height_cm": parse_height(log) if log.exists() else None,
             "log": str(log.relative_to(ROOT)),
             "image": str(image.relative_to(ROOT)),
+            "error": stdout[-2000:] if code != 0 else "",
         }
         row.update(values)
         row["issues"] = flag_issues(row, values, image)
@@ -184,23 +185,52 @@ def run_benchmark(out_dir="output/bench/testset"):
 def write_summary(out_dir, rows):
     path = out_dir / "summary.csv"
     with path.open("w", newline="", encoding="utf-8") as file:
-        fields = ("case", "returncode", "height_cm", "log", "image", *MEASUREMENT_KEYS, "issues")
+        fields = ("case", "returncode", "height_cm", "log", "image", "error", *MEASUREMENT_KEYS, "issues")
         writer = csv.DictWriter(file, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
     print(f"Wrote {path.relative_to(ROOT)}")
 
 
+def wrapped_lines(text, width=88, max_lines=26):
+    lines = []
+    for raw in str(text).replace("\r", " ").replace("\t", " ").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        while len(raw) > width:
+            lines.append(raw[:width])
+            raw = raw[width:]
+        lines.append(raw)
+    if len(lines) > max_lines:
+        return lines[:max_lines] + ["..."]
+    return lines
+
+
+def error_tile(row, width, height):
+    tile = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(tile)
+    text = "\n".join(wrapped_lines(
+        f"{row['case']}\nFAILED\n{row.get('issues', '')}\n{row.get('error', '')}",
+        width=90,
+        max_lines=max(6, height // 18),
+    ))
+    draw.multiline_text((10, 10), text, fill=(180, 0, 0), spacing=6)
+    return tile
+
+
 def write_contact_sheet(out_dir, rows, thumb_width=520):
     images = []
     for row in rows:
         path = ROOT / row["image"]
-        if not path.exists():
+        label_height = 42
+        if row["returncode"] != 0 or not path.exists():
+            tile = error_tile(row, thumb_width, 360)
+            images.append(tile)
             continue
         image = Image.open(path).convert("RGB")
         scale = thumb_width / image.width
         thumb = image.resize((thumb_width, int(image.height * scale)))
-        label_height = 42
         tile = Image.new("RGB", (thumb.width, thumb.height + label_height), "white")
         tile.paste(thumb, (0, label_height))
         draw = ImageDraw.Draw(tile)

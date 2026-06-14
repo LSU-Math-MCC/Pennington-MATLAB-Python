@@ -10,6 +10,7 @@ This script demonstrates the body measurement system by:
 
 import argparse
 import contextlib
+import csv
 import sys
 from pathlib import Path
 
@@ -379,17 +380,18 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
     print(f"    Thigh Girth: {to_cm(body.measurements['left leg']['thigh girth'], geometry_config):.2f} cm")
 
     print("\n  RIGHT LEG:")
-    print(f"    Length: {body.measurements['right leg']['leg length']:.2f} cm")
-    print(f"    Ankle Girth: {body.measurements['right leg']['ankle girth']:.2f} cm")
-    print(f"    Calf Girth: {body.measurements['right leg']['calf girth']:.2f} cm")
-    print(f"    Thigh Girth: {body.measurements['right leg']['thigh girth']:.2f} cm")
-    
-    print("\n" + "=" * 60)
-    print("  Displaying 3D visualization...")
-    print("=" * 60 + "\n")
+    print(f"    Length: {to_cm(body.measurements['right leg']['leg length'], geometry_config):.2f} cm")
+    print(f"    Ankle Girth: {to_cm(body.measurements['right leg']['ankle girth'], geometry_config):.2f} cm")
+    print(f"    Calf Girth: {to_cm(body.measurements['right leg']['calf girth'], geometry_config):.2f} cm")
+    print(f"    Thigh Girth: {to_cm(body.measurements['right leg']['thigh girth'], geometry_config):.2f} cm")
 
+    if save_image:
+        save_image = Path(save_image)
+        save_image.parent.mkdir(parents=True, exist_ok=True)
+        save_diagnostic_image(body, save_image)
+        print(f"\nSaved diagnostic image to {save_image}")
 
-           # ========================================================================
+    # ========================================================================
     # Save Measurements to CSV
     # ========================================================================
     rows = []
@@ -399,17 +401,16 @@ def run_demo(mesh_file, *, units=BASELINE_UNITS, show=False, save_image=None, **
             rows.append({
                 "body_part": part_name,
                 "measurement": measurement_name,
-                "value_cm": value
+                "value_cm": to_cm(value, geometry_config)
             })
 
-    df = pd.DataFrame(rows)
-    df.to_csv("body_measurements.csv", index=False)
+    with open("body_measurements.csv", "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=("body_part", "measurement", "value_cm"))
+        writer.writeheader()
+        writer.writerows(rows)
 
     print("\nSaved measurements to body_measurements.csv")
-    
-    # Show the 3D scene
-    scene.show()
-    
+
     if show:
         print("\n" + "=" * 60)
         print("  Displaying 3D visualization...")
