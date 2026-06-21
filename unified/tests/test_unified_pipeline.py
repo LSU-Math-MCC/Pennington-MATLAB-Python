@@ -95,7 +95,11 @@ def test_representative_field_mappings():
     assert SLICE_FIELD_MAP["Chest"] == "chest_circumference_cm"
     assert SLICE_FIELD_MAP["Surface Area Total"] == "surface_area_total_cm2"
     assert SEGMENTATION_FIELD_MAP[("trunk", "waist circumference")] == "waist_circumference_cm"
+    assert SEGMENTATION_FIELD_MAP[("trunk", "collar circumference")] == "collar_circumference_cm"
+    assert SEGMENTATION_FIELD_MAP[("head", "head circumference")] == "head_circumference_cm"
     assert SEGMENTATION_FIELD_MAP[("left arm", "arm length")] == "arm_length_left_cm"
+    assert SEGMENTATION_FIELD_MAP[("left arm", "upper arm girth")] == "upper_arm_circumference_left_cm"
+    assert SEGMENTATION_FIELD_MAP[("left leg", "mid thigh girth")] == "mid_thigh_circumference_left_cm"
     assert SEGMENTATION_FIELD_MAP[("trunk", "crotch height")] == ("inseam_left_cm", "inseam_right_cm")
 
 

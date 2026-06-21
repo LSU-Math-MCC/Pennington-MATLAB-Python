@@ -13,6 +13,7 @@ from .measurements import (
     body_without_arms as body_without_arms_impl,
     get_submesh as get_submesh_impl,
     measure_chest_circumference as measure_chest_circumference_impl,
+    measure_collar_circumference as measure_collar_circumference_impl,
     measure_crotch_height as measure_crotch_height_impl,
     measure_hip_circumference as measure_hip_circumference_impl,
     measure_stomach_peak_circumference as measure_stomach_peak_circumference_impl,
@@ -164,12 +165,12 @@ class Trunk(Anatomical_Region):
     @property
     def volume(self):
         print("Called volume (Trunk)")
-        return self._trimesh.volume
+        return self.mesh.volume
     
     @property
     def surface_area(self):
         print("Called surface_area (Trunk)")
-        return self._trimesh.area
+        return self.mesh.area
 
     # Properties of Trunk
 
@@ -197,7 +198,11 @@ class Trunk(Anatomical_Region):
             "hip circumference": Trunk._measure_hip_circumference(self.body_mesh),
             "chest circumference": Trunk._measure_chest_circumference(self.body_mesh),
             "waist circumference": Trunk._measure_waist_circumference(self.body_mesh),
+            "horizontal waist circumference": Trunk._measure_waist_circumference(self.body_mesh),
+            "narrow waist circumference": Trunk._measure_waist_circumference(self.body_mesh),
             "stomach peak circumference": Trunk._measure_stomach_peak_circumference(self.body_mesh),
+            "seat circumference": Trunk._measure_hip_circumference(self.body_mesh),
+            "collar circumference": Trunk._measure_collar_circumference(self.body_mesh),
             "trunk length": Trunk._measure_trunk_length(self.body_mesh),
         }
 
@@ -228,6 +233,7 @@ def _install_trunk_impl():
     Trunk._measure_chest_circumference = cached(lambda mesh: measure_chest_circumference_impl(mesh, Trunk))
     Trunk._measure_waist_circumference = cached(lambda mesh: measure_waist_circumference_impl(mesh, Trunk))
     Trunk._measure_stomach_peak_circumference = cached(lambda mesh: measure_stomach_peak_circumference_impl(mesh, Trunk))
+    Trunk._measure_collar_circumference = cached(lambda mesh: measure_collar_circumference_impl(mesh, Trunk))
     Trunk._measure_trunk_length = cached(lambda mesh: measure_trunk_length_impl(mesh, Trunk))
 
 

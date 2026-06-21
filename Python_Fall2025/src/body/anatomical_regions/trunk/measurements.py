@@ -75,6 +75,13 @@ def measure_chest_circumference(mesh: trimesh.Trimesh, trunk_api):
     return slice_measurement(torso_mesh, chest_z, "chest")
 
 
+def measure_collar_circumference(mesh: trimesh.Trimesh, trunk_api):
+    """Measure a neck/collar tape proxy at the collar landmark height."""
+    print("Called measure_collar_circumference (Trunk)")
+    collar = trunk_api._locate_collar(mesh)
+    return slice_measurement(mesh, collar[2], "collar")
+
+
 def measure_waist_circumference(mesh: trimesh.Trimesh, trunk_api):
     """Measure the closed tape path around the natural waist narrowing between hip and chest."""
     print("Called measure_waist_circumference (Trunk)")

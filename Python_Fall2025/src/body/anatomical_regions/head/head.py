@@ -210,15 +210,32 @@ class Head(Anatomical_Region):
     def measurements(self):
         """Extract just the measurement values (first element of tuples)."""
         return {
-            "collar to scalp length": Head._measure_collar_to_scalp_length(self.body_mesh)[0]
+            "collar to scalp length": Head._measure_collar_to_scalp_length(self.body_mesh)[0],
+            "head circumference": Head._measure_head_circumference(self.body_mesh)[0],
         }
 
     @property
     def drawings(self):
         """Extract the 3D paths showing where measurements were taken (second element of tuples)."""
         return {
-            "collar to scalp length": Head._measure_collar_to_scalp_length(self.body_mesh)[1]
+            "collar to scalp length": Head._measure_collar_to_scalp_length(self.body_mesh)[1],
+            "head circumference": Head._measure_head_circumference(self.body_mesh)[1],
         }
+
+    @staticmethod
+    @cache
+    def _measure_head_circumference(mesh: trimesh.Trimesh):
+        """Measure the largest horizontal head section above the neck."""
+        from ....utils.section_geometry import empty_measurement, slice_measurement
+        import numpy as np
+
+        print("Called measure_head_circumference (Head)")
+        head_mesh = Head._get_submesh(mesh)
+        z_min, z_max = head_mesh.bounds[:, 2]
+        z_values = np.linspace(z_min + 0.25 * (z_max - z_min), z_min + 0.75 * (z_max - z_min), 20)
+        measurements = [slice_measurement(head_mesh, z, "head") for z in z_values]
+        measurements = [measurement for measurement in measurements if measurement[0] > 0]
+        return max(measurements, key=lambda measurement: measurement[0]) if measurements else empty_measurement()
 
     @staticmethod
     @cache

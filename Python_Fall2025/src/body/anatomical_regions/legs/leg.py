@@ -291,6 +291,7 @@ class Leg(Anatomical_Region):
             "leg length": Leg._measure_leg_length(self.body_mesh, self.side)[0],
             "ankle girth": Leg._measure_ankle_girth(self.body_mesh, self.side)[0],
             "calf girth": Leg._measure_calf_girth(self.body_mesh, self.side)[0],
+            "mid thigh girth": Leg._measure_mid_thigh_girth(self.body_mesh, self.side)[0],
             "thigh girth": Leg._measure_thigh_girth(self.body_mesh, self.side)[0]
         }
 
@@ -301,6 +302,7 @@ class Leg(Anatomical_Region):
             "leg length": Leg._measure_leg_length(self.body_mesh, self.side)[1],
             "ankle girth": Leg._measure_ankle_girth(self.body_mesh, self.side)[1],
             "calf girth": Leg._measure_calf_girth(self.body_mesh, self.side)[1],
+            "mid thigh girth": Leg._measure_mid_thigh_girth(self.body_mesh, self.side)[1],
             "thigh girth": Leg._measure_thigh_girth(self.body_mesh, self.side)[1]
         }
 
@@ -524,6 +526,12 @@ class Leg(Anatomical_Region):
 
     @staticmethod
     @cache
+    def _measure_mid_thigh_girth(mesh: trimesh.Trimesh, side: LEFT_OR_RIGHT):
+        """Measure thigh girth halfway between ankle and hip."""
+        return Leg._measure_leg_section_girth(mesh, side, 0.50)
+
+    @staticmethod
+    @cache
     def _measure_thigh_girth(mesh: trimesh.Trimesh, side: LEFT_OR_RIGHT):
         """
         Measure thigh girth at 75% of distance from ankle to hip.
@@ -534,7 +542,11 @@ class Leg(Anatomical_Region):
             (girth_value, path_in_original_coordinates)
         """
         print("Called measure_thigh_girth (Leg)")
+        return Leg._measure_leg_section_girth(mesh, side, 0.75)
 
+    @staticmethod
+    @cache
+    def _measure_leg_section_girth(mesh: trimesh.Trimesh, side: LEFT_OR_RIGHT, fraction: float):
         from ..trunk import Trunk
         
         # Get hip landmark for this side
@@ -547,7 +559,7 @@ class Leg(Anatomical_Region):
         # Calculate the z position for thigh measurement
         ankle_z = ankle[2]
         hip_z = hip[2]
-        thigh_z = ankle_z + 0.75 * (hip_z - ankle_z)
+        thigh_z = ankle_z + fraction * (hip_z - ankle_z)
         
         # Get the perimeter of cross-section at this z height
         # Note: thigh measurement is already in original coordinates (no alignment needed)

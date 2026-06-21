@@ -230,12 +230,12 @@ class Arm(Anatomical_Region):
     @property
     def volume(self):
         print("Called volume (Arm)")
-        return self._trimesh.volume
+        return self.mesh.volume
     
     @property
     def surface_area(self):
         print("Called surface_area (Arm)")
-        return self._trimesh.area
+        return self.mesh.area
     
     # Vertex Indices (provided by `mesh`)
     @property
@@ -484,7 +484,8 @@ class Arm(Anatomical_Region):
             "wrist girth": Arm._measure_wrist_girth(self.body_mesh, self.side)[0],
             "arm length": Arm._measure_arm_length(self.body_mesh, self.side)[0],
             "forearm girth": Arm._measure_forearm_girth(self.body_mesh, self.side)[0],
-            "bicep girth": Arm._measure_bicep_girth(self.body_mesh, self.side)[0]
+            "bicep girth": Arm._measure_bicep_girth(self.body_mesh, self.side)[0],
+            "upper arm girth": Arm._measure_bicep_girth(self.body_mesh, self.side)[0],
         }
 
     @property
@@ -494,7 +495,8 @@ class Arm(Anatomical_Region):
             "wrist girth": Arm._measure_wrist_girth(self.body_mesh, self.side)[1],
             "arm length": Arm._measure_arm_length(self.body_mesh, self.side)[1],
             "forearm girth": Arm._measure_forearm_girth(self.body_mesh, self.side)[1],
-            "bicep girth": Arm._measure_bicep_girth(self.body_mesh, self.side)[1]
+            "bicep girth": Arm._measure_bicep_girth(self.body_mesh, self.side)[1],
+            "upper arm girth": Arm._measure_bicep_girth(self.body_mesh, self.side)[1],
         }
 
     @staticmethod
