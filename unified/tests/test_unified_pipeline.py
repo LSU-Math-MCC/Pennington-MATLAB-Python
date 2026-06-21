@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import unified.pipeline as pipeline
-from unified.schema import CANONICAL_COLUMNS, FALL2025_FIELD_MAP, SLICE_FIELD_MAP
+from unified.schema import CANONICAL_COLUMNS, SEGMENTATION_FIELD_MAP, SLICE_FIELD_MAP
 
 
 class FakeBackend:
@@ -49,13 +49,13 @@ def test_all_mode_emits_one_row_per_backend(tmp_path, monkeypatch):
         pipeline,
         "BACKENDS",
         {
-            "fall2025": FakeBackend("fall2025"),
+            "segmentation": FakeBackend("segmentation"),
             "slice": FakeBackend("slice"),
         },
     )
     df = pipeline.run_pipeline(obj, backend="all", output_dir=None)
 
-    assert df["pipeline"].tolist() == ["fall2025", "slice"]
+    assert df["pipeline"].tolist() == ["segmentation", "slice"]
     assert len(df) == 2
 
 
@@ -80,7 +80,7 @@ def test_backend_selection(tmp_path, monkeypatch):
         pipeline,
         "BACKENDS",
         {
-            "fall2025": FakeBackend("fall2025", {"height_cm": 170}),
+            "segmentation": FakeBackend("segmentation", {"height_cm": 170}),
             "slice": FakeBackend("slice", {"height_cm": 171}),
         },
     )
@@ -93,9 +93,9 @@ def test_backend_selection(tmp_path, monkeypatch):
 def test_representative_field_mappings():
     assert SLICE_FIELD_MAP["Chest"] == "chest_circumference_cm"
     assert SLICE_FIELD_MAP["Surface Area Total"] == "surface_area_total_cm2"
-    assert FALL2025_FIELD_MAP[("trunk", "waist circumference")] == "waist_circumference_cm"
-    assert FALL2025_FIELD_MAP[("left arm", "arm length")] == "arm_length_left_cm"
-    assert FALL2025_FIELD_MAP[("trunk", "crotch height")] == ("inseam_left_cm", "inseam_right_cm")
+    assert SEGMENTATION_FIELD_MAP[("trunk", "waist circumference")] == "waist_circumference_cm"
+    assert SEGMENTATION_FIELD_MAP[("left arm", "arm length")] == "arm_length_left_cm"
+    assert SEGMENTATION_FIELD_MAP[("trunk", "crotch height")] == ("inseam_left_cm", "inseam_right_cm")
 
 
 def test_csv_saved(tmp_path, monkeypatch):

@@ -11,7 +11,7 @@ from typing import Protocol
 
 import numpy as np
 
-from .schema import FALL2025_FIELD_MAP, SLICE_FIELD_MAP
+from .schema import SEGMENTATION_FIELD_MAP, SLICE_FIELD_MAP
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -127,8 +127,8 @@ def _pushd(path: Path):
         os.chdir(previous)
 
 
-class Fall2025Backend:
-    name = "fall2025"
+class SegmentationBackend:
+    name = "segmentation"
     version = "Python_Fall2025"
 
     def run(self, obj_file: Path, options: PipelineOptions) -> dict[str, object]:
@@ -179,7 +179,7 @@ class Fall2025Backend:
             if options.show:
                 body.mesh.show()
 
-            return _canonicalize(raw, FALL2025_FIELD_MAP)
+            return _canonicalize(raw, SEGMENTATION_FIELD_MAP)
 
 
 class SliceBackend:
@@ -203,6 +203,6 @@ class SliceBackend:
 
 
 BACKENDS: dict[str, Backend] = {
-    "fall2025": Fall2025Backend(),
+    "segmentation": SegmentationBackend(),
     "slice": SliceBackend(),
 }

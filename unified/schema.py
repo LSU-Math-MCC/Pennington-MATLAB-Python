@@ -61,7 +61,7 @@ SLICE_FIELD_MAP = {
     "Upper Arm Circumference Right": "upper_arm_circumference_right_cm",
 }
 
-FALL2025_FIELD_MAP = {
+SEGMENTATION_FIELD_MAP = {
     ("meta", "height"): "height_cm",
     ("meta", "volume"): "volume_cm3",
     ("meta", "surface_area"): "surface_area_total_cm2",
@@ -107,7 +107,7 @@ MEASUREMENT_COLUMNS = sorted(
         *SLICE_FIELD_MAP.values(),
         *[
             value
-            for mapped in FALL2025_FIELD_MAP.values()
+            for mapped in SEGMENTATION_FIELD_MAP.values()
             for value in (mapped if isinstance(mapped, tuple) else (mapped,))
         ],
     }

@@ -11,9 +11,9 @@ def parse_args():
     parser.add_argument(
         "--input",
         default=str(CANONICAL_TEST_SET_DIR),
-        help="Input OBJ file or directory. Defaults to the canonical Fall2025 OBJ test set.",
+        help="Input OBJ file or directory. Defaults to the standard OBJ test set.",
     )
-    parser.add_argument("--backend", choices=("fall2025", "slice", "all"), default="all")
+    parser.add_argument("--backend", choices=("segmentation", "slice", "all"), default="all")
     parser.add_argument("--recursive", action="store_true", help="Search directories recursively.")
     parser.add_argument("--units", choices=("auto", "mm", "cm", "dm", "m"), default="cm")
     parser.add_argument(
@@ -40,7 +40,7 @@ def parse_args():
     )
     parser.add_argument("--no-images", action="store_true", help="Disable image/diagnostic output.")
     parser.add_argument("--no-aligned-obj", action="store_true", help="Disable slice aligned OBJ output.")
-    parser.add_argument("--show", action="store_true", help="Open Fall2025 interactive mesh view.")
+    parser.add_argument("--show", action="store_true", help="Open segmentation backend interactive mesh view.")
     return parser.parse_args()
 
 

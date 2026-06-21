@@ -48,9 +48,9 @@ def canonical_test_set_files() -> list[Path]:
 
 def selected_backends(backend: str):
     if backend == "all":
-        return [BACKENDS["fall2025"], BACKENDS["slice"]]
+        return [BACKENDS["segmentation"], BACKENDS["slice"]]
     if backend not in BACKENDS:
-        raise ValueError(f"Unknown backend {backend!r}; expected fall2025, slice, or all")
+        raise ValueError(f"Unknown backend {backend!r}; expected segmentation, slice, or all")
     return [BACKENDS[backend]]
 
 
