@@ -44,6 +44,3 @@ Python_Fall2025/output/bench/history/
 
 # Unified pipeline raw backend artifacts
 /unified/results/raw/
-/.pipeline_raw/
-/results/raw/
-/unified_pipeline_results_*/

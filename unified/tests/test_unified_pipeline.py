@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from unified.backends import _height_scale_to_cm, _safe_scaled_volume
 import unified.pipeline as pipeline
 from unified.schema import CANONICAL_COLUMNS, SEGMENTATION_FIELD_MAP, SLICE_FIELD_MAP
 
@@ -149,3 +150,16 @@ def test_discovery_skips_generated_raw_outputs(tmp_path):
 
 def test_default_input_is_one_canonical_test_set():
     assert pipeline.CANONICAL_TEST_SET_DIR.parts[-3:] == ("Python_Fall2025", "model_files", "OBJ")
+
+
+def test_slice_auto_units_match_standard_obj_scale():
+    assert _height_scale_to_cm(Path("scan.obj"), "auto", None) == 0.1
+    assert _height_scale_to_cm(Path("man.obj"), "auto", None) == 10.0
+    assert _height_scale_to_cm(Path("scan.obj"), "auto", 2.0) == 2.0
+
+
+def test_segmentation_volumes_are_positive():
+    class SignedVolume:
+        volume = -12.5
+
+    assert _safe_scaled_volume(SignedVolume(), "volume", 2.0) == 25.0

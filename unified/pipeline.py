@@ -86,7 +86,6 @@ def run_pipeline(
     recursive: bool = True,
     units: str = "cm",
     output_dir: str | Path | None = DEFAULT_OUTPUT_DIR,
-    raw_output_root: str | Path | None = None,
     run_id: str | None = None,
     n_slices: int = 200,
     save_images: bool = True,
@@ -99,9 +98,8 @@ def run_pipeline(
         out_dir.mkdir(parents=True, exist_ok=True)
     run_name = run_id or canonical_run_id()
     raw_dir = None
-    if raw_output_root is not None or out_dir is not None:
-        raw_root = Path(raw_output_root) if raw_output_root is not None else out_dir / "raw"
-        raw_dir = raw_root / run_name
+    if out_dir is not None:
+        raw_dir = out_dir / "raw" / run_name
         raw_dir.mkdir(parents=True, exist_ok=True)
 
     obj_files = discover_obj_files(input_path, recursive=recursive)

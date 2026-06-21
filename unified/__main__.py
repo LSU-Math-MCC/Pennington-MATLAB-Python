@@ -22,11 +22,6 @@ def parse_args():
         help="Versionable directory for the timestamped CSV.",
     )
     parser.add_argument(
-        "--raw-output-root",
-        default=None,
-        help="Git-ignored raw artifact root. Defaults to OUTPUT_DIR/raw.",
-    )
-    parser.add_argument(
         "--run-id",
         default=None,
         help="CSV stem and raw folder name. Defaults to UTC YYYYMMDDTHHMMSSZ_full_anthro.",
@@ -52,7 +47,6 @@ def main():
         recursive=args.recursive,
         units=args.units,
         output_dir=Path(args.output_dir),
-        raw_output_root=Path(args.raw_output_root) if args.raw_output_root else None,
         run_id=args.run_id,
         n_slices=args.n_slices,
         save_images=not args.no_images,

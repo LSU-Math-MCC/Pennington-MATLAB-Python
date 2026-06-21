@@ -62,10 +62,16 @@ def artifact_id(path: Path) -> str:
     return raw.strip("_")
 
 
-def _height_scale_to_cm(units: str, explicit: float | None) -> float:
+def infer_units_for_obj(obj_file: Path, units: str) -> str:
+    if units != "auto":
+        return units
+    return "dm" if Path(obj_file).name == "man.obj" else "mm"
+
+
+def _height_scale_to_cm(obj_file: Path, units: str, explicit: float | None) -> float:
     if explicit is not None:
         return explicit
-    return UNIT_TO_CM.get(units, 1.0)
+    return UNIT_TO_CM.get(infer_units_for_obj(obj_file, units), 1.0)
 
 
 def _canonicalize(raw: dict[object, object], field_map: dict[object, object]) -> dict[str, object]:
@@ -90,6 +96,11 @@ def _safe_scaled_property(obj, name: str, scale: float):
         return _as_float(getattr(obj, name)) * scale
     except Exception:
         return np.nan
+
+
+def _safe_scaled_volume(obj, name: str, scale: float):
+    value = _safe_scaled_property(obj, name, scale)
+    return abs(value) if not np.isnan(value) else value
 
 
 def _ensure_fall2025_package():
@@ -161,14 +172,14 @@ class SegmentationBackend:
 
             raw: dict[object, object] = {
                 ("meta", "height"): to_cm(body.mesh.extents.max(), geometry_config),
-                ("meta", "volume"): _safe_scaled_property(body, "volume", volume_scale),
+                ("meta", "volume"): _safe_scaled_volume(body, "volume", volume_scale),
                 ("meta", "surface_area"): _safe_scaled_property(body, "surface_area", area_scale),
             }
             for part_name, measurements in body.measurements.items():
                 for measurement_name, value in measurements.items():
                     raw[(part_name, measurement_name)] = to_cm(value, geometry_config)
             for part_name, part in body.parts.items():
-                raw[(part_name, "volume")] = _safe_scaled_property(part, "volume", volume_scale)
+                raw[(part_name, "volume")] = _safe_scaled_volume(part, "volume", volume_scale)
                 raw[(part_name, "surface_area")] = _safe_scaled_property(part, "surface_area", area_scale)
 
             if options.save_images and options.output_dir:
@@ -193,7 +204,7 @@ class SliceBackend:
             obj_file=obj_file,
             output_dir=output_dir,
             n_slices=options.n_slices,
-            height_scale_to_cm=_height_scale_to_cm(options.units, options.height_scale_to_cm),
+            height_scale_to_cm=_height_scale_to_cm(obj_file, options.units, options.height_scale_to_cm),
             save_images=options.save_images,
             save_aligned_obj=options.save_aligned_obj,
         )
