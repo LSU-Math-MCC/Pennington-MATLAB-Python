@@ -1,0 +1,1 @@
+{"method":"meshmap_silhouette","desc":"Silhouette fit ONLY with strict reliability gating (abstains on reclining/oblique/truncated; sigma=inf when width-by-row invalid)","runner":"tools/geometry/fit_silhouette.py","reliability_gate":true}

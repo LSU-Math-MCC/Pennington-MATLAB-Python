@@ -1,0 +1,9 @@
+{
+  "dataset": "ssp3d",
+  "present": false,
+  "path": null,
+  "labels": null,
+  "n_images": 311,
+  "gt": "SMPL betas (scanner-grounded shape)",
+  "metric": "PVE-T-SC"
+}

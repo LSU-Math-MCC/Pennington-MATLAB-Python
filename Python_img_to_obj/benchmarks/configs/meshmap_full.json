@@ -1,0 +1,39 @@
+{
+  "method": "meshmap_full",
+  "desc": "Kept-stack anthropometry pipeline: CameraHMR provides the strongest measured body-shape prior, BLADE provides close-range perspective/SMPL-X initialization, LHM/Multi-HMR provides whole-body landmarks and canonicalization support, SHAPY provides metric anthropometry reference/regularization, and DECA/FLAME plus HaMeR/Blender cover face, hands, and rendering.",
+  "runner": "tools/hmr/camerahmr/camerahmr_subjects.py + tools/hmr/blade/run_blade.py + tools/hmr/shapy/run_shapy.py + tools/hmr/lhm/lhm_anthropometry.py",
+  "estimators": [
+    {
+      "name": "camerahmr_shape_prior",
+      "sigma": "view_reliability_plus_shared_bias_floor"
+    },
+    {
+      "name": "blade_perspective_smplx_prior",
+      "sigma": "close_range_camera_reliability"
+    },
+    {
+      "name": "lhm_multihmr_whole_body_prior",
+      "sigma": 1.0
+    },
+    {
+      "name": "silhouette",
+      "sigma": "reliability_scaled"
+    },
+    {
+      "name": "clip_semantic_shape",
+      "sigma": 0.6
+    },
+    {
+      "name": "local_shapy",
+      "sigma": 0.5,
+      "enabled_if": "checkpoints_present"
+    }
+  ],
+  "removed_estimators": [
+    "hmr2",
+    "pifuhd",
+    "3ddfa",
+    "gfpgan",
+    "smplitex"
+  ]
+}

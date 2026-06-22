@@ -1,0 +1,50 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build/package metadata
+build/
+dist/
+*.egg-info/
+
+# Local environments
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Generated experiment outputs
+runs/
+benchmarks/results/
+outputs/
+*.log
+
+# Large/local assets and third-party payloads
+vendor/
+models/
+data/
+datasets/
+external/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.task
+*.zip
+*.npy
+*.npz
+*.ply
+*.glb
+*.obj
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.claude/*.lock

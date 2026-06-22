@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipeline3dgs"
+version = "0.1.0"
+description = "Fast single-image / folder / same-subject 3DGS person -> canonical A-Frame pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pillow",
+    "trimesh",
+]
+
+[project.optional-dependencies]
+real = [
+    "ultralytics",
+    "mediapipe",
+    "opencv-python",
+    "transformers",   # Depth-Anything-V2 pipeline in backends/real.py
+    "torch",          # required by transformers depth-estimation + LHM backend
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

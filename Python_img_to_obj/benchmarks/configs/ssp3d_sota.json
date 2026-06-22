@@ -1,0 +1,36 @@
+{
+  "benchmark": "ssp3d",
+  "metric": "PVE-T-SC_mm",
+  "setting": "single_image",
+  "verified": "2026-06 web/repo audit; kept-stack cleanup removed HMR2 legacy runners",
+  "leaderboard": [
+    {
+      "method": "CameraHMR",
+      "pve_t_sc_mm": 11.6,
+      "year": 2024,
+      "note": "kept primary body-shape prior; repo previously reproduced ~11.47mm before runs cleanup"
+    },
+    {
+      "method": "Sengupta2021",
+      "pve_t_sc_mm": 13.6
+    },
+    {
+      "method": "STRAPS",
+      "pve_t_sc_mm": 15.9
+    },
+    {
+      "method": "SHAPY",
+      "pve_t_sc_mm": 19.2,
+      "note": "kept anthropometry benchmark/reference"
+    },
+    {
+      "method": "HMR",
+      "pve_t_sc_mm": 22.9
+    },
+    {
+      "method": "SPIN",
+      "pve_t_sc_mm": 22.2
+    }
+  ],
+  "honest_standing": "The kept stack uses CameraHMR as the measured SSP-3D body-shape prior, BLADE as the perspective/SMPL-X prior, SHAPY as the anthropometry reference, and LHM/HaMeR/DECA/FLAME/Blender for whole-body, hands, face, and rendering. Removed HMR2 results are historical and no longer active product code."
+}

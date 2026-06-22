@@ -1,0 +1,10 @@
+{
+  "method": "published_shapy",
+  "baseline_source": "published",
+  "source": "Official SHAPY HBW leaderboard and SHAPY paper (Choutas et al., CVPR 2022)",
+  "targets": {
+    "hbw":  {"height_mm": 51, "chest_mm": 65, "waist_mm": 69, "hips_mm": 57, "p2p20k_mm": 21},
+    "mmts": {"height_mm": 71, "chest_mm": 64, "waist_mm": 98, "hips_mm": 74},
+    "ssp3d": {"pve_t_sc_mm": 19.2}
+  }
+}
