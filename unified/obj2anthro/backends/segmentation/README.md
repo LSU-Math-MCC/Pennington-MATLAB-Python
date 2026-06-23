@@ -1,3 +1,7 @@
+﻿> Relocation note: This project was moved verbatim from `Python_Fall2025/` to `unified/obj2anthro/backends/segmentation/`.
+> Its scientific implementation and internal organization were intentionally
+> preserved. See `unified/RELOCATION_MAP.md`.
+
 # 3D Anthropometric Analysis Project
 
 A Python toolkit for analyzing 3D human body scans and extracting anthropometric measurements. This project processes `.obj` and `.ply` mesh files to compute body measurements for research applications.
@@ -30,39 +34,39 @@ The project was developed as part of **MATH 4020** at Louisiana State University
 
 ```
 pennington-math-4020/
-├── src/                          # Main Python source code
-│   ├── main.py                   # Demo script showing usage
-│   ├── body/                     # Body scan processing
-│   │   ├── body.py               # Body class - the core class for body analysis
-│   │   └── anatomical_regions/   # Body part implementations
-│   │       ├── anatomical_region.py  # Abstract base class
-│   │       ├── arms/arm.py       # Arm segmentation and measurements
-│   │       ├── legs/leg.py       # Leg segmentation and measurements
-│   │       ├── trunk/trunk.py    # Trunk segmentation and measurements
-│   │       └── head/head.py      # Head segmentation
-│   ├── mesh/                     # Mesh utilities
-│   │   ├── mesh.py               # Mesh cleaning and orientation
-│   │   └── boolean_ops.py        # Mesh boolean operations (difference, intersection)
-│   └── utils/                    # Utility functions
-│       └── convexity_search.py   # Convexity-based landmark finding
-│
-├── tests/                        # Test suite
-│   ├── test_docstrings.py        # Validates docstring examples
-│   ├── mesh_cleaning/            # Tests for mesh operations
-│   └── mesh_orientation/         # Tests for mesh orientation
-│
-├── model_files/                  # Sample 3D meshes
-│   ├── cow.ply                   # Test mesh for development
-│   └── man.obj                   # Human body scan sample
-│
-├── matlab/                       # Original MATLAB implementation
-│   ├── original_code/            # 7000+ line MATLAB Avatar class
-│   └── not_original_code/        # Test scripts for MATLAB code
-│
-├── dev_only/                     # Development utilities (ignore for now)
-│   └── dependency_graph/         # Visualization tools
-│
-└── requirements.txt              # Python dependencies
+â”œâ”€â”€ src/                          # Main Python source code
+â”‚   â”œâ”€â”€ main.py                   # Demo script showing usage
+â”‚   â”œâ”€â”€ body/                     # Body scan processing
+â”‚   â”‚   â”œâ”€â”€ body.py               # Body class - the core class for body analysis
+â”‚   â”‚   â””â”€â”€ anatomical_regions/   # Body part implementations
+â”‚   â”‚       â”œâ”€â”€ anatomical_region.py  # Abstract base class
+â”‚   â”‚       â”œâ”€â”€ arms/arm.py       # Arm segmentation and measurements
+â”‚   â”‚       â”œâ”€â”€ legs/leg.py       # Leg segmentation and measurements
+â”‚   â”‚       â”œâ”€â”€ trunk/trunk.py    # Trunk segmentation and measurements
+â”‚   â”‚       â””â”€â”€ head/head.py      # Head segmentation
+â”‚   â”œâ”€â”€ mesh/                     # Mesh utilities
+â”‚   â”‚   â”œâ”€â”€ mesh.py               # Mesh cleaning and orientation
+â”‚   â”‚   â””â”€â”€ boolean_ops.py        # Mesh boolean operations (difference, intersection)
+â”‚   â””â”€â”€ utils/                    # Utility functions
+â”‚       â””â”€â”€ convexity_search.py   # Convexity-based landmark finding
+â”‚
+â”œâ”€â”€ tests/                        # Test suite
+â”‚   â”œâ”€â”€ test_docstrings.py        # Validates docstring examples
+â”‚   â”œâ”€â”€ mesh_cleaning/            # Tests for mesh operations
+â”‚   â””â”€â”€ mesh_orientation/         # Tests for mesh orientation
+â”‚
+â”œâ”€â”€ model_files/                  # Sample 3D meshes
+â”‚   â”œâ”€â”€ cow.ply                   # Test mesh for development
+â”‚   â””â”€â”€ man.obj                   # Human body scan sample
+â”‚
+â”œâ”€â”€ matlab/                       # Original MATLAB implementation
+â”‚   â”œâ”€â”€ original_code/            # 7000+ line MATLAB Avatar class
+â”‚   â””â”€â”€ not_original_code/        # Test scripts for MATLAB code
+â”‚
+â”œâ”€â”€ dev_only/                     # Development utilities (ignore for now)
+â”‚   â””â”€â”€ dependency_graph/         # Visualization tools
+â”‚
+â””â”€â”€ requirements.txt              # Python dependencies
 
 ```
 
@@ -261,9 +265,9 @@ A **watertight mesh** has no holes or gaps - every edge is shared by exactly two
 ### Limitations of Landmark/Body-Part Finding Algorithms
 
 **Current approach**:
-1. Find major axis → assume this is height (Z-axis)
-2. Find convex regions → assume these are armpits, crotch
-3. Slice at landmarks → separate body parts
+1. Find major axis â†’ assume this is height (Z-axis)
+2. Find convex regions â†’ assume these are armpits, crotch
+3. Slice at landmarks â†’ separate body parts
 
 **Known issues**:
 - **Assumes standard pose**: Arms down, legs apart, standing upright
@@ -600,3 +604,7 @@ For questions about this code, contact the course instructor or the development 
 - **Advisors**: Dr. Nadejda Drenska and Dr. Peter Wolenski
 
 This project is a learning exercise in anthropometric analysis and 3D mesh processing.
+> Its scientific implementation and internal organization were intentionally
+> preserved. See `unified/RELOCATION_MAP.md`.
+
+
