@@ -21,8 +21,9 @@ import os, sys, argparse
 import numpy as np
 import torch
 
-sys.path.insert(0, os.path.expanduser("~/CameraHMR"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import camerahmr_root  # noqa: E402
+sys.path.insert(0, str(camerahmr_root()))
 import schema  # noqa: E402
 
 IMG_SIZE, IMAGE_MEAN, IMAGE_STD = 256, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]

@@ -4,7 +4,8 @@
 set -e
 urle () { local LANG=C i x; for (( i=0; i<${#1}; i++ )); do x="${1:i:1}"; [[ "$x" == [a-zA-Z0-9.~-] ]] && echo -n "$x" || printf '%%%02X' "'$x"; done; echo; }
 U=$(urle "$CAMUSER"); P=$(urle "$CAMPASS")
-cd ~/CameraHMR
+CAMERAHMR_ROOT="${CAMERAHMR_ROOT:-$HOME/CameraHMR}"
+cd "$CAMERAHMR_ROOT"
 mkdir -p data/models/SMPL data/pretrained-models
 base='https://download.is.tue.mpg.de/download.php?domain=camerahmr&sfile='
 get () { wget --post-data "username=$U&password=$P" "${base}$1" -O "$2" --no-check-certificate --continue -q --show-progress; }

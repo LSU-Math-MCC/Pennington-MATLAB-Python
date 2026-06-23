@@ -15,7 +15,9 @@ REPO = os.path.dirname(os.path.abspath(__file__))
 while REPO != os.path.dirname(REPO) and not os.path.exists(os.path.join(REPO, "pyproject.toml")):
     REPO = os.path.dirname(REPO)
 SMPL_DIR = os.path.expanduser("~/shapy/data/body_models/smpl")
-sys.path.insert(0, os.path.expanduser("~/CameraHMR"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import camerahmr_root  # noqa: E402
+sys.path.insert(0, str(camerahmr_root()))
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 IMG_SIZE = 256
 IMAGE_MEAN = [0.485, 0.456, 0.406]

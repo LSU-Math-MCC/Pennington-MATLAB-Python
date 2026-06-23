@@ -68,7 +68,7 @@ def _nearest_subject_dir(file_path: Path, input_root: Path) -> Path | None:
         if current == root or root not in current.parents:
             break
         current = current.parent
-    return matches[-1] if matches else None
+    return matches[0] if matches else None
 
 
 def classify_input(input_path: str | Path) -> dict[str, object]:

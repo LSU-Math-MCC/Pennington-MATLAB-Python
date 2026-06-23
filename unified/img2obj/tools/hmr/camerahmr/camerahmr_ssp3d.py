@@ -21,7 +21,9 @@ while REPO != os.path.dirname(REPO) and not os.path.exists(os.path.join(REPO, "p
     REPO = os.path.dirname(REPO)
 SSP = os.path.expanduser("~/SSP-3D/data_ext/ssp_3d")
 SMPL_DIR = os.path.expanduser("~/shapy/data/body_models/smpl")  # gendered SMPL (validated harness)
-sys.path.insert(0, os.path.expanduser("~/CameraHMR"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import camerahmr_root  # noqa: E402
+sys.path.insert(0, str(camerahmr_root()))
 IMG_SIZE = 256
 IMAGE_MEAN = [0.485, 0.456, 0.406]
 IMAGE_STD = [0.229, 0.224, 0.225]
