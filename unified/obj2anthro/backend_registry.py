@@ -14,9 +14,11 @@ import numpy as np
 from .schema import SEGMENTATION_FIELD_MAP, SLICE_FIELD_MAP
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-FALL2025_ROOT = REPO_ROOT / "Python_Fall2025"
+# Boundary path for the relocated Python_Fall2025 implementation.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+FALL2025_ROOT = Path(__file__).resolve().parent / "backends" / "segmentation"
 FALL2025_SRC = FALL2025_ROOT / "src"
+# Boundary path for the unmoved Python_slice_2026 implementation.
 SLICE_PATH = REPO_ROOT / "Python_slice_2026" / "slice.py"
 UNIT_TO_CM = {"mm": 0.1, "cm": 1.0, "dm": 10.0, "m": 100.0}
 

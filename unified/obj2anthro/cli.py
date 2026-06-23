@@ -6,20 +6,35 @@ from pathlib import Path
 from .pipeline import CANONICAL_TEST_SET_DIR, DEFAULT_OUTPUT_DIR, run_pipeline
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run the unified OBJ measurement pipeline.")
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="unified obj2anthro",
+        description=(
+            "Run OBJ anthropometry using segmentation (relocated Python_Fall2025 "
+            "implementation) and slice (existing Python_slice_2026 implementation)."
+        ),
+    )
     parser.add_argument(
         "--input",
         default=str(CANONICAL_TEST_SET_DIR),
         help="Input OBJ file or directory. Defaults to the standard OBJ test set.",
     )
-    parser.add_argument("--backend", choices=("segmentation", "slice", "all"), default="all")
-    parser.add_argument("--recursive", action="store_true", help="Search directories recursively.")
+    parser.add_argument("--method", choices=("auto", "segmentation", "slice", "all"), default="auto")
+    parser.add_argument(
+        "--backend",
+        choices=("auto", "segmentation", "slice", "all"),
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument("--recursive", action="store_true", default=True, help="Search directories recursively.")
+    parser.add_argument("--no-recursive", dest="recursive", action="store_false", help="Search only one directory level.")
     parser.add_argument("--units", choices=("auto", "mm", "cm", "dm", "m"), default="cm")
     parser.add_argument(
+        "--out",
         "--output-dir",
+        dest="output_dir",
         default=str(DEFAULT_OUTPUT_DIR),
-        help="Versionable directory for the timestamped CSV.",
+        help="Directory for the timestamped CSV and raw backend artifacts.",
     )
     parser.add_argument(
         "--run-id",
@@ -36,14 +51,15 @@ def parse_args():
     parser.add_argument("--no-images", action="store_true", help="Disable image/diagnostic output.")
     parser.add_argument("--no-aligned-obj", action="store_true", help="Disable slice aligned OBJ output.")
     parser.add_argument("--show", action="store_true", help="Open segmentation backend interactive mesh view.")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
+    method = args.backend or args.method
     df = run_pipeline(
         input_path=Path(args.input),
-        backend=args.backend,
+        backend=method,
         recursive=args.recursive,
         units=args.units,
         output_dir=Path(args.output_dir),
@@ -56,7 +72,8 @@ def main():
     )
     print(f"Wrote {len(df)} rows to {df.attrs.get('output_csv')}")
     print(f"Raw artifacts: {df.attrs.get('raw_output_dir')}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
