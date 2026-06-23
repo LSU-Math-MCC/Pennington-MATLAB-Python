@@ -4,7 +4,8 @@ set -e
 source ~/miniconda3/etc/profile.d/conda.sh
 conda env list | grep -q camerahmr || conda create -y -n camerahmr python=3.10
 conda activate camerahmr
-cd ~/CameraHMR
+CAMERAHMR_ROOT="${CAMERAHMR_ROOT:-$HOME/CameraHMR}"
+cd "$CAMERAHMR_ROOT"
 # torch already installed (2.0.0+cu118). Build detectron2 against it WITHOUT isolation so torch is visible.
 echo "=== detectron2 (no-build-isolation, CUDA ops) ==="
 pip install ninja 2>&1 | tail -1

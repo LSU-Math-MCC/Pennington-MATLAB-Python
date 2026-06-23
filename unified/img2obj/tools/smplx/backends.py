@@ -21,6 +21,7 @@ REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 _ON_WIN = os.name == "nt"
 # Resolved by the TARGET (WSL) shell, so keep ~ literal (do NOT expanduser on Windows).
 CONDA_SH = "~/miniconda3/etc/profile.d/conda.sh"
+CAMERAHMR_ROOT = os.environ.get("CAMERAHMR_ROOT", "~/CameraHMR")
 
 
 def _to_wsl(p):
@@ -35,6 +36,15 @@ def _to_wsl(p):
 def _sh(p):
     """A filesystem path as the target shell (WSL on Windows, local bash on Linux) sees it."""
     return _to_wsl(p) if _ON_WIN else p
+
+
+def _sh_cd_arg(p):
+    """Quote a shell cd target while preserving leading tilde expansion."""
+    if p == "~":
+        return p
+    if p.startswith("~/"):
+        return "~/" + shlex.quote(p[2:])
+    return shlex.quote(p)
 
 
 def _bash(inner):
@@ -108,7 +118,7 @@ class Backend:
                 _bash(crop_inner)
         inner = f"source {CONDA_SH} && conda activate {self.env} && "
         if self.cwd:
-            inner += f"cd {self.cwd} && "   # ~ expanded by the target shell; these repo dirs have no spaces
+            inner += f"cd {_sh_cd_arg(self.cwd)} && "
         inner += (
             "python "
             + shlex.quote(_sh(runner_abs))
@@ -124,7 +134,7 @@ class Backend:
 
 REGISTRY = {
     "camerahmr": Backend("camerahmr", "CameraHMR", "camerahmr",
-                         "tools/hmr/camerahmr/run_camerahmr.py", cwd="~/CameraHMR"),
+                         "tools/hmr/camerahmr/run_camerahmr.py", cwd=CAMERAHMR_ROOT),
     "blade":     Backend("blade",     "BLADE",     "blade_env",
                          "tools/hmr/blade/run_blade.py", cwd="~/blade",
                          crop_first=True, crop_env="camerahmr"),

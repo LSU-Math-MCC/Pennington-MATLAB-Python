@@ -81,6 +81,17 @@ def test_subject_grouping_names(tmp_path):
     assert all(len(paths) == 2 for paths in plan["subject_groups"].values())
 
 
+def test_nested_subject_group_uses_nearest_subject_directory(tmp_path):
+    outer = tmp_path / "subject1"
+    inner = outer / "subject2"
+    inner.mkdir(parents=True)
+    (inner / "front.jpg").write_bytes(b"stub")
+
+    plan = classify_input(tmp_path)
+
+    assert sorted(plan["subject_groups"]) == ["subject1/subject2"]
+
+
 def test_ordinary_directories_do_not_group(tmp_path):
     photos = tmp_path / "photos"
     photos.mkdir()
@@ -137,6 +148,18 @@ def test_img2obj_mixed_directory_native_invocations(tmp_path):
     assert [argv[0] for argv in invocations] == ["subject", "single"]
     assert str(subject) in invocations[0]
     assert str(tmp_path / "loose.png") in invocations[1]
+
+
+def test_img2obj_nested_subject_invocation_uses_nearest_subject_directory(tmp_path):
+    inner = tmp_path / "subject1" / "subject2"
+    inner.mkdir(parents=True)
+    (inner / "front.jpg").write_bytes(b"stub")
+
+    invocations = _native_invocations(tmp_path, tmp_path / "out", "dummy", None)
+
+    assert len(invocations) == 1
+    assert invocations[0][0] == "subject"
+    assert str(inner) in invocations[0]
 
 
 def test_breadcrumbs_exist():

@@ -67,7 +67,7 @@ def _nearest_subject_dir(file_path: Path, root: Path) -> Path | None:
         if current == root or root not in current.parents:
             break
         current = current.parent
-    return matches[-1] if matches else None
+    return matches[0] if matches else None
 
 
 def _native_invocations(input_path: Path, out_dir: Path, native_method: str, native_args: list[str] | None) -> list[list[str]]:
