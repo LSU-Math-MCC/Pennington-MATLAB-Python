@@ -27,6 +27,8 @@ def largest_box_excluding_others(boxes, W, H, target):
         if k == target:
             continue
         ox1, oy1, ox2, oy2 = tuple(b)
+        if _overlap_1d(ox1, ox2, tx1, tx2) and _overlap_1d(oy1, oy2, ty1, ty2):
+            continue
 
         if _overlap_1d(oy1, oy2, ty1, ty2):
             if ox1 <= tx1 <= ox2:
