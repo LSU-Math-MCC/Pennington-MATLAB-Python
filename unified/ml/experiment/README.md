@@ -1,3 +1,7 @@
+﻿> Relocation note: This project was moved verbatim from `Python_ML_2021/` to `unified/ml/experiment/`.
+> Its scientific implementation and internal organization were intentionally
+> preserved. See `unified/RELOCATION_MAP.md`.
+
 # Python_ML_2021
 
 This folder contains the cleaned import of the old GitLab repository:
@@ -53,3 +57,7 @@ Octave compatibility notes:
 - Avoid MATLAB's `round` with precision arguments; plain `round` is okay.
 - Replace `incenter(triangulation([1,2,3],p),1)` with `centroid(delaunay(p),1)`.
 - Leg volume logic was commented out in the original code because it still needed debugging.
+> Its scientific implementation and internal organization were intentionally
+> preserved. See `unified/RELOCATION_MAP.md`.
+
+

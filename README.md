@@ -1,29 +1,53 @@
-# Overview
-The <b>Pennington MATLAB to Python</b> project is a collaborative undergraduate and graduate research effort led by the <b>LSU Department of Mathematics</b> and the <b>Pennington Biomedical Research Center</b>. The primary goal is to translate legacy body-scanning and metabolic analysis written in MATLAB code into a free, open-source, and possibly more efficient Python script.
+# Pennington MATLAB to Python
 
-# Why Python?
-<ul>
-  <li>
-    <b>Elimination of Annual Licensing Fees</b>: Although versatile, MATLAB requires expensive yearly licensing to use, whereas Python is open-source and free to use.
-  </li>
-  <li>
-    <b>Enhanced Collaboration</b>: Python possesses a vast ecosystem of libraries which can streamline future research updates and ease the process of sharing data across institutions.
-  </li>
-  <li>
-    <b>Modernization</b>: Transitioning to Python code can resolve several redundancies, providing better documentation for future developers on relevant projects.
-  </li>
-</ul>
+The Pennington MATLAB to Python project is a collaborative undergraduate and
+graduate research effort led by the LSU Department of Mathematics and the
+Pennington Biomedical Research Center. The goal is to translate and preserve
+body-scanning and metabolic analysis workflows in Python.
 
-# Code Objectives
-This project stems from the <b>Math Consultation Clinic</b> (MC^2) group at LSU. Currently, the codebase calculates various metrics of the human body, e.g. composition, density, and clinial biomarkers.
-<ul>
-  <li>
-    <b>3D Measurement</b>: The software takes triangularized mesh objects from body scans (using *.obj files) to locate body regions like the upper arm, thigh, and torso.
-  </li>
-  <li>
-    <b>Biometric Calculations</b>: It applies a geometric plane and convex hull algorithm to calculate the circumferences of specific body sections to replace traditional DEXA scans.
-  </li>
-</ul>
+## Unified Python Tool
 
-# Status
-As of Summer 2026, this project is being conducted under the guidance of Dr. Peter R. Wolenski, Russell B. Long Professor of Mathematics at LSU.
+The Python projects are now organized as staged compartments under `unified/`.
+The primary interface is:
+
+```bash
+python -m unified --input INPUT
+```
+
+Stage-local commands remain available:
+
+```bash
+python -m unified img2obj --input IMAGE_OR_IMAGE_DIR
+python -m unified obj2anthro --input OBJ_OR_OBJ_DIR --method slice --units auto
+python -m unified ml
+```
+
+| Stage | Path | Purpose |
+|---|---|---|
+| Image to OBJ | `unified/img2obj/` | Relocated `Python_img_to_obj/` image preprocessor. |
+| OBJ to anthropometry | `unified/obj2anthro/` | OBJ measurement orchestration and backend adapters. |
+| Segmentation backend | `unified/obj2anthro/backends/segmentation/` | Relocated `Python_Fall2025/`. |
+| Slice backend | `Python_slice_2026/` | Unmoved root implementation exposed through `unified/obj2anthro/backends/slice/`. |
+| ML experiments | `unified/ml/experiment/` | Relocated `Python_ML_2021/`; historical ML/DOE code, not redesigned as inference. |
+
+See `unified/README.md` for the staged tool and `unified/RELOCATION_MAP.md` for
+old-to-new command mappings.
+
+## Why Python?
+
+- Eliminate MATLAB licensing requirements where possible.
+- Improve collaboration through Python's scientific ecosystem.
+- Modernize documentation and execution paths while preserving established research
+  implementations.
+
+## Code Objectives
+
+The codebase calculates metrics from human body scans and related datasets:
+
+- 3D measurement from triangularized body-scan mesh objects (`.obj`).
+- Biometric calculations such as body-section circumferences using geometric
+  methods.
+- Historical ML and DOE experiments retained for future staged integration.
+
+As of Summer 2026, this project is being conducted under the guidance of Dr. Peter
+R. Wolenski, Russell B. Long Professor of Mathematics at LSU.
