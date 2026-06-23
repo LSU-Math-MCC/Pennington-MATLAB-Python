@@ -6,12 +6,18 @@ from pathlib import Path
 
 import pandas as pd
 
-from .backends import BACKENDS, PipelineOptions, subject_id
+from .backend_registry import BACKENDS, PipelineOptions, subject_id
 from .schema import CANONICAL_COLUMNS, complete_frame, empty_measurements, normalize_measurements
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_TEST_SET_DIR = REPO_ROOT / "Python_Fall2025" / "model_files" / "OBJ"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CANONICAL_TEST_SET_DIR = (
+    Path(__file__).resolve().parent
+    / "backends"
+    / "segmentation"
+    / "model_files"
+    / "OBJ"
+)
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "results"
 
 
@@ -47,10 +53,12 @@ def canonical_test_set_files() -> list[Path]:
 
 
 def selected_backends(backend: str):
+    if backend == "auto":
+        backend = "all"
     if backend == "all":
         return [BACKENDS["segmentation"], BACKENDS["slice"]]
     if backend not in BACKENDS:
-        raise ValueError(f"Unknown backend {backend!r}; expected segmentation, slice, or all")
+        raise ValueError(f"Unknown method {backend!r}; expected auto, all, segmentation, or slice")
     return [BACKENDS[backend]]
 
 

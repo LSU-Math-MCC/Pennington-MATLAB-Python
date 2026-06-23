@@ -41,6 +41,13 @@ Python_Fall2025/body_measurements.csv
 Python_Fall2025/geometry_investigation_notes.md
 Python_Fall2025/geometry_robustness_briefing.md
 Python_Fall2025/output/bench/history/
+unified/obj2anthro/backends/segmentation/body_measurements.csv
+unified/obj2anthro/backends/segmentation/geometry_investigation_notes.md
+unified/obj2anthro/backends/segmentation/geometry_robustness_briefing.md
+unified/obj2anthro/backends/segmentation/output/bench/history/
+unified/obj2anthro/backends/segmentation/output/logs/
 
 # Unified pipeline raw backend artifacts
 /unified/results/raw/
+/unified/obj2anthro/results/raw/
+/runs/
