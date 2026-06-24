@@ -17,7 +17,7 @@ for _sub in ("smplx", "texture", "benchmark", "geometry", "anthro", "render"):
         _sys.path.insert(0, _p)
 # --- end bootstrap ---
 
-import os, sys, argparse
+import os, sys, argparse, traceback
 import numpy as np
 import torch
 
@@ -65,13 +65,24 @@ def main():
     from detectron2.engine import DefaultPredictor
     from detectron2.config import get_cfg
 
-    dev = torch.device("cuda")
-    model = CameraHMR.load_from_checkpoint(CHECKPOINT_PATH, strict=False, model_type="smpl").to(dev).eval()
-    cam_model = FLNet(); cam_model.load_state_dict(torch.load(CAM_MODEL_CKPT)["state_dict"]); cam_model = cam_model.to(dev).eval()
+    print("[camerahmr] loading models", flush=True)
+    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if dev.type == "cuda":
+        torch.cuda.empty_cache()
+    model = CameraHMR.load_from_checkpoint(
+        CHECKPOINT_PATH,
+        map_location="cpu",
+        strict=False,
+        model_type="smpl",
+    ).to(dev).eval()
+    cam_model = FLNet()
+    cam_model.load_state_dict(torch.load(CAM_MODEL_CKPT, map_location="cpu")["state_dict"])
+    cam_model = cam_model.to(dev).eval()
     body = smplx.SMPLLayer(model_path=SMPL_MODEL_PATH, num_betas=NUM_BETAS).to(dev)
     faces = body.faces
     norm = Normalize(mean=IMAGE_MEAN, std=IMAGE_STD)
 
+    print("[camerahmr] loading detector", flush=True)
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_X_101_32x8d_FPN_3x.yaml"))
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_X_101_32x8d_FPN_3x.yaml")
@@ -79,6 +90,7 @@ def main():
     det = DefaultPredictor(cfg)
 
     for img_path in args.images:
+        print(f"[camerahmr] processing {img_path}", flush=True)
         bgr = cv2.imread(str(img_path))
         if bgr is None:
             print(f"  !! unreadable {img_path}"); continue
@@ -102,6 +114,7 @@ def main():
         ds = Dataset(rgb, centers, scales, cam_int, False, img_path)
         people = []
         for batch in torch.utils.data.DataLoader(ds, batch_size=8, shuffle=False):
+            print(f"[camerahmr] inference batch {len(people) + 1}", flush=True)
             batch = recursive_to(batch, dev)
             with torch.no_grad():
                 params, cam, _ = model(batch)
@@ -113,4 +126,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        traceback.print_exc()
+        raise
