@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from urllib.request import urlretrieve
 
 import numpy as np
 
@@ -34,6 +35,31 @@ def _img_key(image: np.ndarray) -> str:
 
 # --------------------------------------------------------------- model cache ---
 import threading
+
+
+MODEL_URLS = {
+    "pose_landmarker_heavy.task": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task",
+    "face_landmarker.task": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+}
+
+
+def _model_asset_path(filename: str) -> str:
+    models_dir = Path(__file__).resolve().parents[3] / "models"
+    path = models_dir / filename
+    if path.exists():
+        return str(path)
+    url = MODEL_URLS.get(filename)
+    if url is None:
+        return str(path)
+    models_dir.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    try:
+        urlretrieve(url, tmp_path)
+        tmp_path.replace(path)
+    except Exception as exc:  # noqa: BLE001
+        tmp_path.unlink(missing_ok=True)
+        raise FileNotFoundError(f"Unable to fetch required MediaPipe model {filename} from {url}: {exc}") from exc
+    return str(path)
 
 
 class _Models:
@@ -85,7 +111,7 @@ class _Models:
                 if cls._posemark is None:
                     from mediapipe.tasks.python import vision, BaseOptions
                     from mediapipe.tasks.python.vision import RunningMode
-                    model_path = str(Path(__file__).resolve().parents[3] / "models" / "pose_landmarker_heavy.task")
+                    model_path = _model_asset_path("pose_landmarker_heavy.task")
                     opts = vision.PoseLandmarkerOptions(
                         base_options=BaseOptions(model_asset_path=model_path),
                         running_mode=RunningMode.IMAGE, num_poses=1,
@@ -100,7 +126,7 @@ class _Models:
                 if cls._facemesh is None:
                     from mediapipe.tasks.python import vision, BaseOptions
                     from mediapipe.tasks.python.vision import RunningMode
-                    model_path = str(Path(__file__).resolve().parents[3] / "models" / "face_landmarker.task")
+                    model_path = _model_asset_path("face_landmarker.task")
                     opts = vision.FaceLandmarkerOptions(
                         base_options=BaseOptions(model_asset_path=model_path),
                         running_mode=RunningMode.IMAGE, num_faces=1,

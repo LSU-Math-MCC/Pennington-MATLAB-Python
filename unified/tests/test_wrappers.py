@@ -221,6 +221,39 @@ def test_image_handoff_calls_obj2anthro(monkeypatch, tmp_path):
     assert manifest["stages"]["obj2anthro"][0]["source_method"] == "fake"
 
 
+def test_image_auto_camerahmr_uses_slice_anthro(monkeypatch, tmp_path):
+    import unified.img2obj as img2obj
+    import unified.obj2anthro as obj2anthro
+
+    image = tmp_path / "person.png"
+    image.write_bytes(b"stub")
+    obj = tmp_path / "person.obj"
+    obj.write_text("# obj\n", encoding="utf-8")
+    backends = []
+
+    monkeypatch.setattr(
+        img2obj,
+        "run",
+        lambda input_path, method, out: {
+            "status": "success",
+            "native_output_dir": str(out),
+            "obj_handoffs": [{"subject_id": "person", "method": "camerahmr", "obj_path": str(obj), "source_images": [str(image)]}],
+        },
+    )
+
+    def fake_obj2anthro(obj_path, backend, units, output_dir, run_id):
+        backends.append(backend)
+        return _success_frame(output_dir, run_id)
+
+    monkeypatch.setattr(obj2anthro, "run_pipeline", fake_obj2anthro)
+
+    manifest = run_pipeline(image, image_method="auto", anthro_method="auto", out=tmp_path / "run")
+
+    assert manifest["status"] == "success"
+    assert backends == ["slice"]
+    assert manifest["selected_methods"]["resolved_anthropometry"] == ["slice"]
+
+
 def test_direct_obj_input_skips_img2obj(monkeypatch, tmp_path):
     import unified.img2obj as img2obj
     import unified.obj2anthro as obj2anthro

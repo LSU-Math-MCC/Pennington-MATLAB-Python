@@ -134,6 +134,12 @@ def selected_anthro_methods(method: str) -> list[str]:
     return [method]
 
 
+def _selected_anthro_methods_for_handoffs(method: str, handoffs: list[ObjHandoff]) -> list[str]:
+    if method == "auto" and handoffs and all(handoff.method == "camerahmr" for handoff in handoffs):
+        return ["slice"]
+    return selected_anthro_methods(method)
+
+
 def expand_branches(obj_handoffs: Iterable[ObjHandoff], anthro_methods: Iterable[str]) -> list[tuple[ObjHandoff, str]]:
     # TODO: Central policy point for inner-vs-outer product reconciliation.
     # Current behavior is the lossless full outer product of upstream artifacts
@@ -278,7 +284,8 @@ def run_pipeline(
 
         if obj_handoffs:
             obj_out = run_root / "obj2anthro"
-            methods = selected_anthro_methods(anthro_method)
+            methods = _selected_anthro_methods_for_handoffs(anthro_method, obj_handoffs)
+            manifest["selected_methods"]["resolved_anthropometry"] = methods
             branches = expand_branches(obj_handoffs, methods)
             used_dirs: set[Path] = set()
             for handoff, method in branches:

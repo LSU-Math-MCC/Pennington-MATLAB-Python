@@ -10,6 +10,7 @@ from unified.pipeline import SUBJECT_DIR_RE, allocate_run_root, is_supported_ima
 
 IMG2OBJ_ROOT = Path(__file__).resolve().parent
 IMG2OBJ_SRC = IMG2OBJ_ROOT / "src"
+OBJ_CAPABLE_METHODS = {"auto", "camerahmr"}
 
 
 def _ensure_native_importable() -> None:
@@ -49,6 +50,17 @@ def _read_native_manifest(out_dir: Path) -> dict[str, object]:
 def _manifest_inputs(out_dir: Path) -> list[str]:
     inputs = _read_native_manifest(out_dir).get("inputs", [])
     return [str(item) for item in inputs] if isinstance(inputs, list) else []
+
+
+def _manifest_errors(out_dir: Path) -> list[str]:
+    failures = _read_native_manifest(out_dir).get("failures", [])
+    errors = []
+    if isinstance(failures, list):
+        for item in failures:
+            if isinstance(item, dict) and item.get("error"):
+                stage = f"{item.get('stage')}: " if item.get("stage") else ""
+                errors.append(f"{stage}{item['error']}")
+    return errors
 
 
 def _write_obj(path: Path, vertices, faces) -> None:
@@ -116,11 +128,44 @@ def _ensure_obj_exports(out_dir: Path) -> list[str]:
     return [str(path) for path in exported if path.resolve() not in before]
 
 
-def _find_obj_handoffs(out_dir: Path, method: str) -> list[dict[str, object]]:
+def _obj_extent(path: Path) -> float:
+    xs: list[float] = []
+    ys: list[float] = []
+    zs: list[float] = []
+    try:
+        with path.open(encoding="utf-8") as handle:
+            for line in handle:
+                if not line.startswith("v "):
+                    continue
+                _, x, y, z, *_ = line.split()
+                xs.append(float(x))
+                ys.append(float(y))
+                zs.append(float(z))
+    except Exception:
+        return 0.0
+    if not xs:
+        return 0.0
+    return (max(xs) - min(xs)) * (max(ys) - min(ys)) * (max(zs) - min(zs))
+
+
+def _primary_obj_candidates(out_dir: Path, input_path: Path, method: str) -> list[Path]:
+    objs = [path for path in sorted(out_dir.rglob("*.obj")) if not any(part in {".cache", "debug", "primary"} for part in path.parts)]
+    if method != "camerahmr" or not input_path.is_file() or len(objs) <= 1:
+        return objs
+    best = max(objs, key=_obj_extent)
+    primary_dir = out_dir / "primary"
+    primary_dir.mkdir(parents=True, exist_ok=True)
+    primary = primary_dir / f"{sanitize_id(input_path)}.obj"
+    primary.write_text(best.read_text(encoding="utf-8"), encoding="utf-8")
+    return [primary]
+
+
+def _find_obj_handoffs(out_dir: Path, method: str, input_path: Path | None = None) -> list[dict[str, object]]:
     manifest = out_dir / "manifest.json"
     source_images = _manifest_inputs(out_dir)
     handoffs = []
-    for obj_path in sorted(out_dir.rglob("*.obj")):
+    obj_paths = _primary_obj_candidates(out_dir, input_path, method) if input_path is not None else sorted(out_dir.rglob("*.obj"))
+    for obj_path in obj_paths:
         if any(part in {".cache", "debug"} for part in obj_path.parts):
             continue
         handoffs.append(
@@ -183,21 +228,79 @@ def _native_invocations(input_path: Path, out_dir: Path, native_method: str, nat
     return invocations
 
 
+def _image_inputs(input_path: Path) -> list[Path]:
+    if input_path.is_file() and is_supported_image(input_path):
+        return [input_path]
+    if input_path.is_dir():
+        return sorted(p for p in input_path.rglob("*") if p.is_file() and is_supported_image(p))
+    return []
+
+
+def _write_stage_manifest(out_dir: Path, payload: dict[str, object]) -> None:
+    (out_dir / "manifest.json").write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+
+
+def _run_camerahmr(input_path: Path, out_dir: Path) -> tuple[list[list[str]], list[int], list[str]]:
+    images = _image_inputs(input_path)
+    invocation = [["camerahmr", "--images", *(str(path) for path in images), "--out", str(out_dir)]]
+    if not images:
+        message = f"No supported images found for CameraHMR input: {input_path}"
+        _write_stage_manifest(out_dir, {"status": "failed", "mode": "camerahmr", "inputs": [], "outputs": [], "failures": [{"error": message}]})
+        return invocation, [1], [message]
+
+    try:
+        from .tools.smplx.backends import REGISTRY
+
+        REGISTRY["camerahmr"].run([str(path) for path in images], str(out_dir))
+    except Exception as exc:  # noqa: BLE001
+        message = f"{type(exc).__name__}: {exc}"
+        _write_stage_manifest(
+            out_dir,
+            {
+                "status": "failed",
+                "mode": "camerahmr",
+                "inputs": [str(path) for path in images],
+                "outputs": [],
+                "failures": [{"stage": "camerahmr", "error": message}],
+            },
+        )
+        return invocation, [1], [message]
+
+    outputs = [str(path) for path in sorted((out_dir / "camerahmr").rglob("*.npz"))]
+    status = "success" if outputs else "failed"
+    failures = [] if outputs else [{"stage": "camerahmr", "error": "CameraHMR completed but produced no schema NPZ outputs."}]
+    _write_stage_manifest(
+        out_dir,
+        {
+            "status": status,
+            "mode": "camerahmr",
+            "inputs": [str(path) for path in images],
+            "outputs": outputs,
+            "failures": failures,
+        },
+    )
+    return invocation, [0 if outputs else 1], [str(item["error"]) for item in failures]
+
+
 def run(input_path: str | Path, method: str = "auto", out: str | Path | None = None, native_args: list[str] | None = None) -> dict[str, object]:
     input_path = Path(input_path)
     out_dir = Path(out) if out is not None else allocate_run_root() / "img2obj"
     out_dir.mkdir(parents=True, exist_ok=True)
-    native_method = "auto" if method == "auto" else method
-    invocations = _native_invocations(input_path, out_dir, native_method, native_args)
-    statuses = [native_main(argv) for argv in invocations]
+    resolved_method = "camerahmr" if method in OBJ_CAPABLE_METHODS else method
+    hmr_errors: list[str] = []
+    if resolved_method == "camerahmr":
+        invocations, statuses, hmr_errors = _run_camerahmr(input_path, out_dir)
+    else:
+        invocations = _native_invocations(input_path, out_dir, resolved_method, native_args)
+        statuses = [native_main(argv) for argv in invocations]
     exported = _ensure_obj_exports(out_dir)
-    obj_handoffs = _find_obj_handoffs(out_dir, method)
+    obj_handoffs = _find_obj_handoffs(out_dir, resolved_method, input_path)
     warnings = []
-    errors = []
+    errors = [*hmr_errors, *_manifest_errors(out_dir)]
     if all(status == 0 for status in statuses) and not obj_handoffs:
         warnings.append("Image backend completed but produced no OBJ handoff artifacts.")
     if any(status != 0 for status in statuses):
-        errors.append("One or more native image invocations failed.")
+        errors.append(f"{resolved_method} image invocation failed.")
     if all(status == 0 for status in statuses) and obj_handoffs:
         status = "success"
     elif obj_handoffs:
@@ -207,6 +310,7 @@ def run(input_path: str | Path, method: str = "auto", out: str | Path | None = N
     return {
         "status": status,
         "native_mode": "mixed" if len(invocations) > 1 else invocations[0][0],
+        "selected_method": resolved_method,
         "native_invocations": invocations,
         "native_statuses": statuses,
         "native_output_dir": str(out_dir),

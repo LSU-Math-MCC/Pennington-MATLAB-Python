@@ -19,10 +19,11 @@ python -m unified.obj2anthro --input path/to/person.obj --method auto --units au
 
 The top-level pipeline infers the needed stages from `--input`: image files enter
 `img2obj`, OBJ files enter `obj2anthro` directly, and mixed directories do both.
-Direct OBJ handoffs use source method `direct`. Image-derived handoffs must be
-real `.obj` files before anthropometry runs; if an image backend produces only
-visual artifacts, the root manifest records that as `partial` or `failed` instead
-of pretending image-to-anthropometry succeeded.
+Direct OBJ handoffs use source method `direct`. Image `auto` resolves to the
+CameraHMR route, exports concrete OBJ handoffs, and resolves top-level
+anthropometry `auto` to the robust slice branch for CameraHMR meshes. Explicit
+`--anthro-method all` remains available when both anthropometry backends are
+desired.
 
 ## Artifacts
 
@@ -83,6 +84,17 @@ full staged wrapper with lightweight monkeypatched backends. It was executed wit
 ```text
 C:\Users\Clint\AppData\Local\Programs\Python\Python312\python.exe
 ```
+
+The real CameraHMR route was verified on the SSP-3D volleyball frame:
+
+```bash
+python -m unified --input unified/docs/assets/ssp3d_beach_volleyball_frame.png --image-method auto --anthro-method auto --units auto
+```
+
+That run produced a successful root manifest, one primary CameraHMR OBJ handoff,
+one slice anthropometry CSV, and raw plot artifacts under `runs/<run_id>/`.
+
+![Verified CameraHMR image-to-anthro output](docs/assets/verify_ssp3d_camerahmr_slice_3d_view.png)
 
 The existing OBJ path was also verified with the slice backend:
 

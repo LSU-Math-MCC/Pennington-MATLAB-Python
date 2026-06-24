@@ -24,6 +24,7 @@ env/
 *.pkl
 *.pickle
 *.pt
+*.task
 
 # Generated reports and model/output folders from imported legacy ML work
 **/reports/
