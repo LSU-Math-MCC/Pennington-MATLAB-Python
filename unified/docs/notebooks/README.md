@@ -11,6 +11,10 @@ The default notebook path is safe to execute without heavy local models. It uses
 lightweight monkeypatched stage backends, but still calls
 `unified.pipeline.run_pipeline()`, the same wrapper path used by the CLI.
 
+`visual_pipeline_walkthrough.ipynb` is the visual companion notebook. It displays
+the example image inputs, a stage-link diagram, manifest tables, CSV preview, and
+artifact tree.
+
 The notebook was executed in-place with:
 
 ```text
