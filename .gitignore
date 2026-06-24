@@ -23,6 +23,7 @@ env/
 *.joblib
 *.pkl
 *.pickle
+*.pt
 
 # Generated reports and model/output folders from imported legacy ML work
 **/reports/
