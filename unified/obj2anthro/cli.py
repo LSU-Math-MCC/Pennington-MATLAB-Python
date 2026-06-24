@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .pipeline import CANONICAL_TEST_SET_DIR, DEFAULT_OUTPUT_DIR, run_pipeline
+from unified.pipeline import allocate_run_root
+
+from .pipeline import run_pipeline
 
 
 def parse_args(argv=None):
@@ -14,11 +16,7 @@ def parse_args(argv=None):
             "implementation) and slice (existing Python_slice_2026 implementation)."
         ),
     )
-    parser.add_argument(
-        "--input",
-        default=str(CANONICAL_TEST_SET_DIR),
-        help="Input OBJ file or directory. Defaults to the standard OBJ test set.",
-    )
+    parser.add_argument("--input", required=True, help="Input OBJ file or directory.")
     parser.add_argument("--method", choices=("auto", "segmentation", "slice", "all"), default="auto")
     parser.add_argument(
         "--backend",
@@ -28,13 +26,13 @@ def parse_args(argv=None):
     )
     parser.add_argument("--recursive", action="store_true", default=True, help="Search directories recursively.")
     parser.add_argument("--no-recursive", dest="recursive", action="store_false", help="Search only one directory level.")
-    parser.add_argument("--units", choices=("auto", "mm", "cm", "dm", "m"), default="cm")
+    parser.add_argument("--units", choices=("auto", "mm", "cm", "dm", "m"), default="auto")
     parser.add_argument(
         "--out",
         "--output-dir",
         dest="output_dir",
-        default=str(DEFAULT_OUTPUT_DIR),
-        help="Directory for the timestamped CSV and raw backend artifacts.",
+        default=None,
+        help="Directory for the timestamped CSV and raw backend artifacts. Defaults to runs/<UTC timestamp>/obj2anthro.",
     )
     parser.add_argument(
         "--run-id",
@@ -57,12 +55,13 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     method = args.backend or args.method
+    output_dir = Path(args.output_dir) if args.output_dir else allocate_run_root() / "obj2anthro"
     df = run_pipeline(
         input_path=Path(args.input),
         backend=method,
         recursive=args.recursive,
         units=args.units,
-        output_dir=Path(args.output_dir),
+        output_dir=output_dir,
         run_id=args.run_id,
         n_slices=args.n_slices,
         save_images=not args.no_images,
@@ -72,7 +71,8 @@ def main(argv=None):
     )
     print(f"Wrote {len(df)} rows to {df.attrs.get('output_csv')}")
     print(f"Raw artifacts: {df.attrs.get('raw_output_dir')}")
-    return 0
+    statuses = [str(value) for value in df.get("status", [])]
+    return 0 if statuses and all(status == "success" for status in statuses) else 1
 
 
 if __name__ == "__main__":

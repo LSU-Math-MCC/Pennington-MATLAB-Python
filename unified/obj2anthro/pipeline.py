@@ -107,7 +107,7 @@ def run_pipeline(
     run_name = run_id or canonical_run_id()
     raw_dir = None
     if out_dir is not None:
-        raw_dir = out_dir / "raw" / run_name
+        raw_dir = out_dir / "raw" if run_name == "results" else out_dir / "raw" / run_name
         raw_dir.mkdir(parents=True, exist_ok=True)
 
     obj_files = discover_obj_files(input_path, recursive=recursive)
@@ -137,7 +137,7 @@ def run_pipeline(
 
     df = complete_frame(rows)
     if out_dir is not None:
-        output_csv = out_dir / f"{run_name}.csv"
+        output_csv = out_dir / "results.csv" if run_name == "results" else out_dir / f"{run_name}.csv"
         df.to_csv(output_csv, index=False)
         df.attrs["output_csv"] = str(output_csv)
     if raw_dir is not None:
