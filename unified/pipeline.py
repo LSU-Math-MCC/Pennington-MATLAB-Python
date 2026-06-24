@@ -232,7 +232,9 @@ def run_pipeline(
         "stages": {},
         "warnings": [],
         "errors": [],
+        "image_artifact_roots": [],
         "obj_handoffs": [],
+        "manifest_path": str(run_root / "manifest.json"),
         "status": "running",
     }
 
@@ -304,6 +306,7 @@ def run_pipeline(
                         "branch_dir": str(branch_dir),
                         "output_csv": df.attrs.get("output_csv") if df is not None else None,
                         "raw_output_dir": df.attrs.get("raw_output_dir") if df is not None else None,
+                        "raw_artifact_dir": df.attrs.get("raw_output_dir") if df is not None else None,
                         "status": status,
                         "rows": len(df) if df is not None else 0,
                         "error": error,
