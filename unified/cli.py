@@ -41,4 +41,4 @@ def main(argv=None) -> int:
         out=args.out,
     )
     print(f"Run {manifest['run_id']} wrote {Path(args.out) if args.out else 'runs/' + manifest['run_id']}")
-    return 0
+    return 0 if manifest.get("status") == "success" else 1

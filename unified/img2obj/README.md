@@ -5,7 +5,7 @@
 > New native command: `cd unified/img2obj && $env:PYTHONPATH="src"; python -m pipeline.run single --image IMG --out OUT`
 > New ergonomic unified command: `python -m unified img2obj --input IMG --out OUT`
 
-# MeshMap â€” Image â†’ Canonical A-pose Human â†’ Anthropometry
+# MeshMap - Image -> Canonical A-pose Human -> Anthropometry
 
 Reconstruct people from legacy media (single image first, then multi-view) into a clean
 **SMPL-X A-pose body with accurate joints**, carrying the real person's appearance, for
@@ -19,16 +19,16 @@ Full design, framework, benchmarks, and history: **`docs/PROJECT.md`**.
 
 Two related but different paths live here:
 
-- **`src/pipeline`** â€” visual canonical splat reconstruction (A-Frame demos, inspection).
+- **`src/pipeline`** - visual canonical splat reconstruction (A-Frame demos, inspection).
   Useful, but debug artifacts still show background/depth residue and occasional held-object
   leakage; do not use those visual splats alone as anthropometric proof.
-- **`tools/anthro/`, `tools/hmr/{camerahmr,blade,shapy}/`, `tools/benchmark/`** â€” the
+- **`tools/anthro/`, `tools/hmr/{camerahmr,blade,shapy}/`, `tools/benchmark/`** - the
   anthropometry path: multi-view evidence fused into one canonical A-pose body, then measured.
   Single-image CameraHMR numbers are baselines.
 
 Benchmark claims are labelled by setting. SSP-3D is a sanity benchmark; HBW remains the
 SHAPY-style verdict dataset when available. Multi-view / LOSO-calibrated results are not
-single-image leaderboard claims. See `docs/PROJECT.md` Â§9.
+single-image leaderboard claims. See `docs/PROJECT.md` Section 9.
 
 ---
 
@@ -42,10 +42,10 @@ python -m pip install -e ".[real]"    # real models: ultralytics, mediapipe, ope
 ```
 
 Real backends (CPU-capable):
-- **YOLOv8-seg** â€” multi-person instance masks + boxes
-- **YOLOv8-pose** â€” 17-keypoint 2D pose (fallback)
-- **MediaPipe FaceLandmarker** â€” 478 dense face landmarks + hull mask (model in `models/`)
-- **Depth-Anything-V2-Small** (via `transformers`) â€” monocular depth
+- **YOLOv8-seg** - multi-person instance masks + boxes
+- **YOLOv8-pose** - 17-keypoint 2D pose (fallback)
+- **MediaPipe FaceLandmarker** - 478 dense face landmarks + hull mask (model in `models/`)
+- **Depth-Anything-V2-Small** (via `transformers`) - monocular depth
 - point-splat scene lifted from monocular depth
 
 Weights auto-download on first use (face model is fetched to `models/face_landmarker.task`).
@@ -84,7 +84,7 @@ python -m pipeline.run subject --subject "datasets/SSP-3D/ssp_3d/images/bodybuil
 
 `--backend dummy` runs the whole flow with synthetic, GPU-free data (used by tests).
 Mix per-stage overrides freely, e.g. `--depth depth-anything-large --pose mediapipe`
-(stage matrix in `docs/PROJECT.md` Â§5).
+(stage matrix in `docs/PROJECT.md` Section 5).
 
 ### Anthropometry & benchmark (WSL)
 
@@ -103,7 +103,7 @@ python tools/render/overlay_final_mesh.py runs/subject_s1
 ### Notebooks (run with a WSL kernel)
 
 The HMR notebooks (`notebooks/hmr_backends_demo.ipynb`, etc.) use WSL paths (`/mnt/c/...`,
-`/home/clint/...`) and shell into the conda envs above â€” **they must run on a WSL kernel, not a
+`/home/clint/...`) and shell into the conda envs above - **they must run on a WSL kernel, not a
 Windows Python kernel.** One-time setup, then connect VS Code to WSL:
 
 ```bash
@@ -145,9 +145,9 @@ make smoke    # dummy single-image run + smoke assertions
 
 ## Layout
 
-`src/pipeline/{backends,geometry,export}` â€” backends behind interfaces; geometry/fusion are
+`src/pipeline/{backends,geometry,export}` - backends behind interfaces; geometry/fusion are
 model-free and fully unit-tested; export writes PLY/GLB/A-Frame.
-`tools/{anthro,hmr,benchmark,texture,face,hands,geometry,render,smplx,workflows}` â€” the research
+`tools/{anthro,hmr,benchmark,texture,face,hands,geometry,render,smplx,workflows}` - the research
 stack. `docs/PROJECT.md` is the consolidated project record; point-in-time snapshots live in
 `docs/archive/`.
 > Its scientific implementation and internal organization were intentionally

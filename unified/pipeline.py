@@ -23,6 +23,8 @@ class ObjHandoff:
     obj_path: Path
     native_output_dir: Path | None = None
     native_manifest_path: Path | None = None
+    source_images: tuple[str, ...] = ()
+    selected_instance: str | None = None
 
 
 def canonical_run_id() -> str:
@@ -56,6 +58,14 @@ def _relative(path: Path, base: Path) -> str:
         return path.resolve().relative_to(base.resolve()).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+def sanitize_id(value: str | Path) -> str:
+    raw = Path(value).stem if isinstance(value, Path) else str(value)
+    raw = raw.replace("\\", "/")
+    raw = re.sub(r"[^A-Za-z0-9._-]+", "_", raw)
+    raw = re.sub(r"_+", "_", raw).strip("._-")
+    return raw or "subject"
 
 
 def _nearest_subject_dir(file_path: Path, input_root: Path) -> Path | None:
@@ -136,7 +146,68 @@ def _write_manifest(run_root: Path, manifest: dict[str, object]) -> None:
 
 
 def _obj_handoffs_from_paths(paths: Iterable[Path], method: str) -> list[ObjHandoff]:
-    return [ObjHandoff(subject_id=path.stem, method=method, obj_path=path) for path in paths]
+    return [ObjHandoff(subject_id=sanitize_id(path), method=method, obj_path=path) for path in paths]
+
+
+def _handoff_from_mapping(item: dict[str, object], fallback_method: str) -> ObjHandoff:
+    obj_path = Path(str(item["obj_path"]))
+    source_images = item.get("source_images") or item.get("source_image") or ()
+    if isinstance(source_images, str):
+        source_images = (source_images,)
+    return ObjHandoff(
+        subject_id=sanitize_id(str(item.get("subject_id") or obj_path.stem)),
+        method=str(item.get("method") or fallback_method),
+        obj_path=obj_path,
+        native_output_dir=Path(str(item["native_output_dir"])) if item.get("native_output_dir") else None,
+        native_manifest_path=Path(str(item["native_manifest_path"])) if item.get("native_manifest_path") else None,
+        source_images=tuple(str(p) for p in source_images),
+        selected_instance=str(item["selected_instance"]) if item.get("selected_instance") else None,
+    )
+
+
+def _handoff_manifest(handoff: ObjHandoff) -> dict[str, object]:
+    return {
+        "subject_id": handoff.subject_id,
+        "source_method": handoff.method,
+        "obj_path": str(handoff.obj_path),
+        "native_output_dir": str(handoff.native_output_dir) if handoff.native_output_dir else None,
+        "native_manifest_path": str(handoff.native_manifest_path) if handoff.native_manifest_path else None,
+        "source_images": list(handoff.source_images),
+        "selected_instance": handoff.selected_instance,
+    }
+
+
+def _unique_branch_dir(base: Path, handoff: ObjHandoff, anthro_method: str, used: set[Path]) -> Path:
+    root = base / sanitize_id(handoff.method) / sanitize_id(handoff.subject_id) / sanitize_id(anthro_method)
+    path = root
+    index = 2
+    while path in used:
+        path = root.with_name(f"{root.name}_{index}")
+        index += 1
+    used.add(path)
+    return path
+
+
+def _branch_status(df) -> str:
+    if len(df) == 0:
+        return "failed"
+    statuses = [str(value) for value in df.get("status", [])]
+    if statuses and all(status == "success" for status in statuses):
+        return "success"
+    if any(status == "success" for status in statuses):
+        return "partial"
+    return "failed"
+
+
+def _root_status(manifest: dict[str, object], branch_outputs: list[dict[str, object]]) -> str:
+    if not branch_outputs:
+        return "failed"
+    branch_statuses = [str(item.get("status", "failed")) for item in branch_outputs]
+    useful = any(status in {"success", "partial"} and int(item.get("rows", 0)) > 0 for status, item in zip(branch_statuses, branch_outputs))
+    any_problem = bool(manifest["warnings"] or manifest["errors"] or any(status != "success" for status in branch_statuses))
+    if not useful:
+        return "failed"
+    return "partial" if any_problem else "success"
 
 
 def run_pipeline(
@@ -151,64 +222,106 @@ def run_pipeline(
     started = datetime.now(timezone.utc)
     run_root = allocate_run_root(out)
     input_path = Path(input_path)
-    plan = classify_input(input_path)
     manifest: dict[str, object] = {
         "run_id": run_root.name,
         "repository_head": _repo_head(),
         "started_at": started.isoformat(),
         "input": str(input_path),
-        "input_plan": plan,
+        "input_plan": {},
         "selected_methods": {"image": image_method, "anthropometry": anthro_method},
         "stages": {},
         "warnings": [],
+        "errors": [],
+        "obj_handoffs": [],
         "status": "running",
     }
 
-    obj_handoffs = _obj_handoffs_from_paths((Path(p) for p in plan["objs"]), "direct")
+    branch_outputs: list[dict[str, object]] = []
+    try:
+        plan = classify_input(input_path)
+        manifest["input_plan"] = plan
+        obj_handoffs = _obj_handoffs_from_paths((Path(p) for p in plan["objs"]), "direct")
 
-    if plan["images"]:
-        image_out = run_root / "img2obj"
-        image_result = img2obj.run(input_path, method=image_method, out=image_out)
-        manifest["stages"]["img2obj"] = image_result
-        obj_handoffs.extend(
-            ObjHandoff(
-                subject_id=item.get("subject_id", Path(item["obj_path"]).stem),
-                method=item.get("method", image_method),
-                obj_path=Path(item["obj_path"]),
-                native_output_dir=Path(item["native_output_dir"]) if item.get("native_output_dir") else None,
-                native_manifest_path=Path(item["native_manifest_path"]) if item.get("native_manifest_path") else None,
-            )
-            for item in image_result.get("obj_handoffs", [])
-        )
-        if not image_result.get("obj_handoffs"):
-            manifest["warnings"].append("Image processing produced no OBJ handoff artifacts; anthropometry skipped for images.")
+        if not plan["images"] and not plan["objs"]:
+            if plan["unsupported"]:
+                manifest["errors"].append("Input contains only unsupported files.")
+            else:
+                manifest["errors"].append("Input produced no image or OBJ work.")
 
-    if obj_handoffs:
-        obj_out = run_root / "obj2anthro"
-        methods = selected_anthro_methods(anthro_method)
-        branches = expand_branches(obj_handoffs, methods)
-        anthro_outputs = []
-        for handoff, method in branches:
-            df = obj2anthro.run_pipeline(
-                handoff.obj_path,
-                backend=method,
-                units=units,
-                output_dir=obj_out / method,
-            )
-            anthro_outputs.append(
-                {
-                    "source_obj": str(handoff.obj_path),
-                    "method": method,
-                    "output_csv": df.attrs.get("output_csv"),
-                    "raw_output_dir": df.attrs.get("raw_output_dir"),
-                    "rows": len(df),
+        if plan["images"]:
+            image_out = run_root / "img2obj"
+            try:
+                image_result = img2obj.run(input_path, method=image_method, out=image_out)
+            except Exception as exc:  # noqa: BLE001
+                image_result = {
+                    "status": "failed",
+                    "native_output_dir": str(image_out),
+                    "obj_handoffs": [],
+                    "errors": [f"{type(exc).__name__}: {exc}"],
                 }
+            manifest["stages"]["img2obj"] = image_result
+            manifest["image_artifact_roots"] = [image_result.get("native_output_dir", str(image_out))]
+            for message in image_result.get("warnings", []):
+                manifest["warnings"].append(str(message))
+            for message in image_result.get("errors", []):
+                manifest["errors"].append(str(message))
+            obj_handoffs.extend(
+                _handoff_from_mapping(item, image_method)
+                for item in image_result.get("obj_handoffs", [])
             )
-        manifest["stages"]["obj2anthro"] = anthro_outputs
-    else:
-        manifest["stages"]["obj2anthro"] = {"skipped": True, "reason": "no OBJ inputs or handoffs"}
+            if not image_result.get("obj_handoffs"):
+                manifest["warnings"].append("Image processing produced no OBJ handoff artifacts; anthropometry skipped for images.")
 
-    manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-    manifest["status"] = "success"
-    _write_manifest(run_root, manifest)
+        manifest["obj_handoffs"] = [_handoff_manifest(handoff) for handoff in obj_handoffs]
+
+        if obj_handoffs:
+            obj_out = run_root / "obj2anthro"
+            methods = selected_anthro_methods(anthro_method)
+            branches = expand_branches(obj_handoffs, methods)
+            used_dirs: set[Path] = set()
+            for handoff, method in branches:
+                branch_dir = _unique_branch_dir(obj_out, handoff, method, used_dirs)
+                try:
+                    df = obj2anthro.run_pipeline(
+                        handoff.obj_path,
+                        backend=method,
+                        units=units,
+                        output_dir=branch_dir,
+                        run_id="results",
+                    )
+                    status = _branch_status(df)
+                    error = ""
+                except Exception as exc:  # noqa: BLE001
+                    df = None
+                    status = "failed"
+                    error = f"{type(exc).__name__}: {exc}"
+                branch_outputs.append(
+                    {
+                        "source_obj": str(handoff.obj_path),
+                        "source_method": handoff.method,
+                        "subject_id": handoff.subject_id,
+                        "anthro_method": method,
+                        "branch_dir": str(branch_dir),
+                        "output_csv": df.attrs.get("output_csv") if df is not None else None,
+                        "raw_output_dir": df.attrs.get("raw_output_dir") if df is not None else None,
+                        "status": status,
+                        "rows": len(df) if df is not None else 0,
+                        "error": error,
+                    }
+                )
+                if error:
+                    manifest["errors"].append(error)
+            manifest["stages"]["obj2anthro"] = branch_outputs
+        else:
+            manifest["stages"]["obj2anthro"] = {"skipped": True, "reason": "no OBJ inputs or handoffs"}
+
+        manifest["status"] = _root_status(manifest, branch_outputs)
+    except Exception as exc:  # noqa: BLE001
+        manifest["errors"].append(f"{type(exc).__name__}: {exc}")
+        manifest["status"] = "failed"
+    finally:
+        if manifest["status"] == "running":
+            manifest["status"] = _root_status(manifest, branch_outputs)
+        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
+        _write_manifest(run_root, manifest)
     return manifest
