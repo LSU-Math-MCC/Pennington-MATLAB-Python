@@ -24,7 +24,8 @@ This map records the preservation-first relocation into `unified/`.
 | `unified/README.md` | `unified/obj2anthro/README.md` |
 
 New top-level files `unified/__main__.py`, `unified/cli.py`, and
-`unified/pipeline.py` now represent the staged tool.
+`unified/pipeline.py` now represent the staged tool. The default artifact root is
+`runs/<run_id>/`, not a package-local results directory.
 
 ## Command Migration
 
@@ -33,13 +34,38 @@ New top-level files `unified/__main__.py`, `unified/cli.py`, and
 | `python -m unified --input OBJ --backend all --units auto` | `python -m unified obj2anthro --input OBJ --method all --units auto` | Help path tested; use `--method` in new docs. |
 | Existing OBJ through complete tool | `python -m unified --input OBJ --anthro-method slice --units auto --out runs/verify_cancan01_a` | Tested on `Python_slice_2026/OBJ/CanCan01_A 2025-10-27_11-10-43.obj`. |
 | `cd Python_img_to_obj && python -m pipeline.run single --image IMG --out OUT` | `cd unified/img2obj && $env:PYTHONPATH="src"; python -m pipeline.run single --image IMG --out OUT` | Tested with the dummy fixture. |
-| Image via unified wrapper | `python -m unified img2obj --input IMG --method dummy --out OUT` | Tested with `unified/img2obj/tests/fixtures/person_stub.png`. |
+| Image via unified wrapper | `python -m unified img2obj --input IMG --method auto` | Help path and monkeypatched OBJ handoff contract tested. |
 | Direct image stage module | `python -m unified.img2obj --input IMG --method dummy --out OUT` | Tested with `unified/img2obj/tests/fixtures/person_stub.png`. |
-| Image through complete inference pipeline | `python -m unified --input IMG` | Wrapper path exists; heavy real image backends require local assets/models. |
+| Image, OBJ, or mixed directory through complete wrapper | `python -m unified --input IMAGE_OR_OBJ_OR_DIR --image-method auto --anthro-method auto --units auto` | Monkeypatched image-to-OBJ-to-anthropometry path tested; real image success requires a backend that emits or can be bridged to OBJ. |
 | `cd Python_Fall2025 && python -m src.main ...` | `cd unified/obj2anthro/backends/segmentation && python -m src.main ...` | Native project preserved; wrapper tests cover relocated adapter paths. |
 | Historical ML path under `Python_ML_2021/...` | Same relative path beneath `unified/ml/experiment/...` | Path verified; ML inference API intentionally not invented. |
 | Native slice command under `Python_slice_2026` | Unchanged | Root project remains unmoved. |
 | Slice through unified stage | `python -m unified obj2anthro --input OBJ --method slice` | Tested on `CanCan01_B`. |
+
+## Unified Run Contract
+
+Default layout:
+
+```text
+runs/<run_id>/
+    manifest.json
+    img2obj/
+    obj2anthro/
+        <source_method>/
+            <subject_id>/
+                <anthro_method>/
+                    results.csv
+                    raw/
+```
+
+- Direct OBJ inputs skip image processing and use source method `direct`.
+- Image inputs must produce concrete `.obj` handoffs before anthropometry runs.
+- Mixed directories are valid: direct OBJs go straight to `obj2anthro`; images go
+  through `img2obj` first.
+- Duplicate subject/backend branches receive distinct output directories.
+- Root CLI exit code is `0` only for `success`; `partial` and `failed` are
+  nonzero for automation.
+- `runs/` stays untracked.
 
 ## Path Bridges
 
