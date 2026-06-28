@@ -25,6 +25,27 @@ The GUI expects ShapeUp-style Styku, DXA, Blood, Questionnaire, and Manual data
 files. Use the file-picker buttons to choose inputs, choose an output folder,
 select features/targets/regressor settings, then run.
 
+## PCA/Ganger Launcher
+
+The PCA app includes an interactive folder picker and Ganger launcher:
+
+```powershell
+..\..\.venv\Scripts\python.exe python\PCA_App\run_ganger.py
+```
+
+Select a folder containing `.ply` meshes and matching `.mkr` marker files. The
+script creates a `fitted/` folder and launches the bundled `ganger.exe` in
+batches. This workflow is Windows-only.
+
+## Legacy GUI Prototype
+
+The older `old_ML/ML2019Summer/GUI.py` script opens a minimal Tkinter window.
+It is retained as historical reference:
+
+```powershell
+..\..\.venv\Scripts\python.exe old_ML\ML2019Summer\GUI.py
+```
+
 ## Octave Notes
 
 Packages to install and load when using Octave to run `Avatar.m`:

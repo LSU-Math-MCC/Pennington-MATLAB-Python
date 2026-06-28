@@ -20,3 +20,14 @@ pushd unified\ml\experiment
 ..\..\.venv\Scripts\python.exe python\ml_GUI.py
 popd
 ```
+
+The PCA/Ganger launcher is also interactive:
+
+```powershell
+pushd unified\ml\experiment
+..\..\.venv\Scripts\python.exe python\PCA_App\run_ganger.py
+popd
+```
+
+It opens a folder picker, then launches the bundled Ganger executable for
+`.ply`/`.mkr` batches. This path is Windows-only.

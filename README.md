@@ -100,6 +100,10 @@ Then read `unified/img2obj/README.md` for the model-backed options.
 
 ## GUI Interfaces
 
+Use these from an activated or explicit venv. Desktop GUIs must be run in the
+foreground; do not launch them detached, because the viewer window owns the
+process lifetime.
+
 ### ML Tkinter GUI
 
 The ML GUI is a historical Tkinter application. Launch it from the ML experiment
@@ -121,12 +125,58 @@ In the window:
 The GUI expects the old ShapeUp-style spreadsheets and CSVs. If a file picker
 opens in the wrong place, browse to `unified/ml/experiment/python/data/`.
 
+### PCA/Ganger Launcher
+
+The PCA app includes a Tkinter folder picker that launches the bundled
+`ganger.exe` fitting tool for `.ply`/`.mkr` batches. This is Windows-only and
+expects the Ganger files already present under `python/PCA_App/ganger/`.
+
+```powershell
+pushd unified\ml\experiment
+..\..\.venv\Scripts\python.exe python\PCA_App\run_ganger.py
+popd
+```
+
+In the folder picker, select the directory containing the `.ply` files and their
+matching `.mkr` marker files. The script creates a `fitted/` output folder next
+to the selected inputs.
+
+### Legacy Tkinter Prototype
+
+There is also an older toy Tkinter prototype at
+`unified/ml/experiment/old_ML/ML2019Summer/GUI.py`. It only opens a basic window
+and is useful as historical reference, not as a production workflow:
+
+```powershell
+pushd unified\ml\experiment
+..\..\.venv\Scripts\python.exe old_ML\ML2019Summer\GUI.py
+popd
+```
+
 ### Image/3D Viewers
 
 Several pipelines write HTML or viewer artifacts rather than opening a desktop
 GUI directly. After running a command, look under the selected `runs/...` folder
 for files such as `interactive_3d.html`, `index.html`, or relight viewer HTML.
 Open those files in a browser.
+
+Slice backend browser viewer:
+
+```powershell
+& $py -m unified obj2anthro --input "data\obj\CanCan01_A 2025-10-27_11-10-43.obj" --method slice --units auto --out runs\slice_viewer
+```
+
+Then open `runs/slice_viewer/.../interactive_3d.html`.
+
+Image-to-OBJ browser viewer:
+
+```powershell
+pushd unified\img2obj
+..\..\.venv\Scripts\python.exe -m pipeline.run single --image tests\fixtures\person_stub.png --out ..\..\runs\img2obj_dummy --backend dummy --quick
+popd
+```
+
+Then open `runs/img2obj_dummy/index.html`.
 
 ### Segmentation Mesh Viewer
 

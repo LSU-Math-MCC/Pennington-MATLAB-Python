@@ -75,6 +75,8 @@ conda environments. See `img2obj/docs/setup/`.
 
 - The ML Tkinter GUI is launched from `unified/ml/experiment` with
   `..\..\.venv\Scripts\python.exe python\ml_GUI.py`.
+- The PCA/Ganger launcher is launched from `unified/ml/experiment` with
+  `..\..\.venv\Scripts\python.exe python\PCA_App\run_ganger.py`.
 - Slice and image workflows produce browser-viewable HTML artifacts under
   `runs/...`.
 - The segmentation backend can open a `trimesh` viewer with
