@@ -1,0 +1,78 @@
+# Consolidated requirements for the unified Pennington Python workspace.
+#
+# Target: Python 3.10+; verified in this workspace with Python 3.12.
+# This file consolidates the runnable wrapper, image-to-OBJ, OBJ-to-anthro,
+# segmentation, slice, tests, and modern ML utility dependencies.
+#
+# The HMR research backends that depend on external checkouts or specialized
+# CUDA/conda stacks are intentionally not pinned here. See:
+#   unified/img2obj/docs/setup/HMR_BACKENDS_SETUP.md
+#   unified/img2obj/tools/hmr/*/setup_*.sh
+#
+# External/non-PyPI stacks referenced by tools include CameraHMR, BLADE, SHAPY,
+# LHM, DECA, HaMeR, SAM2, Detectron2, ROMP, Blender's bpy/mathutils modules, and
+# MATLAB Engine. Install those only for the matching backend workflow.
+
+# Core scientific runtime
+numpy>=2.0
+pandas>=2.2
+scipy>=1.14
+pillow>=10.0
+trimesh>=4.6
+matplotlib>=3.9
+plotly>=5.0
+imageio>=2.30
+networkx>=3.0
+openpyxl>=3.1
+joblib>=1.3
+tqdm>=4.66
+requests>=2.31
+PyYAML>=6.0
+
+# Mesh geometry, slicing, rendering, and segmentation support
+shapely>=2.0
+rtree>=1.0
+mapbox-earcut>=1.0
+manifold3d>=3.0
+meshio>=5.0
+vtk>=9.0
+fast-simplification>=0.1
+vhacdx>=0.0.8
+xxhash>=3.0
+pyglet>=1.5,<2
+pyrender>=0.1.45
+open3d>=0.18
+plyfile>=1.0
+smplx>=0.1.28
+psutil>=5.9
+
+# Image loading and real image-to-OBJ backends
+opencv-python>=4.10
+pillow-avif-plugin>=1.4
+pi-heif>=1.0
+pillow-heif>=0.20
+ultralytics>=8.0
+mediapipe>=0.10
+transformers>=4.40
+torch>=2.3
+torchvision>=0.18
+
+# ML, notebook, and reporting utilities retained from the merged projects
+scikit-learn>=1.4
+scikit-image>=0.24
+seaborn>=0.13
+openTSNE>=1.0
+nbformat>=5.9
+beautifulsoup4>=4.12
+lxml>=5.0
+selenium>=4.0
+pyvis>=0.3
+jsonpickle>=3.0
+rich>=13.0
+colorlog>=6.0
+svg.path>=6.0
+
+# Test and coverage tooling
+pytest>=8.0
+pytest-cov>=6.0
+coverage>=7.0
