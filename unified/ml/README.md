@@ -1,11 +1,11 @@
 # ML
 
-`experiment/` contains the relocated historical `Python_ML_2021/` ML and DOE code.
+`experiment/` contains the historical ML, PCA, DOE, and Tkinter GUI code.
 
 Training and cross-validation experiments are separate from inference runs under
 `runs/`. Future prediction integration belongs in the staged
-`python -m unified --input ...` pipeline, but this relocation does not define a
-standardized ML prediction API or experiment tracker.
+`python -m unified --input ...` pipeline, but this stage does not define a
+standardized prediction API yet.
 
 Use:
 
@@ -13,4 +13,10 @@ Use:
 python -m unified ml
 ```
 
-for the current stage guidance.
+To launch the Tkinter GUI, run from the repository root:
+
+```powershell
+pushd unified\ml\experiment
+..\..\.venv\Scripts\python.exe python\ml_GUI.py
+popd
+```

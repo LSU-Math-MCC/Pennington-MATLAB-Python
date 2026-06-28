@@ -165,10 +165,18 @@ def test_img2obj_nested_subject_invocation_uses_nearest_subject_directory(tmp_pa
     assert str(inner) in invocations[0]
 
 
-def test_breadcrumbs_exist():
-    assert Path("Python_img_to_obj/README.md").exists()
-    assert Path("Python_Fall2025/README.md").exists()
-    assert Path("Python_ML_2021/README.md").exists()
+def test_canonical_project_paths_exist():
+    legacy_roots = [
+        "Python" + "_img_to_obj",
+        "Python" + "_Fall2025",
+        "Python" + "_ML_2021",
+        "Python" + "_slice_2026",
+    ]
+    for legacy_root in legacy_roots:
+        assert not Path(legacy_root).exists()
+    assert Path("data/obj").exists()
+    assert Path("data/obj/CanCan01_A 2025-10-27_11-10-43.obj").exists()
+    assert Path("unified/obj2anthro/backends/slice/slice.py").exists()
     assert Path("unified/RELOCATION_MAP.md").exists()
 
 
@@ -411,15 +419,19 @@ def test_npz_people_export_creates_obj_handoff(tmp_path):
 
 
 def test_relocation_docs_have_no_mojibake_or_duplicate_banners():
+    legacy_roots = [
+        "Python" + "_img_to_obj",
+        "Python" + "_Fall2025",
+        "Python" + "_ML_2021",
+        "Python" + "_slice_2026",
+    ]
     docs = [
         Path("README.md"),
         Path("unified/README.md"),
         Path("unified/RELOCATION_MAP.md"),
-        Path("Python_img_to_obj/README.md"),
-        Path("Python_Fall2025/README.md"),
-        Path("Python_ML_2021/README.md"),
         Path("unified/img2obj/README.md"),
         Path("unified/obj2anthro/backends/segmentation/README.md"),
+        Path("unified/obj2anthro/backends/slice/README.md"),
         Path("unified/ml/experiment/README.md"),
     ]
     for doc in docs:
@@ -428,3 +440,5 @@ def test_relocation_docs_have_no_mojibake_or_duplicate_banners():
         assert "\u00c2" not in text
         assert "\ufffd" not in text
         assert text.count("Relocation note:") <= 1
+        for legacy_root in legacy_roots:
+            assert legacy_root not in text

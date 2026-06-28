@@ -1,11 +1,4 @@
-﻿> Relocation note: This project was moved verbatim from `Python_img_to_obj/` to `unified/img2obj/`.
-> Its scientific implementation and internal organization were intentionally
-> preserved. See `unified/RELOCATION_MAP.md`.
-> Old native command: `cd Python_img_to_obj && python -m pipeline.run single --image IMG --out OUT`
-> New native command: `cd unified/img2obj && $env:PYTHONPATH="src"; python -m pipeline.run single --image IMG --out OUT`
-> New ergonomic unified command: `python -m unified img2obj --input IMG --out OUT`
-
-# MeshMap - Image -> Canonical A-pose Human -> Anthropometry
+﻿# MeshMap - Image -> Canonical A-pose Human -> Anthropometry
 
 Reconstruct people from legacy media (single image first, then multi-view) into a clean
 **SMPL-X A-pose body with accurate joints**, carrying the real person's appearance, for
@@ -150,11 +143,3 @@ model-free and fully unit-tested; export writes PLY/GLB/A-Frame.
 `tools/{anthro,hmr,benchmark,texture,face,hands,geometry,render,smplx,workflows}` - the research
 stack. `docs/PROJECT.md` is the consolidated project record; point-in-time snapshots live in
 `docs/archive/`.
-> Its scientific implementation and internal organization were intentionally
-> preserved. See `unified/RELOCATION_MAP.md`.
->
-> Old native command: `cd Python_img_to_obj && python -m pipeline.run single --image IMG --out OUT`
-> New native command: `cd unified/img2obj && python -m pipeline.run single --image IMG --out OUT`
-> New ergonomic unified command: `python -m unified img2obj --input IMG --out OUT`
-
-

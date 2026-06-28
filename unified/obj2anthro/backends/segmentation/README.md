@@ -1,8 +1,4 @@
-﻿> Relocation note: This project was moved verbatim from `Python_Fall2025/` to `unified/obj2anthro/backends/segmentation/`.
-> Its scientific implementation and internal organization were intentionally
-> preserved. See `unified/RELOCATION_MAP.md`.
-
-# 3D Anthropometric Analysis Project
+﻿# 3D Anthropometric Analysis Project
 
 A Python toolkit for analyzing 3D human body scans and extracting anthropometric measurements. This project processes `.obj` and `.ply` mesh files to compute body measurements for research applications.
 

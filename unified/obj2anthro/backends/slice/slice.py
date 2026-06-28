@@ -1,8 +1,8 @@
-
+﻿
 
 
 """
-FULL OBJ → PCA ALIGNMENT → SLICING → 42 BIOMARKERS → PNG METHOD IMAGES → contact sheet
+Full OBJ to PCA alignment to slicing to 42 biomarkers.
 
 This pipeline:
 1. Loads OBJ files.
@@ -18,8 +18,8 @@ This pipeline:
 
 Run:
 
-python3 -m slice \
-  --input /Python_Fall2025/model_files/OBJ \
+python -m unified.obj2anthro.backends.slice.slice \
+  --input data/obj \
   --all \
   --recursive \
   --n-slices 200
@@ -1563,7 +1563,7 @@ def run_pipeline(
         raise FileNotFoundError(f"No OBJ files found in: {input_path}")
 
     print("=" * 90)
-    print("FULL OBJ → SLICING → 42 BIOMARKERS → INTERACTIVE 3D PIPELINE")
+    print("FULL OBJ TO SLICING TO 42 BIOMARKERS TO INTERACTIVE 3D PIPELINE")
     print("=" * 90)
     print(f"Input path: {input_path}")
     print(f"Number of OBJ files: {len(obj_files)}")

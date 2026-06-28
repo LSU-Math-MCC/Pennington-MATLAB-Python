@@ -1,7 +1,11 @@
-# Slice Backend Wrapper
+# Slice Backend
 
-The slice implementation has not moved. Its canonical source remains:
+This directory owns the slice-based OBJ anthropometry implementation.
 
-`Python_slice_2026/`
+Run it through the staged wrapper from the repository root:
 
-This directory only exposes that root implementation to `unified/obj2anthro`. Changes to the slice algorithm must be made in `Python_slice_2026/`, not copied here.
+```bash
+python -m unified obj2anthro --input data/obj --method slice --units auto
+```
+
+The backend code lives in `slice.py`. Core OBJ examples live in `data/obj/`.

@@ -11,10 +11,7 @@ from .pipeline import run_pipeline
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         prog="unified obj2anthro",
-        description=(
-            "Run OBJ anthropometry using segmentation (relocated Python_Fall2025 "
-            "implementation) and slice (existing Python_slice_2026 implementation)."
-        ),
+        description="Run OBJ anthropometry using the segmentation and slice backends.",
     )
     parser.add_argument("--input", required=True, help="Input OBJ file or directory.")
     parser.add_argument("--method", choices=("auto", "segmentation", "slice", "all"), default="auto")

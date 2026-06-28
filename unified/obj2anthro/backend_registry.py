@@ -14,12 +14,10 @@ import numpy as np
 from .schema import SEGMENTATION_FIELD_MAP, SLICE_FIELD_MAP
 
 
-# Boundary path for the relocated Python_Fall2025 implementation.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FALL2025_ROOT = Path(__file__).resolve().parent / "backends" / "segmentation"
 FALL2025_SRC = FALL2025_ROOT / "src"
-# Boundary path for the unmoved Python_slice_2026 implementation.
-SLICE_PATH = REPO_ROOT / "Python_slice_2026" / "slice.py"
+SLICE_PATH = Path(__file__).resolve().parent / "backends" / "slice" / "slice.py"
 UNIT_TO_CM = {"mm": 0.1, "cm": 1.0, "dm": 10.0, "m": 100.0}
 
 
@@ -142,7 +140,7 @@ def _pushd(path: Path):
 
 class SegmentationBackend:
     name = "segmentation"
-    version = "Python_Fall2025"
+    version = "segmentation"
 
     def run(self, obj_file: Path, options: PipelineOptions) -> dict[str, object]:
         log_file = None
@@ -197,7 +195,7 @@ class SegmentationBackend:
 
 class SliceBackend:
     name = "slice"
-    version = "Python_slice_2026"
+    version = "slice"
 
     def run(self, obj_file: Path, options: PipelineOptions) -> dict[str, object]:
         module = _load_slice_module()
