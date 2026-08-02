@@ -1,0 +1,105 @@
+Called __init__ (Head)
+Called __init__ (Trunk)
+Called __init__ (Arm)
+Called __init__ (Arm)
+Called __init__ (Leg)
+Called __init__ (Leg)
+Called locate_shoulder (Arm)
+Called locate_armpits (Trunk)
+Called locate_hips (Trunk)
+Crotch maxmin raised z -2.3135 -> -1.5375
+Armpit candidates: left=section-merge z=3.5315 rel=0.714 score=11.46; right=section-merge z=3.3985 rel=0.675 score=11.23
+Armpits: left=[-1.511  -0.15    3.5315], right=[ 1.549  -0.851   3.3985]
+Split mesh into 150 parts
+left_arm_mesh: vertices=778, z=[-2.2465, 5.6089], armpit=[-1.511  -0.15    3.5315]
+Called locate_shoulder (Arm)
+Split mesh into 137 parts
+right_arm_mesh: vertices=779, z=[-2.2385, 5.5626], armpit=[ 1.549  -0.851   3.3985]
+mesh_difference: mesh (5002 vertices) - left_arm_mesh (778 vertices) -> 4292 kept, 710 removed [leg.py:151::_get_submesh]
+mesh_difference result: 4292 vertices, 8545 faces
+mesh_difference: body_without_arm (4292 vertices) - right_arm_mesh (779 vertices) -> 3585 kept, 707 removed [leg.py:152::_get_submesh]
+mesh_difference result: 3585 vertices, 7096 faces
+Called locate_hips (Trunk)
+Crotch maxmin raised z -2.3135 -> -1.5375
+Crotch topology neck z=-1.4220, ratio=0.705, threshold=0.690
+Crotch topology raised z -1.5375 -> -1.4125
+mesh_difference: trunk_mesh (5002 vertices) - left_leg_mesh (1102 vertices) -> 4065 kept, 937 removed [measurements.py:16::get_submesh]
+mesh_difference result: 4064 vertices, 8083 faces
+mesh_difference: mesh (5002 vertices) - left_arm_mesh (778 vertices) -> 4292 kept, 710 removed [leg.py:151::_get_submesh]
+mesh_difference result: 4292 vertices, 8545 faces
+mesh_difference: body_without_arm (4292 vertices) - right_arm_mesh (779 vertices) -> 3585 kept, 707 removed [leg.py:152::_get_submesh]
+mesh_difference result: 3585 vertices, 7096 faces
+Called locate_hips (Trunk)
+Crotch maxmin raised z -2.3135 -> -1.5375
+Crotch topology neck z=-1.4220, ratio=0.705, threshold=0.690
+Crotch topology raised z -1.5375 -> -1.4125
+mesh_difference: trunk_mesh (4064 vertices) - right_leg_mesh (1044 vertices) -> 3158 kept, 906 removed [measurements.py:18::get_submesh]
+mesh_difference result: 3158 vertices, 6245 faces
+mesh_difference: trunk_mesh (3158 vertices) - left_arm_mesh (778 vertices) -> 2448 kept, 710 removed [measurements.py:20::get_submesh]
+mesh_difference result: 2448 vertices, 4790 faces
+mesh_difference: trunk_mesh (2448 vertices) - right_arm_mesh (779 vertices) -> 1741 kept, 707 removed [measurements.py:22::get_submesh]
+mesh_difference result: 1741 vertices, 3341 faces
+mesh_difference: trunk_mesh (1741 vertices) - head_mesh (678 vertices) -> 1213 kept, 528 removed [measurements.py:24::get_submesh]
+mesh_difference result: 1209 vertices, 2258 faces
+Called locate_tip_of_nose (Head)
+Called locate_highest_point_of_arm (Arm)
+Called locate_wrist (Arm)
+Called locate_highest_point_of_arm (Arm)
+Called locate_wrist (Arm)
+Called locate_foot (Leg)
+Called locate_ankle (Leg)
+Called locate_foot (Leg)
+Called locate_ankle (Leg)
+Called measure_collar_to_scalp_length (Head)
+Called measure_head_circumference (Head)
+Called measure_crotch_height (Trunk)
+Called measure_hip_circumference (Trunk)
+mesh_difference: body_without_arms (5002 vertices) - left_arm_mesh (778 vertices) -> 4292 kept, 710 removed [measurements.py:35::body_without_arms]
+mesh_difference result: 4292 vertices, 8545 faces
+mesh_difference: body_without_arms (4292 vertices) - right_arm_mesh (779 vertices) -> 3585 kept, 707 removed [measurements.py:37::body_without_arms]
+mesh_difference result: 3585 vertices, 7096 faces
+Crotch maxmin raised z -2.3135 -> -1.5375
+Crotch topology neck z=-1.4220, ratio=0.705, threshold=0.690
+Crotch topology raised z -1.5375 -> -1.4125
+chest search window: z=[2.8153, 4.0154], shoulder_z=5.5626
+chest_full_level: z=3.9487, area=6.4118, perimeter=9.9448, front=1.3054, back=1.2396
+chest_axilla_level: z=5.2154, area=3.9723, perimeter=8.1852, front=0.8361, back=0.8436
+hip_full_level: z=-0.2515, area=7.2345, perimeter=9.8871, front=1.2492, back=1.2244
+stomach_waist_level: z=1.4153, area=5.0835, perimeter=8.3225, front=1.1134, back=0.9777
+natural_waist_level: z=2.2153, area=4.5017, perimeter=7.7529, front=1.0736, back=1.0609
+Called measure_chest_circumference (Trunk)
+Called measure_waist_circumference (Trunk)
+Called measure_stomach_peak_circumference (Trunk)
+Called measure_collar_circumference (Trunk)
+Called _measure_trunk_length (Trunk)
+Crotch point: [-0.11    0.118  -1.5375]
+Collar point: [0.319   0.082   5.54049]
+Computed trunk length (||crotch - collar||_(x,z)) = 7.091
+Called measure_wrist_girth (Arm)
+Called measure_arm_length (Arm)
+Called measure_forearm_girth (Arm)
+Called measure_bicep_girth (Arm)
+Called measure_wrist_girth (Arm)
+Called measure_arm_length (Arm)
+Called measure_forearm_girth (Arm)
+Called measure_bicep_girth (Arm)
+Called measure_leg_length (Leg)
+Called measure_ankle_girth (Leg)
+Called measure_calf_girth (Leg)
+Called measure_thigh_girth (Leg)
+Called measure_leg_length (Leg)
+Called measure_ankle_girth (Leg)
+Called measure_calf_girth (Leg)
+Called measure_thigh_girth (Leg)
+Called volume (Head)
+Called surface_area (Head)
+Called volume (Trunk)
+Called surface_area (Trunk)
+Called volume (Arm)
+Called surface_area (Arm)
+Called volume (Arm)
+Called surface_area (Arm)
+Called volume (Leg)
+Called surface_area (Leg)
+Called volume (Leg)
+Called surface_area (Leg)
