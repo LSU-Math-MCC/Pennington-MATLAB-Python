@@ -53,3 +53,8 @@ unified/obj2anthro/backends/segmentation/output/logs/
 /unified/results/raw/
 /unified/obj2anthro/results/raw/
 /runs/
+
+# PyInstaller build artifacts
+dist/
+build/
+*.spec
