@@ -58,3 +58,6 @@ unified/obj2anthro/backends/segmentation/output/logs/
 dist/
 build/
 *.spec
+
+# Pipeline results (generated locally)
+/results/
