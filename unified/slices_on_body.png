@@ -1,0 +1,186 @@
+{
+  "run_at": "2026-08-03T19:48:48.709574+00:00",
+  "elapsed_seconds": 6.7,
+  "n_total": 18,
+  "n_succeeded": 18,
+  "n_failed": 0,
+  "units": "cm",
+  "scale_applied": 0.1,
+  "measurement_columns": [
+    "height",
+    "chestGirth",
+    "waistGirth",
+    "hipGirth",
+    "rThighGirth",
+    "lThighGirth",
+    "rCalfGirth",
+    "lCalfGirth",
+    "rAnkleGirth",
+    "lAnkleGirth",
+    "rBicepGirth",
+    "lBicepGirth",
+    "rForearmGirth",
+    "lForearmGirth",
+    "rWristGirth",
+    "lWristGirth",
+    "rArmLength",
+    "lArmLength",
+    "rLegLength",
+    "lLegLength",
+    "trunkLength",
+    "crotchHeight",
+    "collarScalpLength",
+    "SA_total",
+    "SA_head",
+    "SA_trunk",
+    "SA_rArm",
+    "SA_lArm",
+    "SA_rleg",
+    "SA_lleg",
+    "SA_legs",
+    "VOL_total",
+    "rAnkleGirth_fixed",
+    "lAnkleGirth_fixed",
+    "trunkLength_fixed",
+    "collarScalpLength_fixed"
+  ],
+  "files": [
+    {
+      "file": "A00-08-4914_A 2025-12-09_12-27-17.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/A00-08-4914_A 2025-12-09_12-27-17.obj",
+      "status": "ok",
+      "seconds": 0.26,
+      "warnings": []
+    },
+    {
+      "file": "A00-08-4914_B 2025-12-09_12-31-25.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/A00-08-4914_B 2025-12-09_12-31-25.obj",
+      "status": "ok",
+      "seconds": 0.39,
+      "warnings": []
+    },
+    {
+      "file": "A00-09-0254 2025-12-10_10-37-18.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-0254 2025-12-10_10-37-18.obj",
+      "status": "ok",
+      "seconds": 0.43,
+      "warnings": []
+    },
+    {
+      "file": "A00-09-0254 2025-12-10_10-38-56.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-0254 2025-12-10_10-38-56.obj",
+      "status": "ok",
+      "seconds": 0.45,
+      "warnings": [
+        "arm length asymmetry (44 vs 27)"
+      ]
+    },
+    {
+      "file": "A00-09-2104_A 2025-11-19_11-49-31.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-2104_A 2025-11-19_11-49-31.obj",
+      "status": "ok",
+      "seconds": 0.4,
+      "warnings": []
+    },
+    {
+      "file": "A00-09-2104_B 2025-11-19_11-54-21.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-2104_B 2025-11-19_11-54-21.obj",
+      "status": "ok",
+      "seconds": 0.43,
+      "warnings": []
+    },
+    {
+      "file": "CanCan011_A 2026-03-10_13-12-57.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan011_A 2026-03-10_13-12-57.obj",
+      "status": "ok",
+      "seconds": 0.44,
+      "warnings": []
+    },
+    {
+      "file": "CanCan011_B 2026-03-10_13-17-36.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan011_B 2026-03-10_13-17-36.obj",
+      "status": "ok",
+      "seconds": 0.42,
+      "warnings": [
+        "crotch at 52% of height (expect ~45)"
+      ]
+    },
+    {
+      "file": "CanCan01_A 2025-10-27_11-10-43.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan01_A 2025-10-27_11-10-43.obj",
+      "status": "ok",
+      "seconds": 0.42,
+      "warnings": [
+        "crotch at 36% of height (expect ~45)"
+      ]
+    },
+    {
+      "file": "CanCan01_B 2025-10-27_11-22-43.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan01_B 2025-10-27_11-22-43.obj",
+      "status": "ok",
+      "seconds": 0.37,
+      "warnings": []
+    },
+    {
+      "file": "CanCan02_A 2025-11-13_11-42-08.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan02_A 2025-11-13_11-42-08.obj",
+      "status": "ok",
+      "seconds": 0.48,
+      "warnings": []
+    },
+    {
+      "file": "CanCan02_B 2025-11-13_11-50-16.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan02_B 2025-11-13_11-50-16.obj",
+      "status": "ok",
+      "seconds": 0.47,
+      "warnings": []
+    },
+    {
+      "file": "CanCan08_A 2026-02-04_12-13-30.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan08_A 2026-02-04_12-13-30.obj",
+      "status": "ok",
+      "seconds": 0.41,
+      "warnings": []
+    },
+    {
+      "file": "CanCan08_B 2026-02-04_12-21-25.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan08_B 2026-02-04_12-21-25.obj",
+      "status": "ok",
+      "seconds": 0.26,
+      "warnings": []
+    },
+    {
+      "file": "CanCan10_A 2026-02-27_09-49-56.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan10_A 2026-02-27_09-49-56.obj",
+      "status": "ok",
+      "seconds": 0.27,
+      "warnings": []
+    },
+    {
+      "file": "CanCan10_B 2026-02-27_09-55-20.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/CanCan10_B 2026-02-27_09-55-20.obj",
+      "status": "ok",
+      "seconds": 0.24,
+      "warnings": []
+    },
+    {
+      "file": "cancan07_A 2026-01-28_11-48-32.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/cancan07_A 2026-01-28_11-48-32.obj",
+      "status": "ok",
+      "seconds": 0.25,
+      "warnings": []
+    },
+    {
+      "file": "cancan07_B 2026-01-28_11-50-04.obj",
+      "path": "/content/drive/MyDrive/Pennington/objs/cancan07_B 2026-01-28_11-50-04.obj",
+      "status": "ok",
+      "seconds": 0.27,
+      "warnings": []
+    }
+  ],
+  "notes": [
+    "Values reproduce MATLAB Avatar.m (steps=3) exactly.",
+    "Girths are convex-hull perimeters over a band of vertices near each plane, not exact mesh cross-sections.",
+    "Columns ending in _fixed correct known Avatar.m bugs; the unsuffixed columns reproduce MATLAB behaviour."
+  ]
+}
