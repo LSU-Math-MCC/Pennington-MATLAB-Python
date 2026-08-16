@@ -41,4 +41,14 @@ def main(argv=None) -> int:
         out=args.out,
     )
     print(f"Run {manifest['run_id']} wrote {Path(args.out) if args.out else 'runs/' + manifest['run_id']}")
+
+    combined = manifest.get("combined_csv")
+    if combined and Path(combined).is_file():
+        import pandas as pd
+
+        from .combine import summarize_combined
+
+        print(f"Combined table: {combined}")
+        print(summarize_combined(pd.read_csv(combined)))
+
     return 0 if manifest.get("status") == "success" else 1

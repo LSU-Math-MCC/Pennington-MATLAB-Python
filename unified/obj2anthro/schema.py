@@ -111,14 +111,65 @@ SEGMENTATION_FIELD_MAP = {
     ("right leg", "surface_area"): "surface_area_leg_right_cm2",
 }
 
+AVATAR_FIELD_MAP = {
+    "height": "height_cm",
+    "chestGirth": "chest_circumference_cm",
+    "waistGirth": "waist_circumference_cm",
+    "hipGirth": "hip_circumference_cm",
+    "rThighGirth": "thigh_circumference_right_cm",
+    "lThighGirth": "thigh_circumference_left_cm",
+    "rCalfGirth": "calf_circumference_right_cm",
+    "lCalfGirth": "calf_circumference_left_cm",
+    "rAnkleGirth": "ankle_circumference_right_cm",
+    "lAnkleGirth": "ankle_circumference_left_cm",
+    "rBicepGirth": "bicep_circumference_right_cm",
+    "lBicepGirth": "bicep_circumference_left_cm",
+    "rForearmGirth": "forearm_circumference_right_cm",
+    "lForearmGirth": "forearm_circumference_left_cm",
+    "rWristGirth": "wrist_circumference_right_cm",
+    "lWristGirth": "wrist_circumference_left_cm",
+    "rArmLength": "arm_length_right_cm",
+    "lArmLength": "arm_length_left_cm",
+    "rLegLength": "outside_leg_length_right_cm",
+    "lLegLength": "outside_leg_length_left_cm",
+    "trunkLength": "trunk_length_cm",
+    "crotchHeight": ("inseam_left_cm", "inseam_right_cm"),
+    "collarScalpLength": "collar_to_scalp_length_cm",
+    "SA_total": "surface_area_total_cm2",
+    "SA_head": "surface_area_head_cm2",
+    "SA_trunk": "surface_area_torso_cm2",
+    "SA_rArm": "surface_area_arm_right_cm2",
+    "SA_lArm": "surface_area_arm_left_cm2",
+    "SA_rleg": "surface_area_leg_right_cm2",
+    "SA_lleg": "surface_area_leg_left_cm2",
+    "VOL_total": "volume_cm3",
+    "VOL_head": "head_volume_cm3",
+    "VOL_trunk": "torso_volume_cm3",
+    "VOL_rArm": "arm_volume_right_cm3",
+    "VOL_lArm": "arm_volume_left_cm3",
+    "VOL_rleg": "leg_volume_right_cm3",
+    "VOL_lleg": "leg_volume_left_cm3",
+    # Avatar.m bugs corrected; the unsuffixed columns above stay MATLAB-faithful.
+    "rAnkleGirth_fixed": "ankle_circumference_right_corrected_cm",
+    "lAnkleGirth_fixed": "ankle_circumference_left_corrected_cm",
+    "trunkLength_fixed": "trunk_length_corrected_cm",
+    "collarScalpLength_fixed": "collar_to_scalp_length_corrected_cm",
+}
+
+
+def _mapped_columns(field_map: Mapping[object, object]) -> list[str]:
+    return [
+        value
+        for mapped in field_map.values()
+        for value in (mapped if isinstance(mapped, tuple) else (mapped,))
+    ]
+
+
 MEASUREMENT_COLUMNS = sorted(
     {
         *SLICE_FIELD_MAP.values(),
-        *[
-            value
-            for mapped in SEGMENTATION_FIELD_MAP.values()
-            for value in (mapped if isinstance(mapped, tuple) else (mapped,))
-        ],
+        *_mapped_columns(SEGMENTATION_FIELD_MAP),
+        *_mapped_columns(AVATAR_FIELD_MAP),
     }
 )
 

@@ -33,6 +33,7 @@ Every run writes beneath `runs/<run_id>/` unless `--out` is provided:
 ```text
 runs/<run_id>/
     manifest.json
+    combined_measurements.csv
     img2obj/
     obj2anthro/
         <source_method>/
@@ -42,12 +43,41 @@ runs/<run_id>/
                     raw/
 ```
 
+### combined_measurements.csv
+
+Written on every run, with no flag to enable it. One row per
+(subject, anthropometry method):
+
+| Column group | Columns |
+|---|---|
+| Provenance | `run_id`, `subject_id`, `source_file`, `source_method`, `anthro_method`, `pipeline_version`, `branch_dir` |
+| Outcome | `status`, `error` |
+| Timing | `runtime_seconds` |
+| Measurements | every canonical column (`height_cm`, `chest_circumference_cm`, … ) |
+
+So a `--method auto` sweep over a folder lands one table you can open directly
+to compare every method on every subject, with the cost of each. Methods that
+failed keep their row and carry the reason in `error`, so a missing method is
+visible rather than silently absent. Per-branch `results.csv` files remain the
+per-method source of truth.
+
 ## Example OBJ Runs
 
 ```powershell
 .\.venv\Scripts\python.exe -m unified --input "data\obj\CanCan01_A 2025-10-27_11-10-43.obj" --anthro-method slice --units auto --out runs\verify_cancan01_a
 .\.venv\Scripts\python.exe -m unified obj2anthro --input data\obj --method slice --units auto --out runs\slice_all
 ```
+
+Every anthropometry method over every OBJ, into one table:
+
+```powershell
+.\.venv\Scripts\python.exe -m unified --input data --anthro-method auto --units auto
+```
+
+`auto` expands to the list in `unified/obj2anthro/pipeline.py::AUTO_BACKENDS`.
+The `matlab` method needs the MATLAB Engine for Python (CPython 3.9-3.11); on
+other interpreters it records a failed row explaining that rather than aborting
+the run.
 
 ## Example Image Runs
 
@@ -68,6 +98,8 @@ conda environments. See `img2obj/docs/setup/`.
 | OBJ to anthropometry | `unified/obj2anthro/` | Orchestrates backend selection and canonical CSV output. |
 | Segmentation backend | `unified/obj2anthro/backends/segmentation/` | Anatomical-region landmark backend. |
 | Slice backend | `unified/obj2anthro/backends/slice/` | Slice-based biomarker backend. |
+| Avatar backend | `unified/obj2anthro/backends/avatar/` | Pure-Python port of `Avatar.m`, faithful to the MATLAB reference. |
+| MATLAB backend | `unified/obj2anthro/backends/matlab/` | Drives the real `Avatar.m` through the MATLAB Engine. |
 | ML experiments | `unified/ml/experiment/` | Historical ML/PCA/DOE and Tkinter GUI code. |
 | Core OBJ data | `data/obj/` | Local OBJ examples for smoke runs and demos. |
 

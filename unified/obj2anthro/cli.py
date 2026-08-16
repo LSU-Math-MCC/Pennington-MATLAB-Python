@@ -3,21 +3,28 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import pandas as pd
+
 from unified.pipeline import allocate_run_root
 
-from .pipeline import run_pipeline
+from .pipeline import AUTO_BACKENDS, EXTRA_BACKENDS, run_pipeline
+
+
+METHOD_CHOICES = ("auto", *AUTO_BACKENDS, *EXTRA_BACKENDS, "all")
 
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         prog="unified obj2anthro",
-        description="Run OBJ anthropometry using the segmentation and slice backends.",
+        description=(
+            "Run OBJ anthropometry using the segmentation, slice, avatar, and MATLAB backends."
+        ),
     )
     parser.add_argument("--input", required=True, help="Input OBJ file or directory.")
-    parser.add_argument("--method", choices=("auto", "segmentation", "slice", "all"), default="auto")
+    parser.add_argument("--method", choices=METHOD_CHOICES, default="auto")
     parser.add_argument(
         "--backend",
-        choices=("auto", "segmentation", "slice", "all"),
+        choices=METHOD_CHOICES,
         default=None,
         help=argparse.SUPPRESS,
     )
@@ -50,9 +57,16 @@ def parse_args(argv=None):
 
 
 def main(argv=None):
+    from unified.combine import summarize_combined, write_combined_table
+
     args = parse_args(argv)
     method = args.backend or args.method
-    output_dir = Path(args.output_dir) if args.output_dir else allocate_run_root() / "obj2anthro"
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+        run_root = output_dir
+    else:
+        run_root = allocate_run_root()
+        output_dir = run_root / "obj2anthro"
     df = run_pipeline(
         input_path=Path(args.input),
         backend=method,
@@ -68,6 +82,14 @@ def main(argv=None):
     )
     print(f"Wrote {len(df)} rows to {df.attrs.get('output_csv')}")
     print(f"Raw artifacts: {df.attrs.get('raw_output_dir')}")
+
+    combined_path = write_combined_table(
+        run_root,
+        [{"frame": df, "run_id": run_root.name, "source_method": "direct", "branch_dir": str(output_dir)}],
+    )
+    print(f"Combined table: {combined_path}")
+    print(summarize_combined(pd.read_csv(combined_path)))
+
     statuses = [str(value) for value in df.get("status", [])]
     return 0 if statuses and all(status == "success" for status in statuses) else 1
 

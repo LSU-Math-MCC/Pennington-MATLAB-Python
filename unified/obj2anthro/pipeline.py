@@ -52,13 +52,20 @@ def canonical_test_set_files() -> list[Path]:
     return discover_obj_files(CANONICAL_TEST_SET_DIR, recursive=False)
 
 
+AUTO_BACKENDS = ("segmentation", "slice", "avatar", "matlab")
+EXTRA_BACKENDS = ("matlab-full",)
+
+
 def selected_backends(backend: str):
     if backend == "auto":
         backend = "all"
     if backend == "all":
-        return [BACKENDS["segmentation"], BACKENDS["slice"]]
+        # Keeping the membership check makes the selection helper friendly to
+        # tests and downstream callers that inject a reduced backend registry.
+        return [BACKENDS[name] for name in AUTO_BACKENDS if name in BACKENDS]
     if backend not in BACKENDS:
-        raise ValueError(f"Unknown method {backend!r}; expected auto, all, segmentation, or slice")
+        expected = ", ".join(("auto", "all", *AUTO_BACKENDS, *EXTRA_BACKENDS))
+        raise ValueError(f"Unknown method {backend!r}; expected {expected}")
     return [BACKENDS[backend]]
 
 

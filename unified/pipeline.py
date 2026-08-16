@@ -130,7 +130,9 @@ def classify_input(input_path: str | Path) -> dict[str, object]:
 
 def selected_anthro_methods(method: str) -> list[str]:
     if method in {"auto", "all"}:
-        return ["segmentation", "slice"]
+        from .obj2anthro.pipeline import AUTO_BACKENDS
+
+        return list(AUTO_BACKENDS)
     return [method]
 
 
@@ -149,6 +151,22 @@ def expand_branches(obj_handoffs: Iterable[ObjHandoff], anthro_methods: Iterable
 
 def _write_manifest(run_root: Path, manifest: dict[str, object]) -> None:
     (run_root / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str), encoding="utf-8")
+
+
+def _write_combined(run_root: Path, branch_outputs: list[dict[str, object]]) -> Path:
+    """Always leave one combined table in the run root, even for an empty run."""
+    from .combine import write_combined_table
+
+    parts = [
+        {
+            "frame": branch.get("output_csv"),
+            "run_id": run_root.name,
+            "source_method": branch.get("source_method", ""),
+            "branch_dir": branch.get("branch_dir", ""),
+        }
+        for branch in branch_outputs
+    ]
+    return write_combined_table(run_root, parts)
 
 
 def _obj_handoffs_from_paths(paths: Iterable[Path], method: str) -> list[ObjHandoff]:
@@ -332,6 +350,7 @@ def run_pipeline(
     finally:
         if manifest["status"] == "running":
             manifest["status"] = _root_status(manifest, branch_outputs)
+        manifest["combined_csv"] = str(_write_combined(run_root, branch_outputs))
         manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
         _write_manifest(run_root, manifest)
     return manifest

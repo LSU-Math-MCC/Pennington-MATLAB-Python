@@ -1,0 +1,343 @@
+<title>Avatar.m as Ground Truth</title>
+<style>
+:root{
+  --ground:#F5F5F1; --surface:#FFFFFF; --surface-2:#FAFAF7;
+  --ink:#191C1F; --ink-2:#4A5257; --ink-3:#767D82;
+  --rule:#DEE0DA; --rule-2:#EBEDE7;
+  --c-avatar:#0F6BC4; --c-seg:#BF6200; --c-slice:#933F79;
+  --reference:#4A5257;
+  --good:#1E7A47; --warn:#A8650C; --crit:#A32E2E;
+  --shadow:0 1px 2px rgba(25,28,31,.05), 0 8px 24px -16px rgba(25,28,31,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#131518; --surface:#1B1E22; --surface-2:#202429;
+    --ink:#E8EAEB; --ink-2:#AFB6BB; --ink-3:#828A90;
+    --rule:#2C3136; --rule-2:#24282C;
+    --c-avatar:#4A97DC; --c-seg:#D07F22; --c-slice:#B4629A;
+    --reference:#8A9298;
+    --good:#4FA97A; --warn:#D3922F; --crit:#D96A6A;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131518; --surface:#1B1E22; --surface-2:#202429;
+  --ink:#E8EAEB; --ink-2:#AFB6BB; --ink-3:#828A90;
+  --rule:#2C3136; --rule-2:#24282C;
+  --c-avatar:#4A97DC; --c-seg:#D07F22; --c-slice:#B4629A;
+  --reference:#8A9298;
+  --good:#4FA97A; --warn:#D3922F; --crit:#D96A6A;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:Georgia,"Iowan Old Style","Source Serif 4",serif;
+  font-size:17px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+.narrow{font-family:"Arial Narrow","Roboto Condensed","Liberation Sans Narrow",ui-sans-serif,sans-serif}
+.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace}
+
+.wrap{max-width:64rem; margin:0 auto; padding:0 1.5rem 6rem}
+.prose{max-width:40rem}
+.prose p{margin:0 0 1rem}
+
+header{border-bottom:1px solid var(--rule); margin-bottom:3rem; padding:3.5rem 0 2.25rem}
+.eyebrow{
+  font-family:"Arial Narrow","Roboto Condensed","Liberation Sans Narrow",ui-sans-serif,sans-serif;
+  text-transform:uppercase; letter-spacing:.16em; font-size:.75rem;
+  color:var(--ink-3); margin:0 0 1rem;
+}
+h1{
+  font-family:"Arial Narrow","Roboto Condensed","Liberation Sans Narrow",ui-sans-serif,sans-serif;
+  font-size:clamp(2.1rem,5vw,3.1rem); line-height:1.06; letter-spacing:-.01em;
+  font-weight:700; margin:0 0 1.25rem; text-wrap:balance;
+}
+.standfirst{font-size:1.16rem; color:var(--ink-2); max-width:42rem; margin:0}
+
+section{margin:0 0 3.75rem}
+h2{
+  font-family:"Arial Narrow","Roboto Condensed","Liberation Sans Narrow",ui-sans-serif,sans-serif;
+  font-size:1.6rem; letter-spacing:-.005em; font-weight:700;
+  margin:0 0 .5rem; text-wrap:balance;
+}
+h3{
+  font-family:"Arial Narrow","Roboto Condensed","Liberation Sans Narrow",ui-sans-serif,sans-serif;
+  text-transform:uppercase; letter-spacing:.12em; font-size:.8rem;
+  color:var(--ink-3); margin:0 0 .75rem; font-weight:700;
+}
+.lede{color:var(--ink-2); margin:0 0 1.75rem; max-width:40rem}
+
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:1rem; margin:0 0 2rem}
+.card{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:1.15rem 1.25rem 1.25rem; box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.card::before{content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--bar)}
+.card .name{
+  font-family:"Arial Narrow","Roboto Condensed","Liberation Sans Narrow",ui-sans-serif,sans-serif;
+  text-transform:uppercase; letter-spacing:.11em; font-size:.76rem; color:var(--ink-3);
+  margin:0 0 .5rem; display:flex; align-items:center; gap:.45rem;
+}
+.card .big{
+  font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  font-size:2.15rem; line-height:1; font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em; margin:0 0 .3rem;
+}
+.card .unit{font-size:1rem; color:var(--ink-3)}
+.card .note{font-size:.9rem; color:var(--ink-2); margin:.4rem 0 0; line-height:1.45}
+
+.swatch{display:inline-block; width:.62rem; height:.62rem; border-radius:2px; margin-right:.4rem; vertical-align:baseline}
+
+figure{margin:0 0 1.25rem; background:var(--surface); border:1px solid var(--rule);
+  border-radius:10px; padding:1.25rem 1.35rem 1rem; box-shadow:var(--shadow)}
+figcaption{font-size:.9rem; color:var(--ink-2); margin:.85rem 0 0; padding-top:.8rem;
+  border-top:1px solid var(--rule-2); line-height:1.5}
+.chart{display:block; width:100%; height:auto; overflow:visible}
+.grid{stroke:var(--rule-2); stroke-width:1}
+.tick{fill:var(--ink-3); font-size:11px; font-family:ui-monospace,Consolas,monospace;
+  font-variant-numeric:tabular-nums}
+.axis{fill:var(--ink-3); font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif}
+.serieslabel{fill:var(--ink); font-size:15px;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif; font-weight:700}
+.rowlabel{fill:var(--ink-2); font-size:12.5px;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif}
+.rowlabel.flagged{fill:var(--ink); font-weight:700}
+.value{fill:var(--ink); font-size:13.5px; font-family:ui-monospace,Consolas,monospace;
+  font-variant-numeric:tabular-nums}
+.value.small{font-size:11.5px; fill:var(--ink-2)}
+.value .dim, .dim{fill:var(--ink-3); color:var(--ink-3)}
+.sub{fill:var(--ink-3); font-size:11.5px;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif}
+.bar{transition:opacity .12s ease}
+.bar:hover{opacity:.78}
+.bar.hatched{stroke:var(--surface); stroke-width:0}
+.dot{stroke:var(--surface); stroke-width:2; transition:r .12s ease}
+.dot:hover{r:8}
+.identity{stroke:var(--reference); stroke-width:2; stroke-dasharray:7 5}
+.identity-label{fill:var(--ink-3); font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif}
+
+.legend{display:flex; flex-wrap:wrap; gap:1.1rem; margin:0 0 1rem; padding:0; list-style:none;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif; font-size:.88rem;
+  letter-spacing:.03em; color:var(--ink-2)}
+.legend li{display:flex; align-items:center; gap:.45rem}
+.legend .rule{width:1.1rem; height:0; border-top:2px dashed var(--reference)}
+
+.scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:10px; background:var(--surface);
+  box-shadow:var(--shadow)}
+table{border-collapse:collapse; width:100%; font-size:.9rem;
+  font-family:"Arial Narrow","Roboto Condensed",ui-sans-serif,sans-serif}
+th,td{padding:.6rem .85rem; text-align:left; border-bottom:1px solid var(--rule-2); white-space:nowrap}
+th{background:var(--surface-2); font-size:.74rem; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--ink-3); font-weight:700; position:sticky; top:0}
+tbody tr:last-child td, tr:last-child td{border-bottom:none}
+td.num{font-family:ui-monospace,Consolas,monospace; font-variant-numeric:tabular-nums; text-align:right}
+th.num{text-align:right}
+
+.callout{border-left:3px solid var(--bar,var(--c-avatar)); background:var(--surface);
+  border-radius:0 10px 10px 0; padding:1.1rem 1.35rem; margin:0 0 1.5rem;
+  box-shadow:var(--shadow); max-width:44rem}
+.callout p{margin:0 0 .65rem}
+.callout p:last-child{margin:0}
+.callout strong{font-weight:700}
+.trace{font-size:.82rem; line-height:1.5; color:var(--ink-2); background:var(--surface-2);
+  border:1px solid var(--rule-2); border-radius:6px; padding:.6rem .75rem; overflow-x:auto}
+
+code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace; font-size:.88em;
+  background:var(--surface-2); border:1px solid var(--rule-2); border-radius:4px; padding:.08em .35em}
+
+.chips{display:flex; flex-wrap:wrap; gap:.4rem; margin:.9rem 0 0; padding:0; list-style:none}
+.chip{font-family:ui-monospace,Consolas,monospace; font-size:.78rem; padding:.24rem .55rem;
+  border:1px solid var(--rule); border-radius:999px; color:var(--ink-2); background:var(--surface-2)}
+
+footer{border-top:1px solid var(--rule); padding-top:1.75rem; color:var(--ink-3); font-size:.9rem}
+footer p{margin:0 0 .5rem}
+a{color:var(--c-avatar)}
+:focus-visible{outline:2px solid var(--c-avatar); outline-offset:3px; border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+@media (max-width:640px){ body{font-size:16px} .wrap{padding:0 1.1rem 4rem} }
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Pennington OBJ-to-anthropometry · 20 of 21 meshes measured in MATLAB R2023b</p>
+  <h1>Scoring the Python Backends Against Avatar.m</h1>
+  <p class="standfirst">MATLAB R2023b now runs inside the pipeline, so <code>Avatar.m</code>
+  can be the reference rather than a memory. Every other method is scored against what
+  MATLAB actually returned — run as designed, with nothing caught and retried behind
+  the scenes.</p>
+</header>
+
+<section>
+  <h2>What the reference run itself did</h2>
+  <p class="lede">The comparison is only worth as much as the reference. This is what
+  <code>Avatar.m</code> did when it ran, unedited and unassisted.</p>
+
+  <div class="callout" style="--bar:var(--crit)">
+    <p><strong>1 of 21 meshes failed outright.</strong>
+    <code>man.obj</code> throws inside <code>Avatar.m</code> itself:</p>
+    <p class="mono trace">Unable to perform assignment because the size of the left side is
+    1-by-1 and the size of the right side is 0-by-1<br>
+    &nbsp;&nbsp;in Avatar.adjustCrotch — Avatar.m line 749</p>
+    <p>Line 749 is <code>[mx_v_bot(2,i), Idx_v2_bot] = max(v2_bot);</code>. The
+    quarter-band filter two lines above leaves <code>v2_bot</code> empty on that mesh,
+    and <code>max</code> of an empty array returns nothing to assign. It is a
+    robustness gap in the reference, not in the harness. That mesh is recorded as
+    failed and excluded from every comparison below.</p>
+  </div>
+
+  <div class="callout" style="--bar:var(--warn)">
+    <p><strong>Every body scan takes Avatar.m's secondary OBJ reader.</strong> The fast
+    path raises, and Avatar.m falls back on its own:</p>
+    <p class="mono trace">Warning: An error occured with the message: The logical indices
+    contain a true value outside of the array bounds.<br>
+    Attempting to read obj file with regexp. You may want to preprocess the obj file.<br>
+    &nbsp;&nbsp;In Avatar&gt;readObj (line 3845)</p>
+    <p>This is Avatar.m's own designed fallback, so the values it produces are the
+    reference's real answer and are left untouched. It is worth knowing that the fast
+    reader never succeeds on these files.</p>
+  </div>
+
+  <p class="lede">Nothing else is caught. <code>Avatar.m</code> is called once per mesh as
+  <code>steps=3, Vol_SA='on'</code>, with the OBJ passed through exactly as it sits on
+  disk, and any mesh it cannot process is recorded as a failure rather than retried on a
+  reduced configuration.</p>
+</section>
+
+<section>
+  <h2>How far each method sits from MATLAB</h2>
+  <p class="lede">Mean absolute error across every measurement the method and MATLAB
+  both produced. A value counts as identical when it matches to floating-point noise.</p>
+
+  <div class="cards">
+    <div class="card" style="--bar:var(--c-avatar)">
+      <p class="name"><span class="swatch" style="background:var(--c-avatar)"></span>avatar</p>
+      <p class="big">0.40<span class="unit">%</span></p>
+      <p class="note">471 of 720 values
+      identical to MATLAB (65%).</p>
+    </div>
+    <div class="card" style="--bar:var(--c-seg)">
+      <p class="name"><span class="swatch" style="background:var(--c-seg)"></span>segmentation</p>
+      <p class="big">22.5<span class="unit">%</span></p>
+      <p class="note">61 of 760 identical
+      (8%). A different algorithm, not a port.</p>
+    </div>
+    <div class="card" style="--bar:var(--c-slice)">
+      <p class="name"><span class="swatch" style="background:var(--c-slice)"></span>slice</p>
+      <p class="big">67<span class="unit">%</span></p>
+      <p class="note">5 of 640 identical
+      (0.8%). See the caveat below.</p>
+    </div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 230" role="img" class="chart" aria-label="Mean absolute percent error against MATLAB by method"><line class="grid" x1="128.0" y1="8" x2="128.0" y2="198.0"/><text class="tick" x="128.0" y="216" text-anchor="middle">0%</text><line class="grid" x1="293.3" y1="8" x2="293.3" y2="198.0"/><text class="tick" x="293.3" y="216" text-anchor="middle">20%</text><line class="grid" x1="458.7" y1="8" x2="458.7" y2="198.0"/><text class="tick" x="458.7" y="216" text-anchor="middle">40%</text><line class="grid" x1="624.0" y1="8" x2="624.0" y2="198.0"/><text class="tick" x="624.0" y="216" text-anchor="middle">60%</text><text class="serieslabel" x="114" y="29.2" text-anchor="end">avatar</text><rect class="bar" style="fill:var(--c-avatar)" x="128" y="8" width="3.3" height="23.9" rx="4"><title>avatar: 0.40% mean absolute error, 65.4% of 720 comparisons exact</title></rect><text class="value" x="141.3" y="27.3">0.40%</text><text class="sub" x="128" y="51.2">65% of 720 values identical to MATLAB</text><text class="serieslabel" x="114" y="91.2" text-anchor="end">segmentation</text><rect class="bar" style="fill:var(--c-seg)" x="128" y="70" width="186.4" height="23.9" rx="4"><title>segmentation: 22.54% mean absolute error, 8.0% of 760 comparisons exact</title></rect><text class="value" x="324.4" y="89.3">22.54%</text><text class="sub" x="128" y="113.2">8.0% of 760 values identical to MATLAB</text><text class="serieslabel" x="114" y="153.2" text-anchor="end">slice</text><rect class="bar" style="fill:var(--c-slice)" x="128" y="132" width="556.1" height="23.9" rx="4"><title>slice: 67.27% mean absolute error, 0.8% of 640 comparisons exact</title></rect><text class="value" x="694.1" y="151.3">67.27%</text><text class="sub" x="128" y="175.2">0.8% of 640 values identical to MATLAB</text></svg>
+    <figcaption>Mean absolute percent error against MATLAB. Only pairs where both the
+    method and MATLAB produced a value are scored, so no method is penalised for
+    measurements it does not implement.</figcaption>
+  </figure>
+
+  <div class="scroll"><table><tr><th>Method</th><th>Comparisons</th><th>Measurements</th><th>Identical</th><th>Mean |error|</th><th>Median |error|</th><th>Mean |%|</th><th>Worst absolute</th></tr><tr><td><span class="swatch" style="background:var(--c-avatar)"></span>avatar</td><td class="num">720</td><td class="num">36</td><td class="num">471 <span class="dim">(65.4%)</span></td><td class="num">4.234</td><td class="num">0.000%</td><td class="num">0.40%</td><td class="num">320.4</td></tr><tr><td><span class="swatch" style="background:var(--c-seg)"></span>segmentation</td><td class="num">760</td><td class="num">38</td><td class="num">61 <span class="dim">(8.0%)</span></td><td class="num">904.596</td><td class="num">7.027%</td><td class="num">22.54%</td><td class="num">39,104.5</td></tr><tr><td><span class="swatch" style="background:var(--c-slice)"></span>slice</td><td class="num">640</td><td class="num">32</td><td class="num">5 <span class="dim">(0.8%)</span></td><td class="num">949.793</td><td class="num">25.342%</td><td class="num">67.27%</td><td class="num">27,603.2</td></tr></table></div>
+</section>
+
+<section>
+  <h2>The port reproduces MATLAB; the other two do not</h2>
+  <p class="lede">Plotting one measurement against MATLAB's own value makes the three
+  methods separate cleanly. Points on the dashed line agree with the reference.</p>
+
+  <ul class="legend">
+    <li><span class="swatch" style="background:var(--c-avatar)"></span>avatar</li>
+    <li><span class="swatch" style="background:var(--c-seg)"></span>segmentation</li>
+    <li><span class="swatch" style="background:var(--c-slice)"></span>slice</li>
+    <li><span class="rule"></span>agrees with MATLAB</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 720 460" role="img" class="chart" aria-label="Chest circumference from each method plotted against MATLAB"><line class="grid" x1="62.0" y1="14" x2="62.0" y2="408"/><line class="grid" x1="62" y1="408.0" x2="704" y2="408.0"/><text class="tick" x="62.0" y="428" text-anchor="middle">0</text><text class="tick" x="52" y="412.0" text-anchor="end">0</text><line class="grid" x1="276.0" y1="14" x2="276.0" y2="408"/><line class="grid" x1="62" y1="276.7" x2="704" y2="276.7"/><text class="tick" x="276.0" y="428" text-anchor="middle">50</text><text class="tick" x="52" y="280.7" text-anchor="end">50</text><line class="grid" x1="490.0" y1="14" x2="490.0" y2="408"/><line class="grid" x1="62" y1="145.3" x2="704" y2="145.3"/><text class="tick" x="490.0" y="428" text-anchor="middle">100</text><text class="tick" x="52" y="149.3" text-anchor="end">100</text><line class="grid" x1="704.0" y1="14" x2="704.0" y2="408"/><line class="grid" x1="62" y1="14.0" x2="704" y2="14.0"/><text class="tick" x="704.0" y="428" text-anchor="middle">150</text><text class="tick" x="52" y="18.0" text-anchor="end">150</text><line class="identity" x1="62.0" y1="408.0" x2="704.0" y2="14.0"/><text class="identity-label" x="698.0" y="394.0" text-anchor="end">dashed line = agrees with MATLAB</text><circle class="dot" style="fill:var(--c-avatar)" cx="452.7" cy="168.2" r="5.5"><title>A00-08-4914_A 2025-12-09_12-27-17 — avatar 91.3 cm vs MATLAB 91.3 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="414.4" cy="191.7" r="5.5"><title>A00-08-4914_B 2025-12-09_12-31-25 — avatar 82.3 cm vs MATLAB 82.3 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="425.9" cy="184.7" r="5.5"><title>A00-09-0254 2025-12-10_10-37-18 — avatar 85.0 cm vs MATLAB 85.0 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="501.0" cy="138.6" r="5.5"><title>A00-09-0254 2025-12-10_10-38-56 — avatar 102.6 cm vs MATLAB 102.6 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="522.9" cy="125.1" r="5.5"><title>A00-09-2104_A 2025-11-19_11-49-31 — avatar 107.7 cm vs MATLAB 107.7 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="517.5" cy="128.4" r="5.5"><title>A00-09-2104_B 2025-11-19_11-54-21 — avatar 106.4 cm vs MATLAB 106.4 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="438.5" cy="177.0" r="5.5"><title>CanCan011_A 2026-03-10_13-12-57 — avatar 88.0 cm vs MATLAB 88.0 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="452.3" cy="168.5" r="5.5"><title>CanCan011_B 2026-03-10_13-17-36 — avatar 91.2 cm vs MATLAB 91.2 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="631.5" cy="58.5" r="5.5"><title>CanCan01_A 2025-10-27_11-10-43 — avatar 133.1 cm vs MATLAB 133.1 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="635.6" cy="56.0" r="5.5"><title>CanCan01_B 2025-10-27_11-22-43 — avatar 134.0 cm vs MATLAB 134.0 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="462.2" cy="162.4" r="5.5"><title>CanCan02_A 2025-11-13_11-42-08 — avatar 93.5 cm vs MATLAB 93.5 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="469.1" cy="158.2" r="5.5"><title>CanCan02_B 2025-11-13_11-50-16 — avatar 95.1 cm vs MATLAB 95.1 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="519.9" cy="127.0" r="5.5"><title>CanCan08_A 2026-02-04_12-13-30 — avatar 107.0 cm vs MATLAB 107.0 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="517.6" cy="128.4" r="5.5"><title>CanCan08_B 2026-02-04_12-21-25 — avatar 106.4 cm vs MATLAB 106.4 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="573.0" cy="94.4" r="5.5"><title>CanCan10_A 2026-02-27_09-49-56 — avatar 119.4 cm vs MATLAB 119.4 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="583.6" cy="87.9" r="5.5"><title>CanCan10_B 2026-02-27_09-55-20 — avatar 121.9 cm vs MATLAB 121.9 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="452.9" cy="168.1" r="5.5"><title>cancan07_A 2026-01-28_11-48-32 — avatar 91.3 cm vs MATLAB 91.3 cm</title></circle><circle class="dot" style="fill:var(--c-avatar)" cx="464.3" cy="161.1" r="5.5"><title>cancan07_B 2026-01-28_11-50-04 — avatar 94.0 cm vs MATLAB 94.0 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="452.7" cy="152.7" r="5.5"><title>A00-08-4914_A 2025-12-09_12-27-17 — segmentation 97.2 cm vs MATLAB 91.3 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="414.4" cy="163.1" r="5.5"><title>A00-08-4914_B 2025-12-09_12-31-25 — segmentation 93.2 cm vs MATLAB 82.3 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="425.9" cy="145.2" r="5.5"><title>A00-09-0254 2025-12-10_10-37-18 — segmentation 100.0 cm vs MATLAB 85.0 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="501.0" cy="127.5" r="5.5"><title>A00-09-0254 2025-12-10_10-38-56 — segmentation 106.8 cm vs MATLAB 102.6 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="522.9" cy="123.9" r="5.5"><title>A00-09-2104_A 2025-11-19_11-49-31 — segmentation 108.2 cm vs MATLAB 107.7 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="517.5" cy="122.9" r="5.5"><title>A00-09-2104_B 2025-11-19_11-54-21 — segmentation 108.5 cm vs MATLAB 106.4 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="438.5" cy="165.7" r="5.5"><title>CanCan011_A 2026-03-10_13-12-57 — segmentation 92.3 cm vs MATLAB 88.0 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="452.3" cy="172.5" r="5.5"><title>CanCan011_B 2026-03-10_13-17-36 — segmentation 89.7 cm vs MATLAB 91.2 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="631.5" cy="17.3" r="5.5"><title>CanCan01_A 2025-10-27_11-10-43 — segmentation 148.7 cm vs MATLAB 133.1 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="635.6" cy="21.8" r="5.5"><title>CanCan01_B 2025-10-27_11-22-43 — segmentation 147.0 cm vs MATLAB 134.0 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="462.2" cy="146.8" r="5.5"><title>CanCan02_A 2025-11-13_11-42-08 — segmentation 99.4 cm vs MATLAB 93.5 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="469.1" cy="152.0" r="5.5"><title>CanCan02_B 2025-11-13_11-50-16 — segmentation 97.5 cm vs MATLAB 95.1 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="519.9" cy="116.3" r="5.5"><title>CanCan08_A 2026-02-04_12-13-30 — segmentation 111.0 cm vs MATLAB 107.0 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="517.6" cy="121.7" r="5.5"><title>CanCan08_B 2026-02-04_12-21-25 — segmentation 109.0 cm vs MATLAB 106.4 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="573.0" cy="68.2" r="5.5"><title>CanCan10_A 2026-02-27_09-49-56 — segmentation 129.4 cm vs MATLAB 119.4 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="583.6" cy="66.4" r="5.5"><title>CanCan10_B 2026-02-27_09-55-20 — segmentation 130.1 cm vs MATLAB 121.9 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="452.9" cy="151.3" r="5.5"><title>cancan07_A 2026-01-28_11-48-32 — segmentation 97.7 cm vs MATLAB 91.3 cm</title></circle><circle class="dot" style="fill:var(--c-seg)" cx="464.3" cy="149.5" r="5.5"><title>cancan07_B 2026-01-28_11-50-04 — segmentation 98.4 cm vs MATLAB 94.0 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="452.7" cy="-10.0" r="5.5"><title>A00-08-4914_A 2025-12-09_12-27-17 — slice 159.1 cm vs MATLAB 91.3 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="414.4" cy="36.5" r="5.5"><title>A00-08-4914_B 2025-12-09_12-31-25 — slice 141.4 cm vs MATLAB 82.3 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="425.9" cy="7.2" r="5.5"><title>A00-09-0254 2025-12-10_10-37-18 — slice 152.6 cm vs MATLAB 85.0 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="501.0" cy="5.8" r="5.5"><title>A00-09-0254 2025-12-10_10-38-56 — slice 153.1 cm vs MATLAB 102.6 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="522.9" cy="-50.6" r="5.5"><title>A00-09-2104_A 2025-11-19_11-49-31 — slice 174.6 cm vs MATLAB 107.7 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="517.5" cy="-47.2" r="5.5"><title>A00-09-2104_B 2025-11-19_11-54-21 — slice 173.3 cm vs MATLAB 106.4 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="438.5" cy="14.0" r="5.5"><title>CanCan011_A 2026-03-10_13-12-57 — slice 150.0 cm vs MATLAB 88.0 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="452.3" cy="9.7" r="5.5"><title>CanCan011_B 2026-03-10_13-17-36 — slice 151.6 cm vs MATLAB 91.2 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="631.5" cy="-74.1" r="5.5"><title>CanCan01_A 2025-10-27_11-10-43 — slice 183.5 cm vs MATLAB 133.1 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="635.6" cy="-65.8" r="5.5"><title>CanCan01_B 2025-10-27_11-22-43 — slice 180.4 cm vs MATLAB 134.0 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="462.2" cy="3.9" r="5.5"><title>CanCan02_A 2025-11-13_11-42-08 — slice 153.8 cm vs MATLAB 93.5 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="469.1" cy="1.5" r="5.5"><title>CanCan02_B 2025-11-13_11-50-16 — slice 154.8 cm vs MATLAB 95.1 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="519.9" cy="-50.2" r="5.5"><title>CanCan08_A 2026-02-04_12-13-30 — slice 174.4 cm vs MATLAB 107.0 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="517.6" cy="-46.1" r="5.5"><title>CanCan08_B 2026-02-04_12-21-25 — slice 172.9 cm vs MATLAB 106.4 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="573.0" cy="-97.1" r="5.5"><title>CanCan10_A 2026-02-27_09-49-56 — slice 192.3 cm vs MATLAB 119.4 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="583.6" cy="-107.2" r="5.5"><title>CanCan10_B 2026-02-27_09-55-20 — slice 196.1 cm vs MATLAB 121.9 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="452.9" cy="9.9" r="5.5"><title>cancan07_A 2026-01-28_11-48-32 — slice 151.6 cm vs MATLAB 91.3 cm</title></circle><circle class="dot" style="fill:var(--c-slice)" cx="464.3" cy="0.1" r="5.5"><title>cancan07_B 2026-01-28_11-50-04 — slice 155.3 cm vs MATLAB 94.0 cm</title></circle><text class="axis" x="383" y="450" text-anchor="middle">MATLAB chest circumference (cm)</text><text class="axis" transform="translate(16,211) rotate(-90)" text-anchor="middle">method chest circumference (cm)</text></svg>
+    <figcaption>Chest circumference, one point per body scan per method. The avatar port lands on the
+    identity line. Segmentation tracks the trend with a consistent offset — it measures a
+    different anatomical slice. Slice sits far above every MATLAB value. The three demo meshes shipped for smoke tests (<code>man</code>, <code>penn-mesh-1/2</code>) are left out here because they sit at a different scale.</figcaption>
+  </figure>
+
+  <div class="callout" style="--bar:var(--c-slice)">
+    <p><strong>The slice backend needs a look before its numbers are used.</strong>
+    It reports a 67% mean deviation, and on individual scans
+    returns a chest circumference near 174&nbsp;cm and a thigh near 121&nbsp;cm where both
+    MATLAB and the port agree on roughly 107&nbsp;cm and 62&nbsp;cm. Its stature is also
+    about 3&nbsp;cm short of MATLAB's.</p>
+    <p>This is pre-existing behaviour, reproduced by running <code>--method slice</code>
+    on its own against untouched code. It is not a regression from this work — but three
+    methods in one table is what made it obvious.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Where the port still drifts</h2>
+  <p class="lede">The port is exact on 10 of 36 measurements across every
+  scan MATLAB measured. The rest disagree, and the pattern points at a single cause.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 762" role="img" class="chart" aria-label="Mean absolute percent error against MATLAB for each avatar measurement"><line class="grid" x1="258.0" y1="4" x2="258.0" y2="736.0"/><text class="tick" x="258.0" y="754" text-anchor="middle">0.00%</text><line class="grid" x1="350.5" y1="4" x2="350.5" y2="736.0"/><text class="tick" x="350.5" y="754" text-anchor="middle">0.35%</text><line class="grid" x1="443.0" y1="4" x2="443.0" y2="736.0"/><text class="tick" x="443.0" y="754" text-anchor="middle">0.70%</text><line class="grid" x1="535.5" y1="4" x2="535.5" y2="736.0"/><text class="tick" x="535.5" y="754" text-anchor="middle">1.04%</text><line class="grid" x1="628.0" y1="4" x2="628.0" y2="736.0"/><text class="tick" x="628.0" y="754" text-anchor="middle">1.39%</text><text class="rowlabel" x="246" y="19.8" text-anchor="end">trunk length corrected</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="4" width="370.0" height="15.1" rx="4"><title>trunk length corrected: 1.390% mean, 0.856 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="636.0" y="19.1">1.39% · 14/20 exact</text><text class="rowlabel" x="246" y="47.8" text-anchor="end">trunk length</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="32" width="317.6" height="15.1" rx="4"><title>trunk length: 1.193% mean, 0.856 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="583.6" y="47.1">1.19% · 14/20 exact</text><text class="rowlabel" x="246" y="75.8" text-anchor="end">inseam left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="60" width="301.9" height="15.1" rx="4"><title>inseam left: 1.134% mean, 0.857 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="567.9" y="75.1">1.13% · 14/20 exact</text><text class="rowlabel" x="246" y="103.8" text-anchor="end">inseam right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="88" width="301.9" height="15.1" rx="4"><title>inseam right: 1.134% mean, 0.857 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="567.9" y="103.1">1.13% · 14/20 exact</text><text class="rowlabel" x="246" y="131.8" text-anchor="end">surface area torso</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="116" width="279.1" height="15.1" rx="4"><title>surface area torso: 1.049% mean, 67.786 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="545.1" y="131.1">1.05% · 14/20 exact</text><text class="rowlabel" x="246" y="159.8" text-anchor="end">calf circumference left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="144" width="256.3" height="15.1" rx="4"><title>calf circumference left: 0.963% mean, 0.367 absolute; identical on 1 of 20 scans</title></rect><text class="value small" x="522.3" y="159.1">0.96% · 1/20 exact</text><text class="rowlabel" x="246" y="187.8" text-anchor="end">surface area leg right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="172" width="255.3" height="15.1" rx="4"><title>surface area leg right: 0.959% mean, 38.349 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="521.3" y="187.1">0.96% · 14/20 exact</text><text class="rowlabel" x="246" y="215.8" text-anchor="end">surface area leg left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="200" width="250.7" height="15.1" rx="4"><title>surface area leg left: 0.942% mean, 37.716 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="516.7" y="215.1">0.94% · 14/20 exact</text><text class="rowlabel" x="246" y="243.8" text-anchor="end">forearm circumference right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="228" width="233.5" height="15.1" rx="4"><title>forearm circumference right: 0.877% mean, 0.235 absolute; identical on 3 of 20 scans</title></rect><text class="value small" x="499.5" y="243.1">0.88% · 3/20 exact</text><text class="rowlabel" x="246" y="271.8" text-anchor="end">outside leg length left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="256" width="148.9" height="15.1" rx="4"><title>outside leg length left: 0.559% mean, 0.469 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="414.9" y="271.1">0.56% · 14/20 exact</text><text class="rowlabel" x="246" y="299.8" text-anchor="end">outside leg length right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="284" width="148.9" height="15.1" rx="4"><title>outside leg length right: 0.559% mean, 0.469 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="414.9" y="299.1">0.56% · 14/20 exact</text><text class="rowlabel" x="246" y="327.8" text-anchor="end">thigh circumference right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="312" width="147.9" height="15.1" rx="4"><title>thigh circumference right: 0.556% mean, 0.345 absolute; identical on 11 of 20 scans</title></rect><text class="value small" x="413.9" y="327.1">0.56% · 11/20 exact</text><text class="rowlabel" x="246" y="355.8" text-anchor="end">forearm circumference left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="340" width="140.0" height="15.1" rx="4"><title>forearm circumference left: 0.526% mean, 0.134 absolute; identical on 2 of 20 scans</title></rect><text class="value small" x="406.0" y="355.1">0.53% · 2/20 exact</text><text class="rowlabel" x="246" y="383.8" text-anchor="end">thigh circumference left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="368" width="123.2" height="15.1" rx="4"><title>thigh circumference left: 0.463% mean, 0.289 absolute; identical on 13 of 20 scans</title></rect><text class="value small" x="389.2" y="383.1">0.46% · 13/20 exact</text><text class="rowlabel" x="246" y="411.8" text-anchor="end">hip circumference</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="396" width="81.7" height="15.1" rx="4"><title>hip circumference: 0.307% mean, 0.359 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="347.7" y="411.1">0.31% · 14/20 exact</text><text class="rowlabel" x="246" y="439.8" text-anchor="end">arm length right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="424" width="80.3" height="15.1" rx="4"><title>arm length right: 0.302% mean, 0.136 absolute; identical on 2 of 20 scans</title></rect><text class="value small" x="346.3" y="439.1">0.30% · 2/20 exact</text><text class="rowlabel" x="246" y="467.8" text-anchor="end">waist circumference</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="452" width="76.8" height="15.1" rx="4"><title>waist circumference: 0.289% mean, 0.265 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="342.8" y="467.1">0.29% · 14/20 exact</text><text class="rowlabel" x="246" y="495.8" text-anchor="end">bicep circumference right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="480" width="76.7" height="15.1" rx="4"><title>bicep circumference right: 0.288% mean, 0.118 absolute; identical on 3 of 20 scans</title></rect><text class="value small" x="342.7" y="495.1">0.29% · 3/20 exact</text><text class="rowlabel" x="246" y="523.8" text-anchor="end">arm length left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="508" width="61.6" height="15.1" rx="4"><title>arm length left: 0.231% mean, 0.099 absolute; identical on 2 of 20 scans</title></rect><text class="value small" x="327.6" y="523.1">0.23% · 2/20 exact</text><text class="rowlabel" x="246" y="551.8" text-anchor="end">ankle circumference left corrected</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="536" width="58.9" height="15.1" rx="4"><title>ankle circumference left corrected: 0.221% mean, 0.058 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="324.9" y="551.1">0.22% · 14/20 exact</text><text class="rowlabel" x="246" y="579.8" text-anchor="end">ankle circumference right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="564" width="58.9" height="15.1" rx="4"><title>ankle circumference right: 0.221% mean, 0.058 absolute; identical on 14 of 20 scans</title></rect><text class="value small" x="324.9" y="579.1">0.22% · 14/20 exact</text><text class="rowlabel" x="246" y="607.8" text-anchor="end">calf circumference right</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="592" width="43.3" height="15.1" rx="4"><title>calf circumference right: 0.163% mean, 0.024 absolute; identical on 0 of 20 scans</title></rect><text class="value small" x="309.3" y="607.1">0.16% · 0/20 exact</text><text class="rowlabel" x="246" y="635.8" text-anchor="end">ankle circumference left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="620" width="27.5" height="15.1" rx="4"><title>ankle circumference left: 0.103% mean, 0.031 absolute; identical on 16 of 20 scans</title></rect><text class="value small" x="293.5" y="635.1">0.10% · 16/20 exact</text><text class="rowlabel" x="246" y="663.8" text-anchor="end">ankle circumference right corrected</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="648" width="27.5" height="15.1" rx="4"><title>ankle circumference right corrected: 0.103% mean, 0.031 absolute; identical on 16 of 20 scans</title></rect><text class="value small" x="293.5" y="663.1">0.10% · 16/20 exact</text><text class="rowlabel" x="246" y="691.8" text-anchor="end">bicep circumference left</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="676" width="11.8" height="15.1" rx="4"><title>bicep circumference left: 0.044% mean, 0.016 absolute; identical on 2 of 20 scans</title></rect><text class="value small" x="277.8" y="691.1">0.04% · 2/20 exact</text><text class="rowlabel" x="246" y="719.8" text-anchor="end">volume</text><rect class="bar" style="fill:var(--c-avatar)" x="258" y="704" width="2.0" height="15.1" rx="4"><title>volume: 0.002% mean, 1.654 absolute; identical on 18 of 20 scans</title></rect><text class="value small" x="268.0" y="719.1">0.00% · 18/20 exact</text></svg>
+    <figcaption>Every measurement where the port and MATLAB differ on at least one scan,
+    worst first. Bars show the mean absolute percent error; the label to the right gives
+    how many scans matched exactly.</figcaption>
+  </figure>
+
+  <div class="callout" style="--bar:var(--c-avatar)">
+    <p><strong>One root cause explains the largest group.</strong> Trunk length, inseam,
+    leg length, hip, waist and torso surface area are all exact on exactly 14 of 20 scans —
+    the same six scans fail every one of them. Those six are precisely the scans where the
+    port's crotch landmark differs from MATLAB's.</p>
+    <p><code>adjustCrotch</code> is the one place the port deliberately diverges: MATLAB
+    calls <code>kmeans</code> with random initialisation, and the port substitutes an exact
+    1-D 2-means. The port's own README claims this "does not change the result on any tested
+    mesh" — but that was five meshes. On these 21 it moves the crotch on six.</p>
+    <p>The remaining differences — calf, forearm, bicep, arm length — are sub-1% and come
+    from angle searches where a tiny numeric difference tips an <code>acos</code> or an
+    iteration bound. They are noise, not a different answer.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 532" role="img" class="chart" aria-label="Share of measurements identical to MATLAB for each scan"><line class="grid" x1="250.0" y1="4" x2="250.0" y2="508.0"/><text class="tick" x="250.0" y="526" text-anchor="middle">0%</text><line class="grid" x1="338.0" y1="4" x2="338.0" y2="508.0"/><text class="tick" x="338.0" y="526" text-anchor="middle">25%</text><line class="grid" x1="426.0" y1="4" x2="426.0" y2="508.0"/><text class="tick" x="426.0" y="526" text-anchor="middle">50%</text><line class="grid" x1="514.0" y1="4" x2="514.0" y2="508.0"/><text class="tick" x="514.0" y="526" text-anchor="middle">75%</text><line class="grid" x1="602.0" y1="4" x2="602.0" y2="508.0"/><text class="tick" x="602.0" y="526" text-anchor="middle">100%</text><text class="rowlabel" x="238" y="18.2" text-anchor="end">CanCan02_B 2025-11-13_11-50-16</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="4" width="303.1" height="13.7" rx="4"><title>CanCan02_B 2025-11-13_11-50-16: 31 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="561.1" y="17.7">31/36</text><text class="rowlabel" x="238" y="43.2" text-anchor="end">penn-mesh-1</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="29" width="293.3" height="13.7" rx="4"><title>penn-mesh-1: 30 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="551.3" y="42.7">30/36</text><text class="rowlabel" x="238" y="68.2" text-anchor="end">CanCan08_B 2026-02-04_12-21-25</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="54" width="293.3" height="13.7" rx="4"><title>CanCan08_B 2026-02-04_12-21-25: 30 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="551.3" y="67.7">30/36</text><text class="rowlabel" x="238" y="93.2" text-anchor="end">penn-mesh-2</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="79" width="283.6" height="13.7" rx="4"><title>penn-mesh-2: 29 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="541.6" y="92.7">29/36</text><text class="rowlabel" x="238" y="118.2" text-anchor="end">cancan07_B 2026-01-28_11-50-04</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="104" width="273.8" height="13.7" rx="4"><title>cancan07_B 2026-01-28_11-50-04: 28 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="531.8" y="117.7">28/36</text><text class="rowlabel" x="238" y="143.2" text-anchor="end">A00-09-2104_A 2025-11-19_11-49-31</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="129" width="273.8" height="13.7" rx="4"><title>A00-09-2104_A 2025-11-19_11-49-31: 28 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="531.8" y="142.7">28/36</text><text class="rowlabel" x="238" y="168.2" text-anchor="end">CanCan08_A 2026-02-04_12-13-30</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="154" width="273.8" height="13.7" rx="4"><title>CanCan08_A 2026-02-04_12-13-30: 28 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="531.8" y="167.7">28/36</text><text class="rowlabel" x="238" y="193.2" text-anchor="end">CanCan01_A 2025-10-27_11-10-43</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="179" width="273.8" height="13.7" rx="4"><title>CanCan01_A 2025-10-27_11-10-43: 28 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="531.8" y="192.7">28/36</text><text class="rowlabel" x="238" y="218.2" text-anchor="end">CanCan02_A 2025-11-13_11-42-08</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="204" width="273.8" height="13.7" rx="4"><title>CanCan02_A 2025-11-13_11-42-08: 28 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="531.8" y="217.7">28/36</text><text class="rowlabel" x="238" y="243.2" text-anchor="end">A00-08-4914_B 2025-12-09_12-31-25</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="229" width="273.8" height="13.7" rx="4"><title>A00-08-4914_B 2025-12-09_12-31-25: 28 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="531.8" y="242.7">28/36</text><text class="rowlabel" x="238" y="268.2" text-anchor="end">CanCan011_A 2026-03-10_13-12-57</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="254" width="264.0" height="13.7" rx="4"><title>CanCan011_A 2026-03-10_13-12-57: 27 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="522.0" y="267.7">27/36</text><text class="rowlabel" x="238" y="293.2" text-anchor="end">A00-08-4914_A 2025-12-09_12-27-17</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="279" width="264.0" height="13.7" rx="4"><title>A00-08-4914_A 2025-12-09_12-27-17: 27 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="522.0" y="292.7">27/36</text><text class="rowlabel" x="238" y="318.2" text-anchor="end">A00-09-0254 2025-12-10_10-37-18</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="304" width="264.0" height="13.7" rx="4"><title>A00-09-0254 2025-12-10_10-37-18: 27 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="522.0" y="317.7">27/36</text><text class="rowlabel" x="238" y="343.2" text-anchor="end">CanCan10_B 2026-02-27_09-55-20</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="329" width="254.2" height="13.7" rx="4"><title>CanCan10_B 2026-02-27_09-55-20: 26 of 36 measurements identical to MATLAB</title></rect><text class="value small" x="512.2" y="342.7">26/36</text><text class="rowlabel flagged" x="238" y="368.2" text-anchor="end">CanCan011_B 2026-03-10_13-17-36</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="354" width="156.4" height="13.7" rx="4"><title>CanCan011_B 2026-03-10_13-17-36: 16 of 36 measurements identical to MATLAB — crotch landmark differs</title></rect><text class="value small" x="414.4" y="367.7">16/36 ← crotch differs</text><text class="rowlabel flagged" x="238" y="393.2" text-anchor="end">A00-09-0254 2025-12-10_10-38-56</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="379" width="136.9" height="13.7" rx="4"><title>A00-09-0254 2025-12-10_10-38-56: 14 of 36 measurements identical to MATLAB — crotch landmark differs</title></rect><text class="value small" x="394.9" y="392.7">14/36 ← crotch differs</text><text class="rowlabel flagged" x="238" y="418.2" text-anchor="end">cancan07_A 2026-01-28_11-48-32</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="404" width="127.1" height="13.7" rx="4"><title>cancan07_A 2026-01-28_11-48-32: 13 of 36 measurements identical to MATLAB — crotch landmark differs</title></rect><text class="value small" x="385.1" y="417.7">13/36 ← crotch differs</text><text class="rowlabel flagged" x="238" y="443.2" text-anchor="end">CanCan01_B 2025-10-27_11-22-43</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="429" width="107.6" height="13.7" rx="4"><title>CanCan01_B 2025-10-27_11-22-43: 11 of 36 measurements identical to MATLAB — crotch landmark differs</title></rect><text class="value small" x="365.6" y="442.7">11/36 ← crotch differs</text><text class="rowlabel flagged" x="238" y="468.2" text-anchor="end">CanCan10_A 2026-02-27_09-49-56</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="454" width="107.6" height="13.7" rx="4"><title>CanCan10_A 2026-02-27_09-49-56: 11 of 36 measurements identical to MATLAB — crotch landmark differs</title></rect><text class="value small" x="365.6" y="467.7">11/36 ← crotch differs</text><text class="rowlabel flagged" x="238" y="493.2" text-anchor="end">A00-09-2104_B 2025-11-19_11-54-21</text><rect class="bar" style="fill:var(--c-avatar)" x="250" y="479" width="107.6" height="13.7" rx="4"><title>A00-09-2104_B 2025-11-19_11-54-21: 11 of 36 measurements identical to MATLAB — crotch landmark differs</title></rect><text class="value small" x="365.6" y="492.7">11/36 ← crotch differs</text></svg>
+    <figcaption>Share of measurements identical to MATLAB, per scan. The six labelled
+    scans are those where the crotch landmark differs; they are the same six that drag
+    every crotch-derived measurement.</figcaption>
+  </figure>
+
+  <h3>Scans where the crotch landmark differs</h3>
+  <ul class="chips">
+    <li class="chip">A00-09-0254 2025-12-10_10-38-56</li><li class="chip">A00-09-2104_B 2025-11-19_11-54-21</li><li class="chip">CanCan011_B 2026-03-10_13-17-36</li><li class="chip">CanCan01_B 2025-10-27_11-22-43</li><li class="chip">CanCan10_A 2026-02-27_09-49-56</li><li class="chip">cancan07_A 2026-01-28_11-48-32</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Agreement on the measurements people ask for</h2>
+  <p class="lede">Mean absolute percent error against MATLAB for the headline measurements,
+  with the count of scans that matched exactly.</p>
+  <div class="scroll"><table><tr><th>Measurement</th><th class="num"><span class="swatch" style="background:var(--c-avatar)"></span>avatar</th><th class="num"><span class="swatch" style="background:var(--c-seg)"></span>segmentation</th><th class="num"><span class="swatch" style="background:var(--c-slice)"></span>slice</th></tr><tr><td>arm length left</td><td class="num">0.23% <span class="dim">· 2/20 exact</span></td><td class="num">11.98% <span class="dim">· 0/20 exact</span></td><td class="num">16.38% <span class="dim">· 0/20 exact</span></td></tr><tr><td>calf circumference left</td><td class="num">0.96% <span class="dim">· 1/20 exact</span></td><td class="num">8.08% <span class="dim">· 0/20 exact</span></td><td class="num">16.73% <span class="dim">· 0/20 exact</span></td></tr><tr><td>chest circumference</td><td class="num">0.00% <span class="dim">· 20/20 exact</span></td><td class="num">6.56% <span class="dim">· 0/20 exact</span></td><td class="num">70.11% <span class="dim">· 0/20 exact</span></td></tr><tr><td>height</td><td class="num">0.00% <span class="dim">· 20/20 exact</span></td><td class="num">0.00% <span class="dim">· 20/20 exact</span></td><td class="num">1.78% <span class="dim">· 0/20 exact</span></td></tr><tr><td>hip circumference</td><td class="num">0.31% <span class="dim">· 14/20 exact</span></td><td class="num">4.73% <span class="dim">· 0/20 exact</span></td><td class="num">49.79% <span class="dim">· 0/20 exact</span></td></tr><tr><td>surface area total</td><td class="num">0.00% <span class="dim">· 20/20 exact</span></td><td class="num">0.00% <span class="dim">· 20/20 exact</span></td><td class="num">10.50% <span class="dim">· 0/20 exact</span></td></tr><tr><td>thigh circumference left</td><td class="num">0.46% <span class="dim">· 13/20 exact</span></td><td class="num">13.32% <span class="dim">· 0/20 exact</span></td><td class="num">62.67% <span class="dim">· 0/20 exact</span></td></tr><tr><td>volume</td><td class="num">0.00% <span class="dim">· 18/20 exact</span></td><td class="num">0.00% <span class="dim">· 18/20 exact</span></td><td class="num">0.73% <span class="dim">· 1/20 exact</span></td></tr><tr><td>waist circumference</td><td class="num">0.29% <span class="dim">· 14/20 exact</span></td><td class="num">9.95% <span class="dim">· 0/20 exact</span></td><td class="num">39.25% <span class="dim">· 0/20 exact</span></td></tr></table></div>
+</section>
+
+<section>
+  <h2>What each method costs</h2>
+  <p class="lede">Mean wall-clock seconds per scan. MATLAB's figure excludes engine
+  start-up, which is a one-time cost of roughly 20 seconds per batch.</p>
+  <figure>
+    <svg viewBox="0 0 720 222" role="img" class="chart" aria-label="Mean seconds per scan for each method"><line class="grid" x1="128.0" y1="4" x2="128.0" y2="200.0"/><text class="tick" x="128.0" y="216" text-anchor="middle">0s</text><line class="grid" x1="243.5" y1="4" x2="243.5" y2="200.0"/><text class="tick" x="243.5" y="216" text-anchor="middle">2s</text><line class="grid" x1="359.0" y1="4" x2="359.0" y2="200.0"/><text class="tick" x="359.0" y="216" text-anchor="middle">5s</text><line class="grid" x1="474.5" y1="4" x2="474.5" y2="200.0"/><text class="tick" x="474.5" y="216" text-anchor="middle">7s</text><line class="grid" x1="590.0" y1="4" x2="590.0" y2="200.0"/><text class="tick" x="590.0" y="216" text-anchor="middle">9s</text><text class="serieslabel" x="114" y="25.1" text-anchor="end">avatar</text><rect class="bar" style="fill:var(--c-avatar)" x="128" y="4" width="24.4" height="23.1" rx="4"><title>avatar: 0.49s per scan, 10.3s for all 21</title></rect><text class="value" x="162.4" y="23.7">0.49s <tspan class="dim">· 10s total</tspan></text><text class="serieslabel" x="114" y="73.1" text-anchor="end">MATLAB</text><rect class="bar" style="fill:var(--reference)" x="128" y="52" width="166.9" height="23.1" rx="4"><title>MATLAB: 3.36s per scan, 67.3s for all 20</title></rect><text class="value" x="304.9" y="71.7">3.36s <tspan class="dim">· 67s total</tspan></text><text class="serieslabel" x="114" y="121.1" text-anchor="end">slice</text><rect class="bar" style="fill:var(--c-slice)" x="128" y="100" width="250.2" height="23.1" rx="4"><title>slice: 5.04s per scan, 105.9s for all 21</title></rect><text class="value" x="388.2" y="119.7">5.04s <tspan class="dim">· 106s total</tspan></text><text class="serieslabel" x="114" y="169.1" text-anchor="end">segmentation</text><rect class="bar" style="fill:var(--c-seg)" x="128" y="148" width="462.0" height="23.1" rx="4"><title>segmentation: 9.31s per scan, 195.5s for all 21</title></rect><text class="value" x="600.0" y="167.7">9.31s <tspan class="dim">· 196s total</tspan></text></svg>
+    <figcaption>The port returns MATLAB-grade numbers about seven times faster than
+    MATLAB itself, and needs no MATLAB licence or Engine install.</figcaption>
+  </figure>
+</section>
+
+<footer>
+  <p>Generated from <code>runs/matlab_ground_truth/</code>. Reference method:
+  <code>matlab</code> — Avatar.m, steps=3, Vol_SA=on, MATLAB 23.2.0.2515942 (R2023b) Update 7,
+  driven through the MATLAB Engine for Python on CPython 3.10.</p>
+  <p>Underlying tables: <code>comparison_by_method.csv</code>,
+  <code>comparison_by_measurement.csv</code>, <code>comparison_by_subject.csv</code>,
+  <code>comparison_detail.csv</code>, <code>comparison_coverage.csv</code>. Regenerate with
+  <code>python -m unified.compare &lt;combined tables&gt; --reference matlab</code>.</p>
+</footer>
+</div>

@@ -1,0 +1,6 @@
+Warning: An error occured with the message: The logical indices contain a true value outside of the array bounds.
+Attempting to read obj file with regexp.
+You may want to preprocess the obj file.
+> In Avatar>readObj (line 3845)
+In Avatar (line 207)
+In py2mat_avatar_measure (line 29)

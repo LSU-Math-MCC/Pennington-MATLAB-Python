@@ -42,10 +42,14 @@ If you are using macOS or Linux, replace `.\.venv\Scripts\python.exe` with
 | `unified/obj2anthro/` | OBJ-to-anthropometry orchestration. |
 | `unified/obj2anthro/backends/segmentation/` | Landmark/region segmentation backend. |
 | `unified/obj2anthro/backends/slice/` | Slice-based biomarker backend. |
+| `unified/obj2anthro/backends/avatar/` | Pure-Python port of `Avatar.m`, faithful to the MATLAB reference. |
+| `unified/obj2anthro/backends/matlab/` | Drives the real `Avatar.m` through the MATLAB Engine. |
 | `unified/ml/experiment/` | Historical ML, PCA, DOE, and Tkinter GUI code. |
 | `data/obj/` | Core OBJ files used for local runs and smoke tests. |
 
-Generated outputs go under `runs/`.
+Generated outputs go under `runs/`. Every run folder gets a
+`combined_measurements.csv`: one row per (subject, anthropometry method) with
+the method, its runtime, and every measurement column side by side.
 
 ## Fast Smoke Tests
 
@@ -75,11 +79,22 @@ Process all core OBJ examples:
 & $py -m unified obj2anthro --input data\obj --method slice --units auto --out runs\slice_all
 ```
 
-Run both anthropometry backends:
+Run every anthropometry backend:
 
 ```powershell
 & $py -m unified obj2anthro --input "data\obj\CanCan01_A 2025-10-27_11-10-43.obj" --method all --units auto --out runs\all_backends_demo --no-images --no-aligned-obj
 ```
+
+Every backend over every core OBJ, into one comparison table:
+
+```powershell
+& $py -m unified --input data --anthro-method auto --units auto
+```
+
+Then open `combined_measurements.csv` in the new `runs/<run_id>/` folder.
+`auto` expands to `AUTO_BACKENDS` in `unified/obj2anthro/pipeline.py`. The
+`matlab` method needs the MATLAB Engine for Python (CPython 3.9-3.11); on other
+interpreters it records a failed row with that reason instead of aborting.
 
 ## Run the Unified Wrapper
 
