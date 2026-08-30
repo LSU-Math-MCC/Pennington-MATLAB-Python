@@ -1,8 +1,8 @@
 {
-  "run_at": "2026-08-03T19:48:48.709574+00:00",
-  "elapsed_seconds": 6.7,
-  "n_total": 18,
-  "n_succeeded": 18,
+  "run_at": "2026-08-30T15:12:39.937530+00:00",
+  "elapsed_seconds": 8.8,
+  "n_total": 21,
+  "n_succeeded": 21,
   "n_failed": 0,
   "units": "cm",
   "scale_applied": 0.1,
@@ -47,134 +47,153 @@
   "files": [
     {
       "file": "A00-08-4914_A 2025-12-09_12-27-17.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/A00-08-4914_A 2025-12-09_12-27-17.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\A00-08-4914_A 2025-12-09_12-27-17.obj",
       "status": "ok",
-      "seconds": 0.26,
+      "seconds": 0.73,
       "warnings": []
     },
     {
       "file": "A00-08-4914_B 2025-12-09_12-31-25.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/A00-08-4914_B 2025-12-09_12-31-25.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\A00-08-4914_B 2025-12-09_12-31-25.obj",
       "status": "ok",
-      "seconds": 0.39,
+      "seconds": 0.22,
       "warnings": []
     },
     {
       "file": "A00-09-0254 2025-12-10_10-37-18.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-0254 2025-12-10_10-37-18.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\A00-09-0254 2025-12-10_10-37-18.obj",
       "status": "ok",
-      "seconds": 0.43,
+      "seconds": 0.66,
       "warnings": []
     },
     {
       "file": "A00-09-0254 2025-12-10_10-38-56.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-0254 2025-12-10_10-38-56.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\A00-09-0254 2025-12-10_10-38-56.obj",
       "status": "ok",
-      "seconds": 0.45,
+      "seconds": 0.25,
       "warnings": [
         "arm length asymmetry (44 vs 27)"
       ]
     },
     {
       "file": "A00-09-2104_A 2025-11-19_11-49-31.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-2104_A 2025-11-19_11-49-31.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\A00-09-2104_A 2025-11-19_11-49-31.obj",
       "status": "ok",
-      "seconds": 0.4,
+      "seconds": 0.64,
       "warnings": []
     },
     {
       "file": "A00-09-2104_B 2025-11-19_11-54-21.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/A00-09-2104_B 2025-11-19_11-54-21.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\A00-09-2104_B 2025-11-19_11-54-21.obj",
       "status": "ok",
-      "seconds": 0.43,
+      "seconds": 0.65,
       "warnings": []
     },
     {
       "file": "CanCan011_A 2026-03-10_13-12-57.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan011_A 2026-03-10_13-12-57.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan011_A 2026-03-10_13-12-57.obj",
       "status": "ok",
-      "seconds": 0.44,
+      "seconds": 0.23,
       "warnings": []
     },
     {
       "file": "CanCan011_B 2026-03-10_13-17-36.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan011_B 2026-03-10_13-17-36.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan011_B 2026-03-10_13-17-36.obj",
       "status": "ok",
-      "seconds": 0.42,
-      "warnings": [
-        "crotch at 52% of height (expect ~45)"
-      ]
+      "seconds": 0.24,
+      "warnings": []
     },
     {
       "file": "CanCan01_A 2025-10-27_11-10-43.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan01_A 2025-10-27_11-10-43.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan01_A 2025-10-27_11-10-43.obj",
       "status": "ok",
-      "seconds": 0.42,
+      "seconds": 0.24,
       "warnings": [
         "crotch at 36% of height (expect ~45)"
       ]
     },
     {
       "file": "CanCan01_B 2025-10-27_11-22-43.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan01_B 2025-10-27_11-22-43.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan01_B 2025-10-27_11-22-43.obj",
       "status": "ok",
-      "seconds": 0.37,
+      "seconds": 0.23,
       "warnings": []
     },
     {
       "file": "CanCan02_A 2025-11-13_11-42-08.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan02_A 2025-11-13_11-42-08.obj",
-      "status": "ok",
-      "seconds": 0.48,
-      "warnings": []
-    },
-    {
-      "file": "CanCan02_B 2025-11-13_11-50-16.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan02_B 2025-11-13_11-50-16.obj",
-      "status": "ok",
-      "seconds": 0.47,
-      "warnings": []
-    },
-    {
-      "file": "CanCan08_A 2026-02-04_12-13-30.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan08_A 2026-02-04_12-13-30.obj",
-      "status": "ok",
-      "seconds": 0.41,
-      "warnings": []
-    },
-    {
-      "file": "CanCan08_B 2026-02-04_12-21-25.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan08_B 2026-02-04_12-21-25.obj",
-      "status": "ok",
-      "seconds": 0.26,
-      "warnings": []
-    },
-    {
-      "file": "CanCan10_A 2026-02-27_09-49-56.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan10_A 2026-02-27_09-49-56.obj",
-      "status": "ok",
-      "seconds": 0.27,
-      "warnings": []
-    },
-    {
-      "file": "CanCan10_B 2026-02-27_09-55-20.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/CanCan10_B 2026-02-27_09-55-20.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan02_A 2025-11-13_11-42-08.obj",
       "status": "ok",
       "seconds": 0.24,
       "warnings": []
     },
     {
+      "file": "CanCan02_B 2025-11-13_11-50-16.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan02_B 2025-11-13_11-50-16.obj",
+      "status": "ok",
+      "seconds": 0.24,
+      "warnings": []
+    },
+    {
+      "file": "CanCan08_A 2026-02-04_12-13-30.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan08_A 2026-02-04_12-13-30.obj",
+      "status": "ok",
+      "seconds": 0.24,
+      "warnings": []
+    },
+    {
+      "file": "CanCan08_B 2026-02-04_12-21-25.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan08_B 2026-02-04_12-21-25.obj",
+      "status": "ok",
+      "seconds": 0.67,
+      "warnings": []
+    },
+    {
+      "file": "CanCan10_A 2026-02-27_09-49-56.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan10_A 2026-02-27_09-49-56.obj",
+      "status": "ok",
+      "seconds": 0.23,
+      "warnings": []
+    },
+    {
+      "file": "CanCan10_B 2026-02-27_09-55-20.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\CanCan10_B 2026-02-27_09-55-20.obj",
+      "status": "ok",
+      "seconds": 0.23,
+      "warnings": []
+    },
+    {
       "file": "cancan07_A 2026-01-28_11-48-32.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/cancan07_A 2026-01-28_11-48-32.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\cancan07_A 2026-01-28_11-48-32.obj",
       "status": "ok",
       "seconds": 0.25,
       "warnings": []
     },
     {
       "file": "cancan07_B 2026-01-28_11-50-04.obj",
-      "path": "/content/drive/MyDrive/Pennington/objs/cancan07_B 2026-01-28_11-50-04.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\cancan07_B 2026-01-28_11-50-04.obj",
+      "status": "ok",
+      "seconds": 0.24,
+      "warnings": []
+    },
+    {
+      "file": "man.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\man.obj",
+      "status": "ok",
+      "seconds": 1.03,
+      "warnings": []
+    },
+    {
+      "file": "penn-mesh-1.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\penn-mesh-1.obj",
       "status": "ok",
       "seconds": 0.27,
+      "warnings": []
+    },
+    {
+      "file": "penn-mesh-2.obj",
+      "path": "C:\\Users\\Clint\\OneDrive\\Desktop\\py2mat\\Pennington-MATLAB-Python\\data\\obj\\penn-mesh-2.obj",
+      "status": "ok",
+      "seconds": 1.02,
       "warnings": []
     }
   ],

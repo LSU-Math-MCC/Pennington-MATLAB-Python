@@ -105,7 +105,15 @@ def get_circumference(x: np.ndarray, y: np.ndarray):
     waist).  That is the reference behaviour.
 
     Returns ``(circumference, hull_indices)`` where ``hull_indices`` is the
-    closed loop (first index repeated at the end), matching MATLAB's convhull.
+    closed loop (first index repeated at the end), matching MATLAB's boundary.
+
+    The loop is rotated to begin at the hull point with the lowest index in the
+    input arrays, which is where MATLAB's ``boundary`` starts its trace.  scipy
+    starts somewhere else.  The perimeter does not care, but callers that
+    average the closed loop do: the closing point is a *duplicate*, so the
+    starting vertex is counted twice and the centroid shifts with it.
+    ``getWrist`` centroids its hull loop and feeds the result to ``getArmLength``,
+    so this alone accounts for the arm-length drift against the reference.
     """
     x = np.asarray(x, dtype=float).reshape(-1)
     y = np.asarray(y, dtype=float).reshape(-1)
@@ -119,6 +127,8 @@ def get_circumference(x: np.ndarray, y: np.ndarray):
         return 0.0, np.arange(x.size, dtype=np.int64)
 
     b = np.asarray(hull.vertices, dtype=np.int64)
+    start = int(np.argmin(b))
+    b = np.concatenate([b[start:], b[:start]])
     b_closed = np.concatenate([b, b[:1]])
     loop = pts[b_closed]
     perimeter = float(np.sum(np.linalg.norm(loop[:-1] - loop[1:], axis=1)))
@@ -327,3 +337,108 @@ def constrained_flood_fill(
     if not collected:
         return np.empty(0, dtype=np.int64)
     return np.unique(np.concatenate(collected))
+
+
+# --------------------------------------------------------------------------
+# checkFaceOrientation / fixFaceOrientation2 (Avatar.m local functions)
+# --------------------------------------------------------------------------
+def _rows_in(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """MATLAB ``ismember(a, b, 'rows')`` for two integer Nx2 arrays."""
+    if a.size == 0:
+        return np.zeros(len(a), dtype=bool)
+    if b.size == 0:
+        return np.zeros(len(a), dtype=bool)
+    known = set(map(tuple, np.asarray(b, dtype=np.int64).tolist()))
+    return np.fromiter(
+        (tuple(row) in known for row in np.asarray(a, dtype=np.int64).tolist()),
+        dtype=bool, count=len(a),
+    )
+
+
+def check_face_orientation(faces: np.ndarray) -> bool:
+    """True when every directed edge has its reverse present.
+
+    Avatar.m's own comment notes this is also false when the mesh has holes,
+    so an open scan always sends ``fixFaceOrientation2`` down the full path.
+    """
+    faces = np.asarray(faces, dtype=np.int64)
+    e = np.vstack([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]])
+    return not np.any(~_rows_in(e[:, [1, 0]], e))
+
+
+def fix_face_orientation2(faces: np.ndarray, v: np.ndarray) -> np.ndarray:
+    """Port of ``fixFaceOrientation2``: make face windings mutually consistent.
+
+    ``Avatar.m`` runs this on ``self.f`` immediately before the volume pass
+    whenever ``Vol_SA`` is on.  Surface area does not care about winding, but
+    signed volume does -- a scan carrying the same triangle twice with opposite
+    winding has the two contributions cancel unless this runs first.
+
+    Part 1 casts a ray along the normal of every 200th face and flips that face
+    when the intersection count is odd; Part 2 floods the corrected winding out
+    across shared edges.
+
+    MATLAB QUIRK: ``e1/e2/e3`` and ``E1/E2`` are captured from the *original*
+    ``f`` and never refreshed, so Part 2 matches against pre-flip edges and
+    Part 1's Moeller-Trumbore edges go stale as it flips.  Both are reproduced.
+    """
+    f = np.array(faces, dtype=np.int64, copy=True)
+    v = np.asarray(v, dtype=float)
+    n = len(f)
+    if n == 0:
+        return f
+
+    fixed = np.ones(n, dtype=bool)
+    e1, e2, e3 = f[:, [0, 1]].copy(), f[:, [1, 2]].copy(), f[:, [2, 0]].copy()
+
+    # Part 0 -- nothing to do when the mesh is already consistent and closed.
+    if check_face_orientation(f):
+        return f
+
+    # Part 1 -- ray/face intersection parity on a 0.5% sample.
+    p, epsilon = 0.005, 1e-10
+    count = int(np.floor(n * p + 0.5))  # MATLAB round(): half away from zero
+    if count < 1:
+        return f
+    pre = np.floor(np.linspace(1, n, count) + 0.5).astype(np.int64) - 1  # 1-based -> 0
+
+    n1 = -v[f[pre, 1]] + v[f[pre, 0]]
+    n2 = -v[f[pre, 2]] + v[f[pre, 0]]
+    normal = np.cross(n1, n2)
+    normal = normal / np.linalg.norm(normal, axis=1)[:, None]
+    c = (v[f[pre, 0]] + v[f[pre, 1]] + v[f[pre, 2]]) / 3.0
+
+    E1 = v[f[:, 1]] - v[f[:, 0]]
+    E2 = v[f[:, 2]] - v[f[:, 0]]
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        for i in range(len(normal)):
+            D = normal[i]
+            T = c[i] - v[f[:, 0]]
+            P = np.cross(np.broadcast_to(D, E2.shape), E2)
+            Q = np.cross(T, E1)
+            PE = np.einsum("ij,ij->i", P, E1)
+            t = np.einsum("ij,ij->i", Q, E2) / PE
+            a = np.einsum("ij,ij->i", P, T) / PE
+            b = Q @ D / PE
+            hits = int(np.count_nonzero((a + b < 1) & (a > 0) & (b > 0) & (t > epsilon)))
+            if hits % 2:
+                f[pre[i]] = f[pre[i]][[0, 2, 1]]
+    fixed[pre] = False
+
+    # Part 2 -- propagate the corrected winding across shared edges.
+    new_faces = f[pre]
+    while new_faces.size:
+        edges = np.vstack([new_faces[:, [1, 0]],
+                           new_faces[:, [2, 1]],
+                           new_faces[:, [0, 2]]])
+        keep = (_rows_in(e1, edges) | _rows_in(e2, edges) | _rows_in(e3, edges)) & fixed
+        fixed[keep] = False
+
+        redges = edges[:, [1, 0]]
+        flip = (_rows_in(e1, redges) | _rows_in(e2, redges) | _rows_in(e3, redges)) & fixed
+        f[flip] = f[flip][:, [1, 0, 2]]
+        fixed[flip] = False
+
+        new_faces = f[keep | flip]
+    return f

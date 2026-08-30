@@ -15,6 +15,7 @@ import numpy as np
 
 from .matlab_ops import (
     constrained_flood_fill,
+    fix_face_orientation2,
     find_minmax,
     fix_orientation,
     get_circumference,
@@ -27,44 +28,48 @@ from .matlab_ops import (
 )
 
 
-def _kmeans2_1d(x: np.ndarray) -> np.ndarray:
-    """Exact, deterministic 1-D 2-means; returns labels in {0, 1}.
+def _kmeans2_1d(x: np.ndarray, max_iter: int = 100) -> np.ndarray:
+    """Deterministic stand-in for MATLAB's ``kmeans(x, 2)``; labels in {0, 1}.
 
-    MATLAB's ``kmeans`` uses random initialisation, which makes ``adjustCrotch``
-    non-deterministic in principle.  For 1-D data the globally optimal 2-means
-    partition is always a single split of the sorted values, so we solve it
-    exactly by scanning every split.  This is deterministic and never worse than
-    what MATLAB's Lloyd iterations converge to.
+    ``adjustCrotch`` is the only caller.  It does not use the cluster values --
+    only whether ``s1(i) ~= s1(1)`` -- so all that matters is which *partition*
+    MATLAB's Lloyd iterations converge to.
+
+    MATLAB seeds with k-means++ (``Start='plus'``), which is random, and then
+    runs Lloyd's algorithm to a *local* optimum.  Several local optima usually
+    exist for these delta_v2 vectors, and the global optimum is frequently not
+    the one MATLAB reaches -- so solving the 2-means problem exactly (what this
+    port used to do) disagrees with the reference on a fifth of the meshes.
+
+    For k = 2, k-means++ draws the second centre with probability proportional
+    to squared distance from the first.  These vectors carry one dominant
+    outlier, so that draw lands on the extremes with overwhelming probability;
+    seeding at ``(min, max)`` is the deterministic limit of MATLAB's own
+    seeding.  Lloyd from there reproduces MATLAB's partition on 19 of the 20
+    reference meshes.  The twentieth (``A00-09-0254 2025-12-10_10-38-56``) has
+    no dominant outlier, and MATLAB's own seeding reaches its recorded answer
+    only about a quarter of the time -- that scan is genuinely non-deterministic
+    in the reference, not a modelling gap here.
     """
     x = np.asarray(x, dtype=float).reshape(-1)
     n = x.size
     if n < 2:
         return np.zeros(n, dtype=int)
 
-    order = np.argsort(x, kind="stable")
-    xs = x[order]
-    csum = np.concatenate([[0.0], np.cumsum(xs)])
-    csq = np.concatenate([[0.0], np.cumsum(xs ** 2)])
+    c1, c2 = float(x.min()), float(x.max())
+    if c1 == c2:  # degenerate: MATLAB's EmptyAction would collapse to one cluster
+        return np.zeros(n, dtype=int)
 
-    def sse(i: int, j: int) -> float:
-        """Sum of squared error of xs[i:j]."""
-        m = j - i
-        if m <= 0:
-            return 0.0
-        s = csum[j] - csum[i]
-        q = csq[j] - csq[i]
-        return q - s * s / m
-
-    best, best_k = np.inf, 1
-    for k in range(1, n):
-        val = sse(0, k) + sse(k, n)
-        if val < best:
-            best, best_k = val, k
-
-    labels_sorted = np.zeros(n, dtype=int)
-    labels_sorted[best_k:] = 1
-    labels = np.empty(n, dtype=int)
-    labels[order] = labels_sorted
+    labels = np.zeros(n, dtype=int)
+    for _ in range(max_iter):
+        # Ties go to the lower-indexed centre, as MATLAB's assignment does.
+        labels = (np.abs(x - c2) < np.abs(x - c1)).astype(int)
+        if not labels.any() or labels.all():
+            break
+        n1, n2 = float(x[labels == 0].mean()), float(x[labels == 1].mean())
+        if n1 == c1 and n2 == c2:
+            break
+        c1, c2 = n1, n2
     return labels
 
 
@@ -438,24 +443,35 @@ class MatlabAvatar:
             org_v2_bot = v2_bot.copy()
 
             # Trim from the tail, then the head, while the middle stays the lower.
+            #
+            # MATLAB QUIRK: both loops are do-while -- an element is dropped
+            # *before* the continuation test, so each end always loses one
+            # element unconditionally.  Testing first (the natural Python
+            # spelling) leaves one extra element at each end, which changes
+            # ``mid_max_v2_bot`` and therefore the whole delta_v2 profile.
             work = v2_bot.copy()
-            while work.size and mid_v2_bot <= work[-1]:
+            while True:
                 work = work[:-1]
+                if work.size == 0 or not (mid_v2_bot <= work[-1]):
+                    break
             if work.size:
-                while work.size and mid_v2_bot <= work[0]:
+                while True:
                     work = work[1:]
                     idx_mid -= 1
+                    if work.size == 0 or not (mid_v2_bot <= work[0]):
+                        break
 
             if work.size == 0:
                 delta_v2[i] = 0
                 continue
 
             mid_max_v2_bot = work.max()
+            # MATLAB compares a possibly-multi-element vector here; ``if`` over a
+            # vector is true only when every element is, and false when empty.
             match = v1_bot[org_v2_bot == mid_max_v2_bot]
-            x_mid_max = match[0] if match.size else mid_v1h
             x_v1_bot = v1_bot[org_idx_mid]
 
-            if abs(x_mid_max) > abs(x_v1_bot):
+            if match.size and np.all(np.abs(match) > abs(x_v1_bot)):
                 delta_v2[i] = mid_v2_bot - mid_v2h
             else:
                 delta_v2[i] = mid_max_v2_bot - mid_v2h
@@ -849,6 +865,13 @@ class MatlabAvatar:
     # Areas and volume
     # ======================================================================
     def getSurfaceArea(self):
+        # MATLAB runs fixFaceOrientation2 on self.f immediately before this,
+        # inside the `if self.Vol_SA` branch.  Area is winding-invariant, so it
+        # only matters for the signed volumes -- but it matters a lot there: a
+        # scan carrying one triangle twice with opposite winding has the two
+        # contributions cancel unless the windings are reconciled first.
+        self.f = fix_face_orientation2(self.f, self.v)
+
         self.measurements["SA_total"] = triangle_area_sum(self.v, self.f)
         self.measurements["VOL_total"] = signed_volume(self.v, self.f)
 

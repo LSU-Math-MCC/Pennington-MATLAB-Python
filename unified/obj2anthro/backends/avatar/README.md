@@ -24,27 +24,30 @@ Dependencies are `numpy` and `scipy` only (plus `matplotlib` for `show_slices.py
 All three are already in the repository's root `requirements.txt` — nothing extra
 to install, no MATLAB, no trimesh, no compiler.
 
-## Verify it reproduces the reference
+## Verify it reproduces MATLAB
+
+The reference that matters is `runs/matlab_ground_truth/raw/matlab/` — the
+recorded output of `Avatar.m` (steps=3, Vol_SA=on) driven through the MATLAB
+Engine on R2023b. `tests/test_avatar_matches_matlab.py` replays the port against
+every scan in it:
 
 ```bash
-python unified/obj2anthro/backends/avatar/selftest.py "data/obj/A00-08-4914_A 2025-12-09_12-27-17.obj"
+python -m pytest unified/obj2anthro/tests/test_avatar_matches_matlab.py
 ```
 
-Expected:
+On the 20 scans MATLAB measured, the port matches all 41 measurements to
+floating-point noise on **19**. The two exceptions are properties of the
+reference, not gaps in the port:
 
-```text
-loaded A00-08-4914_A 2025-12-09_12-27-17.obj: 5005 vertices, 9998 faces
---- measurements ---
-  32/32 measurements match
---- landmarks ---
-  14/14 landmarks match
+| Scan | What differs | Why |
+|---|---|---|
+| `A00-09-0254 2025-12-10_10-38-56` | crotch landmark, and the 16 measurements derived from it | `adjustCrotch` calls MATLAB `kmeans`, which is randomly seeded. This scan's `delta_v2` has no dominant outlier, so several Lloyd fixed points are reachable, and MATLAB's recorded answer is one it lands on roughly a quarter of the time. |
+| `cancan07_A 2026-01-28_11-48-32` | `rCalfGirth`, by 5 µm on 42.6 cm | `calfGirth` maximises a hull perimeter over a discretised plane sweep. No plane anywhere in the search range reproduces MATLAB's value, so the two runs sample marginally different bands. |
 
-PASS - this port reproduces the MATLAB reference exactly.
-```
-
-`tests/test_avatar_backend.py` does the same check across every OBJ that can be
-matched to a row in `reference/`, so `pytest unified/obj2anthro/tests` covers it
-too. Run the selftest after any change to `avatar_conversion/`.
+`reference/` holds a frozen snapshot of this port's *own* output, replayed by
+`tests/test_avatar_backend.py`. That catches drift, but cannot catch a shared
+mistake — score against `test_avatar_matches_matlab.py` for that. Regenerate the
+snapshot with `batch_measure.py` whenever a deliberate change moves a number.
 
 ## Standalone tools
 
@@ -126,6 +129,15 @@ Output reproduces the MATLAB reference rather than improving on it:
 - **Orientation is axis-aligned only.** `fixOrientation` applies 90/180-degree
   turns, so the resulting height equals one of the original bounding-box
   extents exactly. It is not a PCA alignment.
+- **Hull loops start where MATLAB's start.** `boundary` begins its trace at the
+  lowest-numbered input point and repeats it to close the loop; scipy starts
+  elsewhere. Perimeters do not care, but `getWrist` *averages* the closed loop,
+  so the duplicated point moves the wrist centroid and with it the arm length.
+- **Face windings are reconciled before the volume pass.** `Vol_SA='on'` runs
+  `fixFaceOrientation2` on `self.f` first. Surface area is winding-invariant, so
+  this shows up only in signed volume — but two of these scans carry the same
+  triangle twice with opposite winding, and without the fix the two
+  contributions cancel.
 
 ## MATLAB bugs reproduced on purpose
 
@@ -142,13 +154,23 @@ alongside the faithful one.
 | `getArmGirth` references `armMaxL(2)` in the right-arm angle | small right-arm girth error | — |
 | `sosmooth3` pads its tail with a constant index rather than a mirrored one | minor smoothing artefact at the signal tail | — |
 
-## Deliberate improvement
+## Standing in for a random reference
 
-`adjustCrotch` calls MATLAB's `kmeans`, which uses random initialisation. This
-port substitutes an exact 1-D 2-means solved by scanning every split of the
-sorted values — the global optimum for one-dimensional data, so it is
-deterministic and never worse. It is the only intentional algorithmic
-deviation and does not change the result on any tested mesh.
+`adjustCrotch` calls MATLAB's `kmeans`, which is randomly seeded (`Start='plus'`)
+and converges to a *local* optimum. Its result is therefore not reproducible even
+by MATLAB itself, so the port has to model it.
+
+This port seeds Lloyd's algorithm at `(min, max)` and iterates to convergence.
+For k = 2 that is the deterministic limit of k-means++ seeding: the second centre
+is drawn with probability proportional to squared distance from the first, and
+these `delta_v2` vectors carry one dominant outlier, so the draw lands on the
+extremes with overwhelming probability. It reproduces MATLAB's partition on 19 of
+the 20 reference scans.
+
+An earlier version instead solved the 2-means problem *exactly*, on the reasoning
+that the global optimum could never be worse. That was the wrong target: MATLAB
+frequently does not reach the global optimum, and the exact solver disagreed with
+the reference on 6 of the 20 scans.
 
 ## Raw artifacts
 
@@ -170,7 +192,8 @@ Per subject, under the run's `raw/avatar/<artifact_id>/`:
 - **Scope.** Not ported: mesh cleaning/repair (`steps` 1-2), CPD template
   fitting, ellipse fitting, partial hole-filling volumes, plotting and marker
   export.
-- **Reference provenance.** Reference values were generated by running
-  `Avatar.m` under GNU Octave 8.4 with exact shims for three functions Octave
-  lacks (`boundary(x,y,0)` → `convhull`; `incenter` → the standard incenter
-  formula; two-argument `round`).
+- **Reference provenance.** The scoring reference is a real MATLAB R2023b run
+  (`runs/matlab_ground_truth/`). An earlier Octave 8.4 stand-in, which shimmed
+  `boundary(x,y,0)` with `convhull`, is no longer used: that shim silently
+  changed where the hull loop starts, which is exactly one of the differences
+  resolved above.
