@@ -3,6 +3,15 @@
 This repository combines the Pennington body-scanning Python work into one
 staged project. The main entry point is `python -m unified`.
 
+## Reports
+
+[**Three Ways to Measure a Body**](docs/geometry_report.html) — what each
+anthropometry backend defines a circumference to be, where each one cuts, how
+each locates an anatomical level (a fixed fraction of stature or a geometric
+search), what each costs per scan, and where the four disagree. Open the file
+directly; it is self-contained. Index and rebuild steps in
+[`docs/`](docs/README.md).
+
 ## Why Python?
 
 The original work was tied to MATLAB workflows. Python makes the project easier

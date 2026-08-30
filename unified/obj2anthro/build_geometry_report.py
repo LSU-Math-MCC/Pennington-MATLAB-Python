@@ -405,8 +405,34 @@ def assumptions_table() -> str:
               'line-by-line audit of all three backends.</p>')
 
 
-def data_uri(path: Path) -> str:
-    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
+def data_uri(path: Path, max_width: int = 1500) -> str:
+    """Embed a PNG, downscaled and palette-quantised first.
+
+    Every figure ships inline as a data URI, so the page weight is the sum of
+    them. These are scatter plots on a transparent ground -- a handful of flat
+    colours -- so an adaptive 256-colour palette is visually lossless here and
+    roughly halves the bytes. Falls back to the original file if Pillow is
+    unavailable.
+    """
+    try:
+        import io
+
+        from PIL import Image
+    except ImportError:
+        return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
+
+    with Image.open(path) as image:
+        image = image.convert("RGBA")
+        if image.width > max_width:
+            height = round(image.height * max_width / image.width)
+            image = image.resize((max_width, height), Image.LANCZOS)
+        quantised = image.quantize(colors=256, method=Image.FASTOCTREE)
+        buffer = io.BytesIO()
+        quantised.save(buffer, format="PNG", optimize=True)
+    payload = buffer.getvalue()
+    if len(payload) >= path.stat().st_size:      # never make it bigger
+        payload = path.read_bytes()
+    return "data:image/png;base64," + base64.b64encode(payload).decode()
 
 
 def esc(text: str) -> str:
