@@ -924,7 +924,8 @@ h1{
 
 section{margin:0 0 4rem}
 /* Section rule as a dimension line: end ticks, like a drafted measurement. */
-.sechead{display:flex; align-items:baseline; gap:1rem; margin:0 0 1.1rem}
+.sechead{display:flex; align-items:baseline; gap:.85rem; margin:0 0 1.1rem;
+  flex-wrap:wrap}
 .sechead h2{
   font-family:"IBM Plex Sans Condensed","Arial Narrow",ui-sans-serif,sans-serif;
   font-size:1.62rem; font-weight:700; margin:0; letter-spacing:-.003em;
@@ -1087,6 +1088,14 @@ table.assume td.k{font-family:"IBM Plex Sans Condensed",ui-sans-serif,sans-serif
 table.assume td.k.c{color:var(--warn)}
 table.assume td.k.s{color:var(--good)}
 table.assume td.k.h{color:var(--ink-3)}
+.sechead .scope{display:flex; gap:.32rem; flex:0 0 auto; align-items:center}
+.chip{
+  font-family:"IBM Plex Sans Condensed","Arial Narrow",ui-sans-serif,sans-serif;
+  font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; font-weight:600;
+  color:var(--c); border:1px solid var(--c); border-radius:999px;
+  padding:.1rem .45rem .13rem; white-space:nowrap; line-height:1.5;
+}
+
 .tip{cursor:help}
 table.assume td.k.tip{text-decoration:underline dotted; text-underline-offset:3px}
 table.assume td.wrap-cell{white-space:normal; min-width:16rem; color:var(--ink-2);
@@ -1115,7 +1124,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </header>
 
 <section>
-  <div class="sechead"><h2>The three definitions</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>What each pipeline calls a circumference</h2><span class="scope"><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   <p class="lede">Everything below follows from one choice: at height <i>z</i>, which curve
   are you measuring the length of?</p>
 
@@ -1165,7 +1174,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>Where the avatar girth comes from</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Avatar: hull of a band, and what that costs</h2><span class="scope"><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span></span><span class="dim"></span></div>
   <div class="prose">
     <p>The band-and-hull definition has two effects that pull in opposite directions, and
     they separate exactly. Writing <math><mi>C</mi></math> for the true torso loop on the
@@ -1212,7 +1221,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>Constants or search</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Constants or search: how each finds a level</h2><span class="scope"><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   <p class="lede">The second axis: how each pipeline decides <em>where</em> a level sits. A
   fixed fraction of stature is fast and reproducible and wrong on atypical bodies; a
   geometric search adapts, and can fail outright.</p>
@@ -1221,7 +1230,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>Where they cut</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Where each pipeline cuts</h2><span class="scope"><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   <figure class="fig wide">
     <img src="{fig_levels_cohort}" alt="Height of each cut as a percent of stature, one dot per scan per method" loading="lazy">
     <figcaption>{levels_caption}</figcaption>
@@ -1241,7 +1250,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>When the reference is the one that fails</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Avatar vs segmentation: when the reference is the one that fails</h2><span class="scope"><span class="chip" style="--c:var(--c-matlab, var(--ref))">matlab</span><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span></span><span class="dim"></span></div>
   <p class="lede">One scan looks like an outlier for every method &mdash; segmentation 128%,
   slice 180%, and the only scan where the port and MATLAB disagree. It is worth being
   careful about what that means, because the scan is fine and so is segmentation.</p>
@@ -1311,7 +1320,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>Which placement is right</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Which placement is anatomically right</h2><span class="scope"><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   <p class="lede">Agreement with <code>Avatar.m</code> and agreement with anatomy are not
   the same ranking, and on chest, waist and hip they are close to opposite.</p>
 
@@ -1337,7 +1346,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>How far apart they land</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>How far each sits from Avatar.m</h2><span class="scope"><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   <p class="lede">Scored against <code>Avatar.m</code> as run in MATLAB R2023b — the
   reference because it is the implementation the others were written from, not because it
   is known to be right.</p>
@@ -1393,7 +1402,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>Cost, and the trade space</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>What each costs, and the trade space</h2><span class="scope"><span class="chip" style="--c:var(--c-matlab, var(--ref))">matlab</span><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span><span class="chip" style="--c:var(--c-segmentation, var(--ref))">segmentation</span><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   {timing_table}
   <figure class="chartbox">
     {timing_chart}
@@ -1433,7 +1442,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>Slice: what is unfinished</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Slice: what is unfinished</h2><span class="scope"><span class="chip" style="--c:var(--c-slice, var(--ref))">slice</span></span><span class="dim"></span></div>
   <div class="callout slice">
     <p><strong>The geometry is sound; the reporting layer is not.</strong> The backend
     computes a full height profile per subject — every level, loop count, per-loop
@@ -1460,7 +1469,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>The port now matches</h2><span class="dim"></span></div>
+  <div class="sechead"><h2>Avatar: the port now reproduces MATLAB</h2><span class="scope"><span class="chip" style="--c:var(--c-matlab, var(--ref))">matlab</span><span class="chip" style="--c:var(--c-avatar, var(--ref))">avatar</span></span><span class="dim"></span></div>
   <div class="prose">
     <p>The avatar backend is a port of <code>Avatar.m</code>, so it should return MATLAB's
     numbers exactly. It now matches {avatar_exact}% of 720 paired values, up from 65.4%,
