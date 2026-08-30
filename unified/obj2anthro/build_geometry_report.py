@@ -109,6 +109,36 @@ def slice_levels(run_root: Path, data: dict) -> dict:
 # --------------------------------------------------------------------------
 # Rendering helpers
 # --------------------------------------------------------------------------
+
+def accuracy_spread(detail: pd.DataFrame) -> dict:
+    """Mean, median, and how concentrated each method's disagreement is.
+
+    Segment volumes are reported separately because ``Avatar.m`` derives them
+    from a partial hole-filling routine that no Python backend implements, so a
+    percent difference there compares two different quantities.
+    """
+    volumes = [m for m in detail.measurement.unique()
+               if m.endswith("_cm3") and m != "volume_cm3"]
+    out = {}
+    for method, g in detail.groupby("method"):
+        total = g.abs_pct_error.sum()
+        by_measurement = g.groupby("measurement").abs_pct_error.sum()
+        without = g[~g.measurement.isin(volumes)]
+        out[method] = {
+            "mean": float(g.abs_pct_error.mean()),
+            "median": float(g.abs_pct_error.median()),
+            "arm_volume_share": float(
+                by_measurement.reindex(["arm_volume_left_cm3", "arm_volume_right_cm3"])
+                .sum() / total * 100) if total else 0.0,
+            "collar_share": float(
+                by_measurement.get("collar_to_scalp_length_cm", 0.0) / total * 100)
+            if total else 0.0,
+            "mean_no_volumes": float(without.abs_pct_error.mean()),
+            "median_no_volumes": float(without.abs_pct_error.median()),
+        }
+    return out
+
+
 def girth_decomposition(run: Path) -> dict:
     """Split the avatar girth's offset from the true section into its two causes.
 
@@ -363,6 +393,55 @@ def all_measurements_chart(detail, width=690, row_height=17):
     return "".join(parts)
 
 
+
+def spread_chart(detail, width=690, row_height=30, sub=None):
+    """Mean and median distance from the reference, side by side.
+
+    The mean alone is misleading here: a handful of columns where a backend
+    computes a different quantity entirely drags it upward and hides what a
+    typical measurement does. Showing both makes the skew visible instead of
+    letting one number stand for the method.
+    """
+    stats = detail.groupby("method")["abs_pct_error"].agg(["mean", "median"])
+    stats = stats.reindex([m for m in SERIES if m in stats.index])
+    pad_left, pad_right, top = 150, 108, 34
+    inner = width - pad_left - pad_right
+    height = top + len(stats) * (row_height * 2 + 12) + 16
+    peak = float(stats["mean"].max()) or 1.0
+
+    parts = [f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" '
+             f'aria-label="{esc(sub or "")}">']
+    for t in (0, peak / 2, peak):
+        x = pad_left + inner * (t / peak)
+        parts.append(f'<line class="grid" x1="{x:.1f}" y1="{top - 10}" x2="{x:.1f}" '
+                     f'y2="{height - 14}"/>')
+        parts.append(f'<text class="tick" x="{x:.1f}" y="{top - 15}" '
+                     f'text-anchor="middle">{t:.0f}%</text>')
+
+    y = top
+    for method, row in stats.iterrows():
+        for label, value, opacity in (("mean", row["mean"], 1.0),
+                                      ("median", row["median"], 0.45)):
+            w = max(inner * (value / peak), 2)
+            parts.append(
+                f'<rect class="bar" x="{pad_left}" y="{y + 4}" width="{w:.1f}" '
+                f'height="{row_height - 12}" rx="4" fill="var(--c-{method})" '
+                f'opacity="{opacity}"><title>{esc(method)} {label}: {value:.2f}%'
+                f'</title></rect>')
+            parts.append(f'<text class="rowlabel" x="{pad_left - 10}" '
+                         f'y="{y + row_height / 2 + 1}" text-anchor="end">'
+                         f'{esc(method) if label == "mean" else ""}'
+                         f'<tspan class="sub" dx="0">{"" if label == "mean" else label}'
+                         f'</tspan></text>')
+            parts.append(f'<text class="value" x="{pad_left + w + 9:.1f}" '
+                         f'y="{y + row_height / 2 + 1}">{value:.1f}%'
+                         f'<tspan class="sub"> {label}</tspan></text>')
+            y += row_height
+        y += 12
+    parts.append("</svg>")
+    return "".join(parts)
+
+
 def matrix_table(pairs):
     """Pairwise disagreement as a tinted matrix. Sequential tint, ink-token text."""
     names = [REFERENCE] + SERIES
@@ -437,7 +516,10 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
 
     decomposition = girth_decomposition(run)
 
+    robust = accuracy_spread(detail)
+
     payload = {
+        "robust": robust,
         "decomposition": decomposition,
         "n_scans": int(combined[combined.anthro_method == REFERENCE].shape[0]),
         "avatar_pct_exact": float(by_method.loc["avatar", "pct_exact"]),
@@ -496,6 +578,16 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
             decimals=1, sub="Slice pipeline: sum of all loops vs largest single loop"),
         headline=headline_table(detail),
         assumptions=ASSUMPTIONS,
+        spread_chart=spread_chart(detail,
+            sub="Distance from Avatar.m, mean and median, by method"),
+        seg_mean=f"{robust['segmentation']['mean']:.1f}",
+        seg_median=f"{robust['segmentation']['median']:.1f}",
+        seg_top2=f"{robust['segmentation']['arm_volume_share']:.0f}",
+        seg_collar=f"{robust['segmentation']['collar_share']:.0f}",
+        seg_novol=f"{robust['segmentation']['mean_no_volumes']:.1f}",
+        seg_novol_med=f"{robust['segmentation']['median_no_volumes']:.1f}",
+        slice_median=f"{robust['slice']['median']:.0f}",
+        slice_ceiling=19, slice_n=21,
         all_chart=all_measurements_chart(detail),
         fig_placement=figure(fig_uri("CanCan10_A_2026-02-27_09-49-56_placement.png"),
             "The same body, the same three girths, placed by each pipeline. The value each one reports is printed on its line. Read the ladder: segmentation puts the chest at the bust, the waist above the navel and the hip at the widest point. Slice puts its waist <em>below</em> its hip."),
@@ -509,8 +601,11 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
             "The outlier, and why it is one. <strong>Left:</strong> the left-arm segment "
             "holds 82 vertices against the right arm's 732 — one arm is fused to the torso "
             "and never separates. <strong>Right:</strong> the landmarks that follow, each "
-            "method in its own colour (segmentation reports landmarks in its own frame, so "
-            "only their height is comparable and they are drawn in a lane). "
+            "method in its own colour. Segmentation and slice report landmarks in their own "
+            "frames, so only height is comparable and they are drawn in lanes. Slice's "
+            "&quot;crotch&quot; sits at 65% of stature — its detector takes the highest "
+            "level with two or more loops, which the separated arms satisfy, so it "
+            "saturates at its own band ceiling instead of finding the legs. "
             "<code>lShoulder</code> lands 37&nbsp;cm below <code>rShoulder</code>, and the "
             "arm lengths come out 27.3 and 44.5&nbsp;cm. On a clean scan the same segments "
             "hold 549 and 557 vertices and the shoulders sit 1&nbsp;cm apart."),
@@ -1123,10 +1218,25 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   is known to be right.</p>
 
   <figure class="chartbox">
-    {accuracy_chart}
-    <figcaption>Mean absolute percent difference from Avatar.m. Only pairs where both
-    produced a value are scored. Hover a bar for its counts.</figcaption>
+    {spread_chart}
+    <figcaption>Distance from Avatar.m, mean and median. Only pairs where both produced a
+    value are scored. This measures <em>distance from the reference</em>, not correctness
+    &mdash; the placement test further down finds the ranking reverses on chest and waist.
+    Hover a bar for the exact value.</figcaption>
   </figure>
+
+  <div class="prose">
+    <p>The two statistics say different things about segmentation. Its mean is
+    {seg_mean}%, its median {seg_median}% &mdash; the mean is carried by a short list of
+    columns rather than by typical behaviour. Left and right arm volume alone are
+    <strong>{seg_top2}% of its entire error budget</strong>, and
+    <code>collar_to_scalp_length</code> another {seg_collar}%, which is the measurement
+    where the reference is the one with the defect. Drop the segment volumes &mdash; a
+    different quantity, computed from a hole-filling routine the port does not implement
+    &mdash; and segmentation sits at {seg_novol}% mean, {seg_novol_med}% median.</p>
+    <p>Slice does not have that structure. Its median is {slice_median}%, so the
+    disagreement is the whole distribution rather than a tail.</p>
+  </div>
 
   <h3>Every pair, with neither treated as truth</h3>
   {matrix}

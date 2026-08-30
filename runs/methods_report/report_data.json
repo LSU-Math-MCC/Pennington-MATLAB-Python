@@ -1,4 +1,30 @@
 {
+ "robust": {
+  "avatar": {
+   "mean": 0.03352557042908107,
+   "median": 0.0,
+   "arm_volume_share": 0.0,
+   "collar_share": 0.0,
+   "mean_no_volumes": 0.03352557042908107,
+   "median_no_volumes": 0.0
+  },
+  "segmentation": {
+   "mean": 22.542640252056174,
+   "median": 7.027040184356525,
+   "arm_volume_share": 40.47463362804225,
+   "collar_share": 9.518514200295005,
+   "mean_no_volumes": 12.764306652250388,
+   "median_no_volumes": 5.809729151453828
+  },
+  "slice": {
+   "mean": 67.26650893955402,
+   "median": 25.34204184075528,
+   "arm_volume_share": 4.812005156893947,
+   "collar_share": 0.0,
+   "mean_no_volumes": 72.35831030016999,
+   "median_no_volumes": 24.735248710372556
+  }
+ },
  "decomposition": {
   "band": 2.5708122524122947,
   "shortcut": -0.5477491055485678,

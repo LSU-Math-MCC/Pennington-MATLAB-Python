@@ -1,0 +1,10 @@
+{
+ "vols_excluded": [
+  "arm_volume_left_cm3",
+  "arm_volume_right_cm3",
+  "head_volume_cm3",
+  "leg_volume_left_cm3",
+  "leg_volume_right_cm3",
+  "torso_volume_cm3"
+ ]
+}
