@@ -135,6 +135,28 @@ def girth_decomposition(run: Path) -> dict:
     }
 
 
+
+def pooled_runtime(repo_root: Path, combined: pd.DataFrame) -> pd.DataFrame:
+    """Per-scan cost, pooled over every repeat pass under ``runs/timing/``.
+
+    A single pass is noisy at this scale, so the report prefers repeated passes
+    where they exist and falls back to the report's own run otherwise. MATLAB is
+    never re-run, so its figure always comes from the recorded ground-truth run.
+    """
+    frames = [combined[["anthro_method", "status", "runtime_seconds"]]]
+    for table in sorted((repo_root / "runs" / "timing").glob("*/combined_measurements.csv")):
+        extra = pd.read_csv(table)[["anthro_method", "status", "runtime_seconds"]]
+        # The repeat passes ran with plotly installed, so the slice backend also
+        # rendered its seven per-subject diagnostic images -- a different job from
+        # measuring. Slice's figure therefore stays on the measurement-only run.
+        extra = extra[extra.anthro_method != "slice"]
+        frames.append(extra)
+    pooled = pd.concat(frames, ignore_index=True)
+    pooled = pooled[pooled.status == "success"]
+    return pooled.groupby("anthro_method")["runtime_seconds"].agg(
+        ["mean", "median", "max", "sum", "count"])
+
+
 def timing_table(detail: dict) -> str:
     """Per-scan cost, folder cost, throughput, and the multiple against the fastest."""
     rows = []
@@ -329,8 +351,9 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
     odd_scan = "A00-09-0254_2025-12-10_10-38-56"
     misses_on_odd = int((avatar_misses.subject_id == odd_scan).sum())
 
-    runtime = (combined.groupby("anthro_method")["runtime_seconds"]
-               .agg(["mean", "median", "max", "sum", "count"]))
+    runtime = pooled_runtime(repo_root, combined)
+    # `sum` pooled over repeats is not a folder pass; normalise back to one.
+    runtime["sum"] = runtime["mean"] * 20
 
     # slice: sum-of-loops against largest-loop, at the level it chose
     slice_rows = levels["rows"]
@@ -1027,8 +1050,9 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   <figure class="chartbox">
     {timing_chart}
     <figcaption>Mean wall-clock seconds per scan, same folder and same machine. MATLAB
-    excludes Engine start-up, a one-time ~20&nbsp;s per batch. Slice is measurement only;
-    its optional per-subject renders are not included.</figcaption>
+    excludes Engine start-up, a one-time ~20&nbsp;s per batch. Slice is measurement only: with plotly
+    installed it also renders seven diagnostic images per subject, which takes it from
+    0.74&nbsp;s to 3.0&nbsp;s.</figcaption>
   </figure>
 
   <div class="prose"><p>Three axes, and no method wins on all of them.</p></div>
