@@ -1,0 +1,26 @@
+{
+ "avatar": {
+  "n": 21,
+  "ordered": 21,
+  "chest>waist": 21,
+  "waist>hip": 21,
+  "chest_waist_gap": 9.878129621959204,
+  "waist_hip_gap": 9.782946777717505
+ },
+ "segmentation": {
+  "n": 21,
+  "ordered": 20,
+  "chest>waist": 21,
+  "waist>hip": 20,
+  "chest_waist_gap": 9.336531237357676,
+  "waist_hip_gap": 13.274463270599924
+ },
+ "slice": {
+  "n": 20,
+  "ordered": 15,
+  "chest>waist": 20,
+  "waist>hip": 15,
+  "chest_waist_gap": 18.221105527638176,
+  "waist_hip_gap": 6.894472361809051
+ }
+}

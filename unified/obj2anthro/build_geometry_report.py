@@ -143,15 +143,23 @@ def pooled_runtime(repo_root: Path, combined: pd.DataFrame) -> pd.DataFrame:
     where they exist and falls back to the report's own run otherwise. MATLAB is
     never re-run, so its figure always comes from the recorded ground-truth run.
     """
-    frames = [combined[["anthro_method", "status", "runtime_seconds"]]]
+    columns = ["anthro_method", "status", "runtime_seconds"]
+    repeats = []
     for table in sorted((repo_root / "runs" / "timing").glob("*/combined_measurements.csv")):
-        extra = pd.read_csv(table)[["anthro_method", "status", "runtime_seconds"]]
+        extra = pd.read_csv(table)[columns]
         # The repeat passes ran with plotly installed, so the slice backend also
         # rendered its seven per-subject diagnostic images -- a different job from
         # measuring. Slice's figure therefore stays on the measurement-only run.
-        extra = extra[extra.anthro_method != "slice"]
-        frames.append(extra)
-    pooled = pd.concat(frames, ignore_index=True)
+        repeats.append(extra[extra.anthro_method != "slice"])
+    repeats = pd.concat(repeats, ignore_index=True) if repeats else pd.DataFrame(columns=columns)
+
+    # Where repeat passes exist they were run against the current working tree, so
+    # they replace the report's own run rather than being averaged with it -- mixing
+    # the two would blend timings from different versions of a backend.
+    measured = set(repeats.anthro_method.unique())
+    base = combined[columns]
+    pooled = pd.concat([base[~base.anthro_method.isin(measured)], repeats],
+                       ignore_index=True)
     pooled = pooled[pooled.status == "success"]
     return pooled.groupby("anthro_method")["runtime_seconds"].agg(
         ["mean", "median", "max", "sum", "count"])
@@ -301,6 +309,60 @@ def bar_chart(rows, unit="%", width=680, row_height=34, decimals=2, sub=None):
     return "".join(parts)
 
 
+
+def all_measurements_chart(detail, width=690, row_height=17):
+    """Every shared measurement, three methods, one row each.
+
+    A dot chart rather than grouped bars: 38 rows x 3 series is unreadable as
+    bars, and the question here is rank and spread, not precise magnitude. The
+    x axis is clipped at 100% with a marker for anything beyond, because a few
+    measurements run to several thousand percent and would flatten the rest.
+    """
+    grouped = (detail.groupby(["measurement", "method"])["abs_pct_error"]
+               .mean().unstack())
+    grouped = grouped.reindex(grouped.mean(axis=1).sort_values().index)
+    cap = 100.0
+    pad_left, pad_right, top = 232, 42, 30
+    inner = width - pad_left - pad_right
+    height = top + len(grouped) * row_height + 26
+
+    parts = [f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" '
+             f'aria-label="Mean absolute percent difference from Avatar.m for every '
+             f'measurement, by method">']
+    for t in (0, 25, 50, 75, 100):
+        x = pad_left + inner * (t / cap)
+        parts.append(f'<line class="grid" x1="{x:.1f}" y1="{top - 10}" x2="{x:.1f}" '
+                     f'y2="{height - 22}"/>')
+        parts.append(f'<text class="tick" x="{x:.1f}" y="{top - 15}" '
+                     f'text-anchor="middle">{t}%</text>')
+
+    for i, (name, row) in enumerate(grouped.iterrows()):
+        y = top + i * row_height + row_height / 2
+        label = name.replace("_cm3", "").replace("_cm2", "").replace("_cm", "")
+        label = label.replace("_", " ")
+        parts.append(f'<text class="rowlabel" x="{pad_left - 10}" y="{y + 3.5}" '
+                     f'text-anchor="end">{esc(label)}</text>')
+        parts.append(f'<line class="grid" x1="{pad_left}" y1="{y}" '
+                     f'x2="{pad_left + inner}" y2="{y}" opacity=".5"/>')
+        for method in SERIES:
+            value = row.get(method)
+            if value is None or not np.isfinite(value):
+                continue
+            beyond = value > cap
+            x = pad_left + inner * (min(value, cap) / cap)
+            parts.append(
+                f'<circle class="dot" cx="{x:.1f}" cy="{y:.1f}" r="4" '
+                f'fill="var(--c-{method})" opacity="{0.55 if beyond else 0.95}">'
+                f'<title>{esc(method)} — {esc(label)}: {value:.2f}%'
+                f'{" (clipped)" if beyond else ""}</title></circle>')
+            if beyond:
+                parts.append(f'<text class="tick" x="{x + 7:.1f}" y="{y + 3.5}">&#8594;</text>')
+    parts.append(f'<text class="tick" x="{pad_left}" y="{height - 6}">'
+                 f'mean |difference| from Avatar.m · &#8594; = beyond 100%</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
 def matrix_table(pairs):
     """Pairwise disagreement as a tinted matrix. Sequential tint, ink-token text."""
     names = [REFERENCE] + SERIES
@@ -434,6 +496,10 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
             decimals=1, sub="Slice pipeline: sum of all loops vs largest single loop"),
         headline=headline_table(detail),
         assumptions=ASSUMPTIONS,
+        all_chart=all_measurements_chart(detail),
+        fig_placement=figure(fig_uri("CanCan10_A_2026-02-27_09-49-56_placement.png"),
+            "The same body, the same three girths, placed by each pipeline. The value each one reports is printed on its line. Read the ladder: segmentation puts the chest at the bust, the waist above the navel and the hip at the widest point. Slice puts its waist <em>below</em> its hip."),
+        fig_levels_cohort=fig_uri("levels_cohort.png"),
         timing_table=timing_table(payload["runtime_detail"]),
         band_cm=f"{decomposition['band']:+.2f}",
         shortcut_cm=f"{decomposition['shortcut']:+.2f}",
@@ -442,7 +508,9 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
         fig_segments=figure(fig_uri("A00-09-0254_2025-12-10_10-38-56_segments.png"),
             "The outlier, and why it is one. <strong>Left:</strong> the left-arm segment "
             "holds 82 vertices against the right arm's 732 — one arm is fused to the torso "
-            "and never separates. <strong>Right:</strong> the landmarks that follow. "
+            "and never separates. <strong>Right:</strong> the landmarks that follow, each "
+            "method in its own colour (segmentation reports landmarks in its own frame, so "
+            "only their height is comparable and they are drawn in a lane). "
             "<code>lShoulder</code> lands 37&nbsp;cm below <code>rShoulder</code>, and the "
             "arm lengths come out 27.3 and 44.5&nbsp;cm. On a clean scan the same segments "
             "hold 549 and 557 vertices and the shoulders sit 1&nbsp;cm apart."),
@@ -493,14 +561,14 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
             "bridges straight across both armpits and returns 133.1&nbsp;cm. No aggregation "
             "rule recovers the torso here — the loops would have to be cut apart first."),
         fig_levels=figure(fig_uri("CanCan10_A_2026-02-27_09-49-56_levels.png"),
-            "Where each pipeline placed the same three named girths on CanCan10_A, with the "
-            "value it reported. The chest lines coincide almost exactly — the disagreement "
-            "there is entirely about <em>what</em> to measure. Waist and hip are a different "
-            "problem: the slice pipeline puts its waist below its hip.", wide=False),
+            "All three methods' chest, waist and hip on CanCan10_A, with the value each "
+            "reports. Avatar and slice agree on chest <em>height</em> to within a point, so "
+            "the 119 against 192 is definition alone. Segmentation cuts higher, at the bust. "
+            "Slice's waist sits below its own hip.", wide=False),
         fig_levels_2=figure(fig_uri("CanCan01_A_2025-10-27_11-10-43_levels.png"),
-            "CanCan01_A, the largest scan in the folder. Here the two pipelines disagree "
-            "about height as well as definition, and the slice waist again lands below the "
-            "slice hip.", wide=False),
+            "CanCan01_A, the largest scan in the folder. Here the methods disagree about "
+            "height as well as definition, and the slice waist again lands below the slice "
+            "hip.", wide=False),
         fig_profile=figure(fig_uri("A00-08-4914_B_2025-12-09_12-31-25_profile.png"),
             "The slice pipeline's own height profile for A00-08-4914_B, which it computes and "
             "writes out in full. The reported curve is the sum of every loop; the faint curve "
@@ -556,79 +624,46 @@ def headline_table(detail: pd.DataFrame) -> str:
 
 
 
+
 ASSUMPTIONS = """
 <div class="scroll"><table class="assume"><thead><tr>
   <th>Level</th><th>avatar</th><th>segmentation</th><th>slice</th>
 </tr></thead><tbody>
-<tr><th scope="row">chest</th>
-  <td class="k c">constant</td><td class="k h">hybrid</td><td class="k h">hybrid</td></tr>
-<tr><td class="wrap-cell" colspan="4">Avatar takes the <em>median of the two armpit
-  heights</em> and stops. Segmentation blends four signals (0.42 front depth + 0.24 depth
-  + 0.20 perimeter + 0.14 area) and runs <code>find_peaks</code> inside a 0.60&ndash;0.78
-  band of the shoulder&ndash;crotch span. Slice takes the max summed perimeter in a fixed
-  65&ndash;82% stature band.</td></tr>
-<tr><th scope="row">waist</th>
-  <td class="k c">constant</td><td class="k h">hybrid</td><td class="k h">hybrid</td></tr>
-<tr><td class="wrap-cell" colspan="4">Avatar: the <em>midpoint of armpit and hip</em>, no
-  narrowing search at all. Segmentation: local minimum of section area in a 0.34&ndash;0.70
-  band. Slice: min summed perimeter in a 45&ndash;65% band.</td></tr>
-<tr><th scope="row">hip</th>
-  <td class="k h">hybrid</td><td class="k h">hybrid</td><td class="k h">hybrid</td></tr>
-<tr><td class="wrap-cell" colspan="4">All three search, all three inside a fixed window.
-  Avatar smooths a width profile and stops at the first sign change; segmentation takes a
-  smoothed local max of y-extent above the crotch; slice takes a max in 38&ndash;56%.</td></tr>
-<tr><th scope="row">thigh</th>
-  <td class="k c">constant</td><td class="k c">constant</td><td class="k h">hybrid</td></tr>
-<tr><td class="wrap-cell" colspan="4">Avatar and segmentation both use a literal
-  <strong>0.75</strong> of the ankle&ndash;hip span with no search. Slice takes a max in a
-  30&ndash;47% band.</td></tr>
-<tr><th scope="row">crotch</th>
-  <td class="k s">search</td><td class="k s">search</td><td class="k h">hybrid</td></tr>
-<tr><td class="wrap-cell" colspan="4">Avatar sweeps 50 vertical planes between the feet
-  and takes the max of the per-plane minima &mdash; a genuine saddle-point search &mdash;
-  then refines by clustering a notch profile. Segmentation maximises a convexity score
-  (area / hull area) by iterative ray-casting. Slice takes the highest level with two or
-  more loops, falling back to <strong>0.45&times;height</strong> if that fails.</td></tr>
-<tr><th scope="row">arm length</th>
-  <td class="k h">hybrid</td><td class="k h">hybrid</td><td class="k c">constant</td></tr>
-<tr><td class="wrap-cell" colspan="4">Slice assigns <strong>0.30&times;height</strong> to
-  both arms unconditionally, with no geometry consulted and no fallback path. Outside leg
-  length is likewise <strong>0.53&times;height</strong>.</td></tr>
+<tr><th scope="row">chest</th><td class="k c tip" title="matlab_avatar.py:615 - z is the median of the two armpit heights. No narrowing or fullness search of any kind.">constant</td><td class="k h tip" title="girth_levels.py:49,166-167 - blends 0.42 front depth + 0.24 depth + 0.20 perimeter + 0.14 area, then scipy find_peaks inside a 0.60-0.78 band of the shoulder-crotch span, with a middle bias and an axilla penalty past 0.82.">hybrid</td><td class="k h tip" title="slice.py:1246,1251 - max of sum_perimeter inside a fixed 65-82% stature band. The band supplies most of the anatomy.">hybrid</td></tr>
+<tr><th scope="row">waist</th><td class="k c tip" title="matlab_avatar.py:607 - z is the midpoint of the armpit and hip heights. Avatar.m never looks for the narrowest section.">constant</td><td class="k h tip" title="girth_levels.py:164,217 - local minimum of section area inside a 0.34-0.70 band. Separate stomach-peak and axilla levels use their own bands.">hybrid</td><td class="k h tip" title="slice.py:1244,1256 - min of sum_perimeter in a 45-65% band. The horizontal-waist variant takes a windowed mean instead, which is not a search at all.">hybrid</td></tr>
+<tr><th scope="row">hip</th><td class="k h tip" title="matlab_avatar.py:561,568,583 - window fixed at the midpoint of armpit and crotch, then sosmooth3 over a width profile and stop at the first sign change of the difference.">hybrid</td><td class="k h tip" title="girth_levels.py:260-285 - smoothed local max of y-extent above the crotch; falls back to a fixed 0.05-0.10 of body height window.">hybrid</td><td class="k h tip" title="slice.py:1241,1254 - max of sum_perimeter in a 38-56% band.">hybrid</td></tr>
+<tr><th scope="row">thigh</th><td class="k c tip" title="matlab_avatar.py:627,634 - literally 0.75 of the ankle-to-hip span. No search, no verification.">constant</td><td class="k c tip" title="leg.py:521,535 - _measure_leg_section_girth at a fixed 0.75 fraction (0.50 for mid-thigh). Same exposure as the avatar path.">constant</td><td class="k h tip" title="slice.py:1240,1262 - max of left/right max_perimeter in a 30-47% band.">hybrid</td></tr>
+<tr><th scope="row">crotch</th><td class="k s tip" title="matlab_avatar.py:152-190 - findMaxMin sweeps 50 vertical planes between the feet and takes the maximum of the per-plane minima, a genuine saddle-point search; adjustCrotch then clusters a notch profile over 20 levels to refine it.">search</td><td class="k s tip" title="landmarks.py:11-44 with convexity_search.py:104-145 - maximises a convexity score (section area / hull area) by iterative upward ray casting. No fixed finish line.">search</td><td class="k h tip" title="slice.py:449-471,1291 - highest level with two or more loops inside a 5-65% band; silently falls back to 0.45 x height when that search finds nothing.">hybrid</td></tr>
+<tr><th scope="row">arm</th><td class="k h tip" title="matlab_avatar.py:764-792 - wrist found by minimum pairwise diameter over 20 slices, then bicep and forearm at fixed 0.25 and 0.75 blends between wrist and shoulder.">hybrid</td><td class="k h tip" title="arm.py:94-118,606 - wrist by min perimeter in a 0.12-0.36 band with a stability floor; bicep by largest loop over linspace(0.45,0.62). Forearm, however, is a fixed 0.5 with no search (arm.py:589).">hybrid</td><td class="k c tip" title="slice.py:1294 - Arm Length = 0.30 x height, assigned to both arms unconditionally. No geometry is consulted and no fallback path exists. Outside leg length is 0.53 x height the same way.">constant</td></tr>
 <tr><th scope="row">orientation</th>
-  <td class="wrap-cell">90&deg;/180&deg; axis permutation by bounding-box extent. Never a
-  rotation, so stature equals a bbox extent exactly.</td>
-  <td class="wrap-cell">Rule-based whole-body axis pick; then <em>per-limb</em> OBB
-  alignment after segmentation.</td>
-  <td class="wrap-cell">True PCA on the vertex covariance. No azimuthal correction, so
-  left/right is inherited from the file.</td></tr>
+  <td class="wrap-cell tip" title="matlab_ops.py:249-299 - permutes and flips axes in 90 and 180 degree steps chosen by sorted bounding-box extents, with 0.9/0.1 height bands deciding the head-feet flip.">90&deg;/180&deg; axis permutation by bounding-box extent. Never a free rotation, so stature equals a bbox extent exactly.</td>
+  <td class="wrap-cell tip" title="mesh.py:281-400 picks the vertical axis by bbox extent and resolves left-right with a KD-tree distance heuristic; mesh.py:459-610 then OBB-aligns each limb submesh after segmentation.">Rule-based whole-body axis pick, then <em>per-limb</em> OBB alignment after segmentation.</td>
+  <td class="wrap-cell tip" title="slice.py:226-279 - covariance eigen-decomposition, principal axis rotated onto z; head-feet flip by comparing bbox width in the bottom and top 0.12-height bands. No azimuthal correction.">True PCA on the vertex covariance. No azimuthal correction, so left/right is inherited from the file.</td></tr>
 <tr><th scope="row">limb separation</th>
-  <td class="wrap-cell">Arms: constrained flood fill from the fingertip. Legs: <em>no
-  connectivity</em> &mdash; two cutting lines, crotch to each hip.</td>
-  <td class="wrap-cell">Boolean subtraction, plane cut, connected components scored by
-  shape, with a geodesic flood-fill fallback.</td>
-  <td class="wrap-cell"><strong>None.</strong> Every value is read off whole-body slice
-  statistics in a stature band.</td></tr>
+  <td class="wrap-cell tip" title="matlab_avatar.py:298-310 with matlab_ops.py:305-339 for the arms; getLegs at 339-361 for the legs.">Arms: constrained flood fill from the fingertip. Legs: <em>no connectivity at all</em> &mdash; two cutting lines, crotch to each hip.</td>
+  <td class="wrap-cell tip" title="arm.py:250-400 - boolean mesh_difference, a plane cut at the armpit, connected components scored on outward-vertex fraction, height extent and vertex count, with a Dijkstra geodesic flood-fill fallback at arm.py:294-336.">Boolean subtraction, plane cut, connected components scored by shape, with a geodesic flood-fill fallback.</td>
+  <td class="wrap-cell tip" title="There is no boolean subtraction, no cutting plane, no connectivity and no submesh extraction anywhere in slice.py. Loops are bucketed left/right by centroid sign at slice.py:417-426."><strong>None.</strong> Every value is read off whole-body slice statistics inside a stature band.</td></tr>
 <tr><th scope="row">tally</th>
-  <td>5 constant · 3 search · 7 hybrid</td>
-  <td>4 constant · 3 search · 14 hybrid</td>
-  <td>4 constant · <strong>0 search</strong> · 13 hybrid</td></tr>
+  <td class="tip" title="Of 15 landmark and level determinations.">5 constant &middot; 3 search &middot; 7 hybrid</td>
+  <td class="tip" title="Of 21 landmark and level determinations.">4 constant &middot; 3 search &middot; 14 hybrid</td>
+  <td class="tip" title="Of 17 landmark and level determinations. Not one unrestricted search anywhere in the backend.">4 constant &middot; <strong>0 search</strong> &middot; 13 hybrid</td></tr>
 </tbody></table></div>
+<p class="lede" style="margin-top:-.6rem">Hover any cell for the criterion and the source
+line. <strong>constant</strong> = a fixed fraction or midpoint, no geometry consulted.
+<strong>search</strong> = an unrestricted extremum, derivative or convexity criterion.
+<strong>hybrid</strong> = a search boxed inside a hard-coded window.</p>
 <div class="prose">
-  <p><strong>constant</strong> = a fixed fraction or midpoint, no geometry consulted.
-  <strong>search</strong> = an unrestricted extremum, derivative or convexity criterion.
-  <strong>hybrid</strong> = a search boxed inside a hard-coded window.</p>
   <p>The ordering is not what the accuracy table implies. <em>Segmentation</em> is the most
-  search-driven of the three &mdash; its crotch and armpit detection run real optimisations
-  with no fixed finish line. <em>Slice</em> is the most constant-driven: it has no
-  unrestricted search anywhere, every extremum is boxed inside a percent-of-stature window
-  that supplies most of the anatomical information, and two of its measurements are pure
-  fractions of height. <em>Avatar</em> sits between, but is constant-heavy exactly where it
-  matters most: chest and waist are a median and a midpoint of armpit and hip heights, with
-  no fullness or narrowing search at all.</p>
-  <p>This is the real trade. A constant is reproducible and cheap and cannot fail loudly;
-  it is simply wrong on any body the constant was not fitted to. A search adapts to the
-  body in front of it and can fail outright &mdash; which is what the outlier scan below
-  shows happening.</p>
+  search-driven &mdash; its crotch and armpit detection run real optimisations with no
+  fixed finish line. <em>Slice</em> is the most constant-driven: no unrestricted search
+  anywhere, every extremum boxed inside a percent-of-stature window that supplies most of
+  the anatomical information, and two measurements that are pure fractions of height.
+  <em>Avatar</em> sits between, but is constant-heavy exactly where it matters most: chest
+  and waist are a median and a midpoint of armpit and hip heights, with no fullness or
+  narrowing search at all.</p>
+  <p>That is the real trade. A constant is reproducible, cheap, and cannot fail loudly; it
+  is simply wrong on any body it was not fitted to. A search adapts to the body in front of
+  it and can fail outright &mdash; which is what the outlier scan below shows happening.</p>
 </div>
 """
 
@@ -849,6 +884,8 @@ table.assume td.k{font-family:"IBM Plex Sans Condensed",ui-sans-serif,sans-serif
 table.assume td.k.c{color:var(--warn)}
 table.assume td.k.s{color:var(--good)}
 table.assume td.k.h{color:var(--ink-3)}
+.tip{cursor:help}
+table.assume td.k.tip{text-decoration:underline dotted; text-underline-offset:3px}
 table.assume td.wrap-cell{white-space:normal; min-width:16rem; color:var(--ink-2);
   font-size:.86rem}
 @media (max-width:640px){
@@ -982,6 +1019,10 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 
 <section>
   <div class="sechead"><h2>Where they cut</h2><span class="dim"></span></div>
+  <figure class="fig wide">
+    <img src="{fig_levels_cohort}" alt="Height of each cut as a percent of stature, one dot per scan per method" loading="lazy">
+    <figcaption>The height of every cut, as a percent of stature, for all three methods across the cohort. Each dot is one scan; the bar is the median. Chest is the agreement case &mdash; avatar and slice cut within half a point of each other (69% and 68%), with segmentation 72% higher because it targets the bust rather than the armpit median. Waist is the disagreement case: three methods, three different levels (51%, 59%, 63%), and slice's spread is 4&times; the others (IQR 10.3 points against 2.4). The two far-right outliers are the bad-capture scan.</figcaption>
+  </figure>
   <div class="figpair">
     {fig_levels}
     {fig_levels_2}
@@ -1013,6 +1054,68 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   </div>
 </section>
 
+
+<section>
+  <div class="sechead"><h2>Which placement is right</h2><span class="dim"></span></div>
+  <p class="lede">Agreement with <code>Avatar.m</code> and agreement with anatomy are not
+  the same ranking, and on chest, waist and hip they are close to opposite.</p>
+
+  {fig_placement}
+
+  <div class="prose">
+    <p>Two checks, neither of which uses <code>Avatar.m</code> as the reference.</p>
+    <p><strong>Ordering.</strong> Chest must sit above waist, and waist above hip, on every
+    body. Avatar gets this right on 21 of
+    21 scans, segmentation on 20
+    of 21, and slice on 15 of
+    20 — it inverts waist and hip on
+    5 of them.</p>
+    <p><strong>Absolute placement.</strong> Standard anthropometry puts the chest near
+    70&ndash;72% of stature, the natural waist near 62&ndash;64%, and the hip near
+    48&ndash;52%. Median placements:</p>
+  </div>
+
+  <div class="scroll"><table>
+    <thead><tr><th>Method</th><th class="num">chest</th><th class="num">waist</th>
+    <th class="num">hip</th><th class="num">waist IQR</th><th class="num">ordered</th></tr></thead>
+    <tbody>
+      <tr><th scope="row"><span class="dot" style="background:var(--ref)"></span>expected</th>
+        <td class="num dim">70–72%</td><td class="num dim">62–64%</td>
+        <td class="num dim">48–52%</td><td class="num dim">—</td><td class="num dim">—</td></tr>
+      <tr><th scope="row"><span class="dot" style="background:var(--c-segmentation)"></span>segmentation</th>
+        <td class="num strong">72%</td>
+        <td class="num strong">63%</td>
+        <td class="num strong">50%</td>
+        <td class="num">2.4</td>
+        <td class="num">20/21</td></tr>
+      <tr><th scope="row"><span class="dot" style="background:var(--c-avatar)"></span>avatar</th>
+        <td class="num">69%</td><td class="num">59%</td>
+        <td class="num strong">50%</td>
+        <td class="num">2.4</td>
+        <td class="num">21/21</td></tr>
+      <tr><th scope="row"><span class="dot" style="background:var(--c-slice)"></span>slice</th>
+        <td class="num">68%</td><td class="num">51%</td>
+        <td class="num">46%</td>
+        <td class="num">10.3</td>
+        <td class="num">15/20</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout seg">
+    <p><strong>Segmentation places all three inside the expected windows; the other two do
+    not.</strong> Avatar's chest sits 3 points low
+    and its waist 4 points low, because both are
+    midpoints of armpit and hip rather than searches for the bust or the narrowing.
+    Slice's waist is 12 points low with
+    4&times; the
+    spread.</p>
+    <p>This is the uncomfortable result. Segmentation scores worst against
+    <code>Avatar.m</code> on exactly these measurements — chest 6.6%, waist 9.9% — and it
+    is the one putting the tape in the right place. The gap is the reference's, not
+    segmentation's.</p>
+  </div>
+</section>
+
 <section>
   <div class="sechead"><h2>How far apart they land</h2><span class="dim"></span></div>
   <p class="lede">Scored against <code>Avatar.m</code> as run in MATLAB R2023b — the
@@ -1031,6 +1134,16 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   methods as a percentage of their average, so it assumes neither is correct. Segmentation
   sits closer to the MATLAB pair ({pair_seg}%) than slice sits to anything
   ({pair_slice}% from MATLAB, {pair_seg_slice}% from segmentation).</p>
+
+  <h3>Every measurement, ranked</h3>
+  <figure class="chartbox">
+    {all_chart}
+    <figcaption>Mean absolute difference from Avatar.m for every measurement the method and
+    the reference both produce, sorted by average disagreement. Hover a dot for the exact
+    value. Anything past 100% is clipped and marked; the segment volumes run into the
+    thousands of percent, which is a different quantity being computed rather than a
+    different answer.</figcaption>
+  </figure>
 
   <h3>The measurements people ask for</h3>
   {headline}

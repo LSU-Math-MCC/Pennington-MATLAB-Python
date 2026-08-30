@@ -410,7 +410,8 @@ LANDMARK_ORDER = ["crotch", "l_armpit", "r_armpit", "lShoulder", "rShoulder",
 
 def avatar_segments_figure(avatar: MatlabAvatar, scale: float = 1.0,
                            units: str = "cm", out: Path | None = None,
-                           name: str = "avatar_segments.png", title: str = ""):
+                           name: str = "avatar_segments.png", title: str = "",
+                           other: dict[str, dict[str, float]] | None = None):
     """How the pipeline cut the body up, and the landmarks every girth hangs off.
 
     Segment assignment is the step everything downstream inherits: an arm that
@@ -448,11 +449,87 @@ def avatar_segments_figure(avatar: MatlabAvatar, scale: float = 1.0,
             continue
         px, pz = point[0] * scale, point[2] * scale
         ax.plot([px], [pz], "+", ms=9, mew=1.6, c=METHOD_COLORS["avatar"])
-        ax.annotate(landmark, (px, pz), fontsize=6.8, color=INK,
+        ax.annotate(landmark, (px, pz), fontsize=6.8, color=METHOD_COLORS["avatar"],
                     xytext=(5, 2), textcoords="offset points")
+
+    # Other methods report landmarks in their own frame, so only height is
+    # comparable. They get a lane each, at the correct height, in their colour.
+    if other:
+        z_lo, z_hi = v[:, 2].min(), v[:, 2].max()
+        x_lo, x_hi = v[:, 0].min(), v[:, 0].max()
+        span = x_hi - x_lo
+        for i, (method, marks) in enumerate(other.items()):
+            colour = METHOD_COLORS.get(method, INK)
+            x0 = x_lo - (0.10 + 0.13 * i) * span
+            for landmark, fraction in marks.items():
+                z = z_lo + fraction * (z_hi - z_lo)
+                ax.plot([x0, x0 + 0.09 * span], [z, z], "-", c=colour, lw=2.0)
+                ax.annotate(landmark, (x0, z), fontsize=6.5, color=colour,
+                            ha="right", va="center", xytext=(-2, 0),
+                            textcoords="offset points")
+        handles = [plt.Line2D([], [], color=METHOD_COLORS["avatar"], marker="+", ls="",
+                              mew=1.6, ms=8, label="avatar")]
+        handles += [plt.Line2D([], [], color=METHOD_COLORS.get(m, INK), lw=2, label=m)
+                    for m in other]
+        ax.legend(handles=handles, fontsize=6.8, frameon=False, labelcolor=INK,
+                  loc="upper center", bbox_to_anchor=(0.5, -0.09), ncol=3)
     ax.set_aspect("equal")
     _style(ax, f"x ({units})", f"z ({units})", "Landmarks")
 
+    if title:
+        fig.suptitle(title, color=INK, fontsize=11)
+    fig.tight_layout()
+    return _save(fig, out, name)
+
+
+# --------------------------------------------------------------------------
+# Figure 7 -- the same three girths, placed by each method, side by side
+# --------------------------------------------------------------------------
+def placement_panels(avatar: MatlabAvatar, levels: dict[str, dict[str, float]],
+                     values: dict[str, dict[str, float]] | None = None,
+                     scale: float = 1.0, units: str = "cm",
+                     out: Path | None = None, name: str = "placement.png",
+                     title: str = ""):
+    """One panel per method, same body, that method's chest/waist/hip drawn on it.
+
+    ``levels`` maps method -> {measurement: fraction of stature in [0, 1]}, which is
+    the only frame all three backends can be compared in: each reports heights in
+    its own units and origin.
+
+    Side by side rather than overlaid, because the question this answers is
+    whether a placement looks anatomically right, and nine lines on one body
+    cannot be read that way.
+    """
+    plt = _plt()
+    v = avatar.v * scale
+    z_lo, z_hi = v[:, 2].min(), v[:, 2].max()
+    order = ["avatar", "segmentation", "slice"]
+    shown = [m for m in order if m in levels]
+
+    fig, axes = plt.subplots(1, len(shown), figsize=(3.3 * len(shown), 7.0),
+                             sharey=True)
+    fig.patch.set_alpha(0)
+    axes = np.atleast_1d(axes)
+    styles = {"chest": "-", "waist": "--", "hip": ":"}
+
+    for ax, method in zip(axes, shown):
+        colour = METHOD_COLORS.get(method, INK)
+        ax.scatter(v[:, 0], v[:, 2], s=0.5, c=BODY, linewidths=0, alpha=0.55)
+        x_lo, x_hi = v[:, 0].min(), v[:, 0].max()
+        pad = 0.08 * (x_hi - x_lo)
+        for measurement, fraction in levels[method].items():
+            z = z_lo + fraction * (z_hi - z_lo)
+            ax.plot([x_lo - pad, x_hi + pad], [z, z], styles.get(measurement, "-"),
+                    c=colour, lw=1.7, alpha=.95)
+            label = measurement
+            reported = (values or {}).get(method, {}).get(measurement)
+            if reported is not None:
+                label = f"{measurement} {reported:.0f}"
+            ax.annotate(label, (x_lo - pad, z), color=colour, fontsize=7.5,
+                        ha="left", va="bottom", xytext=(1, 2),
+                        textcoords="offset points")
+        ax.set_aspect("equal")
+        _style(ax, f"x ({units})", f"z ({units})" if method == shown[0] else "", method)
     if title:
         fig.suptitle(title, color=INK, fontsize=11)
     fig.tight_layout()
