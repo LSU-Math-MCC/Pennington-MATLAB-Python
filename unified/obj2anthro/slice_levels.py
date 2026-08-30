@@ -35,10 +35,14 @@ def collect() -> pd.DataFrame:
     sl = comb[comb.anthro_method == "slice"].set_index("subject_id")
     sg = comb[comb.anthro_method == "segmentation"].set_index("subject_id")
 
+    # The three demo meshes shipped for smoke tests sit at a different scale and
+    # are not body scans; including them distorts every cohort statistic here.
+    DEMO = {"man", "penn-mesh-1", "penn-mesh-2"}
+
     rows = []
     for obj in sorted((ROOT / "data/obj").glob("*.obj")):
         subject = obj.stem.replace(" ", "_")
-        if subject not in sl.index:
+        if subject not in sl.index or obj.stem in DEMO:
             continue
 
         # --- avatar: planes recorded on the run ---------------------------

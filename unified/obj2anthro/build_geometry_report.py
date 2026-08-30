@@ -15,6 +15,7 @@ import base64
 import glob
 import itertools
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -109,6 +110,112 @@ def slice_levels(run_root: Path, data: dict) -> dict:
 # --------------------------------------------------------------------------
 # Rendering helpers
 # --------------------------------------------------------------------------
+
+
+def levels_prose(run: Path) -> dict:
+    """Caption and ordering sentence, computed rather than written down.
+
+    These numbers moved once already when the demo meshes were excluded; deriving
+    them keeps the prose and the chart from drifting apart again.
+    """
+    levels = json.loads((run / "level_summary.json").read_text(encoding="utf-8"))
+    ordering = json.loads((run / "ordering.json").read_text(encoding="utf-8"))
+    med = lambda m, k: levels[k][m]["median"]
+    waist_ratio = levels["waist"]["slice"]["iqr"] / levels["waist"]["avatar"]["iqr"]
+    caption = (
+        "The height of every cut, as a percent of stature, for all three methods across "
+        "the cohort. Each dot is one scan; the bar is the median. Chest is the agreement "
+        f"case &mdash; avatar and slice cut within half a point of each other "
+        f"({med('avatar','chest'):.0f}% and {med('slice','chest'):.0f}%), with "
+        f"segmentation {med('segmentation','chest') - med('avatar','chest'):.0f} points "
+        "higher because it targets the bust rather than the median of the armpits. Waist "
+        f"is the disagreement case: three methods, three levels "
+        f"({med('slice','waist'):.0f}%, {med('avatar','waist'):.0f}%, "
+        f"{med('segmentation','waist'):.0f}%), and slice's spread is {waist_ratio:.0f}"
+        f"&times; the others (IQR {levels['waist']['slice']['iqr']:.1f} points against "
+        f"{levels['waist']['avatar']['iqr']:.1f}). The three demo meshes shipped for smoke "
+        "tests are excluded: they sit at a different scale and are not body scans."
+    )
+    order = (
+        "Chest must sit above waist, and waist above hip, on every body. Avatar gets this "
+        f"right on {ordering['avatar']['ordered']} of {ordering['avatar']['n']} scans and "
+        f"segmentation on {ordering['segmentation']['ordered']} of "
+        f"{ordering['segmentation']['n']}. Slice manages {ordering['slice']['ordered']} of "
+        f"{ordering['slice']['n']}, inverting waist and hip on "
+        f"{ordering['slice']['n'] - ordering['slice']['waist>hip']} of them."
+    )
+    return {"caption": caption, "ordering": order, "levels": levels, "ordering_raw": ordering}
+
+
+
+def placement_table(prose: dict) -> str:
+    """Median cut height per method against the expected anthropometric windows."""
+    levels, ordering = prose["levels"], prose["ordering_raw"]
+    expected = {"chest": "~71%", "waist": "~63%", "hip": "~50%"}
+    centres = {"chest": 71.0, "waist": 63.0, "hip": 50.0}
+
+    rows = [f'<tr><th scope="row"><span class="dot" style="background:var(--ref)"></span>'
+            f'expected</th>'
+            + "".join(f'<td class="num dim">{expected[k]}</td>' for k in expected)
+            + '<td class="num dim">&mdash;</td><td class="num dim">&mdash;</td>'
+            '<td class="num dim">&mdash;</td></tr>']
+
+    miss = {m: sum(abs(levels[k][m]["median"] - c) for k, c in centres.items())
+                / len(centres) for m in levels["chest"]}
+    order = sorted(levels["chest"], key=lambda m: miss[m])
+    for method in order:
+        cells = []
+        for k in expected:
+            value = levels[k][method]["median"]
+            delta = value - centres[k]
+            close = abs(delta) <= 1.5
+            cells.append(f'<td class="num{" strong" if close else ""}" '
+                         f'title="{delta:+.1f} points from the expected '
+                         f'{centres[k]:.0f}%">{value:.0f}%</td>')
+        o = ordering.get(method, {})
+        rows.append(
+            f'<tr><th scope="row"><span class="dot" style="background:'
+            f'var(--c-{method})"></span>{esc(method)}</th>' + "".join(cells)
+            + f'<td class="num">{levels["waist"][method]["iqr"]:.1f}</td>'
+            + f'<td class="num">{miss[method]:.1f}</td>'
+            + f'<td class="num">{o.get("ordered", "-")}/{o.get("n", "-")}</td></tr>')
+
+    return ('<div class="scroll"><table><thead><tr><th>Method</th>'
+            '<th class="num">chest</th><th class="num">waist</th><th class="num">hip</th>'
+            '<th class="num">waist IQR</th><th class="num">mean miss</th>'
+            '<th class="num">ordered</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
+
+def placement_verdict(prose: dict) -> str:
+    """Rank methods by how far their median sits from the expected level.
+
+    Scored as distance from the centre of each window rather than in/out of it:
+    the windows are approximate, so a median half a point outside one is not
+    meaningfully different from one just inside, and an in/out count turns that
+    into a false distinction.
+    """
+    levels = prose["levels"]
+    centres = {"chest": 71.0, "waist": 63.0, "hip": 50.0}
+    med = lambda m, k: levels[k][m]["median"]
+    miss = {m: sum(abs(med(m, k) - c) for k, c in centres.items()) / len(centres)
+            for m in levels["chest"]}
+    best = min(miss, key=miss.get)
+    ratio = levels["waist"]["slice"]["iqr"] / levels["waist"]["avatar"]["iqr"]
+    others = ", ".join(f"{esc(m)} {miss[m]:.1f}" for m in sorted(miss, key=miss.get)
+                       if m != best)
+    return (
+        f"<strong>{esc(best).capitalize()} sits closest to the expected level on all "
+        f"three</strong> &mdash; a mean miss of {miss[best]:.1f} points of stature, "
+        f"against {others}. Avatar's chest is "
+        f"{centres['chest'] - med('avatar', 'chest'):.0f} points low and its waist "
+        f"{centres['waist'] - med('avatar', 'waist'):.0f} points low, because both are "
+        f"midpoints of armpit and hip rather than searches for the bust or the narrowing. "
+        f"Slice's waist is {centres['waist'] - med('slice', 'waist'):.0f} points low with "
+        f"{ratio:.0f}&times; the spread."
+    )
+
 
 def accuracy_spread(detail: pd.DataFrame) -> dict:
     """Mean, median, and how concentrated each method's disagreement is.
@@ -344,32 +451,39 @@ def all_measurements_chart(detail, width=690, row_height=17):
     """Every shared measurement, three methods, one row each.
 
     A dot chart rather than grouped bars: 38 rows x 3 series is unreadable as
-    bars, and the question here is rank and spread, not precise magnitude. The
-    x axis is clipped at 100% with a marker for anything beyond, because a few
-    measurements run to several thousand percent and would flatten the rest.
+    bars, and the question is rank and spread, not precise magnitude.
+
+    The x axis is log(1 + percent). Differences here span five orders of
+    magnitude -- the port is exact on most rows while a segment volume runs to
+    several thousand percent -- so a linear axis either flattens the small end
+    or has to clip the large one, and clipping hides points. log(1 + x) keeps
+    zero at zero, so an exact match sits on the axis rather than off it.
     """
     grouped = (detail.groupby(["measurement", "method"])["abs_pct_error"]
                .mean().unstack())
     grouped = grouped.reindex(grouped.mean(axis=1).sort_values().index)
-    cap = 100.0
-    pad_left, pad_right, top = 232, 42, 30
+    ticks = [0, 1, 10, 100, 1000]
+    span = np.log10(1 + max(ticks[-1], float(np.nanmax(grouped.values))))
+    pad_left, pad_right, top = 232, 54, 30
     inner = width - pad_left - pad_right
     height = top + len(grouped) * row_height + 26
 
+    def x_of(value):
+        return pad_left + inner * (np.log10(1 + max(value, 0.0)) / span)
+
     parts = [f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" '
              f'aria-label="Mean absolute percent difference from Avatar.m for every '
-             f'measurement, by method">']
-    for t in (0, 25, 50, 75, 100):
-        x = pad_left + inner * (t / cap)
+             f'measurement, by method, on a log scale">']
+    for t in ticks:
+        x = x_of(t)
         parts.append(f'<line class="grid" x1="{x:.1f}" y1="{top - 10}" x2="{x:.1f}" '
                      f'y2="{height - 22}"/>')
         parts.append(f'<text class="tick" x="{x:.1f}" y="{top - 15}" '
-                     f'text-anchor="middle">{t}%</text>')
+                     f'text-anchor="middle">{t:g}%</text>')
 
     for i, (name, row) in enumerate(grouped.iterrows()):
         y = top + i * row_height + row_height / 2
-        label = name.replace("_cm3", "").replace("_cm2", "").replace("_cm", "")
-        label = label.replace("_", " ")
+        label = re.sub(r"_cm[23]?$", "", name).replace("_", " ")
         parts.append(f'<text class="rowlabel" x="{pad_left - 10}" y="{y + 3.5}" '
                      f'text-anchor="end">{esc(label)}</text>')
         parts.append(f'<line class="grid" x1="{pad_left}" y1="{y}" '
@@ -377,21 +491,22 @@ def all_measurements_chart(detail, width=690, row_height=17):
         for method in SERIES:
             value = row.get(method)
             if value is None or not np.isfinite(value):
+                # The method does not produce this column at all; say so rather
+                # than leaving a gap that reads as a missing dot.
+                parts.append(f'<text class="tick" x="{pad_left + inner + 8}" '
+                             f'y="{y + 3.5}" fill="var(--c-{method})" '
+                             f'opacity=".55">&middot;</text>')
                 continue
-            beyond = value > cap
-            x = pad_left + inner * (min(value, cap) / cap)
             parts.append(
-                f'<circle class="dot" cx="{x:.1f}" cy="{y:.1f}" r="4" '
-                f'fill="var(--c-{method})" opacity="{0.55 if beyond else 0.95}">'
-                f'<title>{esc(method)} — {esc(label)}: {value:.2f}%'
-                f'{" (clipped)" if beyond else ""}</title></circle>')
-            if beyond:
-                parts.append(f'<text class="tick" x="{x + 7:.1f}" y="{y + 3.5}">&#8594;</text>')
+                f'<circle class="dot" cx="{x_of(value):.1f}" cy="{y:.1f}" r="4" '
+                f'fill="var(--c-{method})" opacity=".9">'
+                f'<title>{esc(method)} — {esc(label)}: {value:.3f}%</title></circle>')
     parts.append(f'<text class="tick" x="{pad_left}" y="{height - 6}">'
-                 f'mean |difference| from Avatar.m · &#8594; = beyond 100%</text>')
+                 f'mean |difference| from Avatar.m, log scale · '
+                 f'a dot on the axis is an exact match · '
+                 f'&middot; at right = column not produced</text>')
     parts.append("</svg>")
     return "".join(parts)
-
 
 
 def spread_chart(detail, width=690, row_height=30, sub=None):
@@ -517,6 +632,7 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
     decomposition = girth_decomposition(run)
 
     robust = accuracy_spread(detail)
+    prose = levels_prose(run)
 
     payload = {
         "robust": robust,
@@ -578,6 +694,10 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
             decimals=1, sub="Slice pipeline: sum of all loops vs largest single loop"),
         headline=headline_table(detail),
         assumptions=ASSUMPTIONS,
+        levels_caption=prose['caption'],
+        placement_table=placement_table(prose),
+        placement_verdict=placement_verdict(prose),
+        ordering_text=prose['ordering'],
         spread_chart=spread_chart(detail,
             sub="Distance from Avatar.m, mean and median, by method"),
         seg_mean=f"{robust['segmentation']['mean']:.1f}",
@@ -598,21 +718,7 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
         net_cm=f"{decomposition['net']:+.2f}",
         n_sections=decomposition["n"],
         fig_segments=figure(fig_uri("A00-09-0254_2025-12-10_10-38-56_segments.png"),
-            "The outlier, and why it is one. <strong>Left:</strong> the left-arm segment "
-            "holds 82 vertices against the right arm's 732 — one arm is fused to the torso "
-            "and never separates. <strong>Right:</strong> the landmarks that follow, each "
-            "method in its own colour. Segmentation and slice report landmarks in their own "
-            "frames, so only height is comparable and they are drawn in lanes. Slice's "
-            "&quot;crotch&quot; sits at 65% of stature — its detector takes the highest "
-            "level with two or more loops, which the separated arms satisfy, so it "
-            "saturates at its own band ceiling instead of finding the legs. "
-            "<code>lShoulder</code> lands 37&nbsp;cm below <code>rShoulder</code>, and the "
-            "arm lengths come out 27.3 and 44.5&nbsp;cm. On a clean scan the same segments "
-            "hold 549 and 557 vertices and the shoulders sit 1&nbsp;cm apart."),
-        fig_segments_ok=figure(fig_uri("CanCan10_A_2026-02-27_09-49-56_segments.png"),
-            "The same two panels on a scan that separates cleanly. Every downstream "
-            "measurement inherits this decomposition, so a scan that fails here fails "
-            "for every method that depends on limb separation — which is all three."),
+            "<strong>Left:</strong> how <code>Avatar.m</code> cut this body up. The left-arm segment holds 82 vertices against the right arm's 732 — the arm search collapsed, and the reported left bicep is 4.9&nbsp;cm. Segmentation separates the same two arms into 784 and 681 vertices. <strong>Right:</strong> the landmarks that follow, each method in its own colour; segmentation and slice report in their own frames, so only height is comparable and they are drawn in lanes. Avatar's <code>lShoulder</code> sits 37&nbsp;cm below its <code>rShoulder</code>, where segmentation puts one shoulder height for both. Slice's crotch lands at chest height — its detector takes the highest level with two or more loops, which the separated arms satisfy all the way up."),
         avatar_s=f"{payload['runtime_detail']['avatar']['mean']:.2f}",
         slice_s=f"{payload['runtime_detail']['slice']['mean']:.2f}",
         matlab_s=f"{payload['runtime_detail']['matlab']['mean']:.2f}",
@@ -1116,7 +1222,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   <div class="sechead"><h2>Where they cut</h2><span class="dim"></span></div>
   <figure class="fig wide">
     <img src="{fig_levels_cohort}" alt="Height of each cut as a percent of stature, one dot per scan per method" loading="lazy">
-    <figcaption>The height of every cut, as a percent of stature, for all three methods across the cohort. Each dot is one scan; the bar is the median. Chest is the agreement case &mdash; avatar and slice cut within half a point of each other (69% and 68%), with segmentation 72% higher because it targets the bust rather than the armpit median. Waist is the disagreement case: three methods, three different levels (51%, 59%, 63%), and slice's spread is 4&times; the others (IQR 10.3 points against 2.4). The two far-right outliers are the bad-capture scan.</figcaption>
+    <figcaption>{levels_caption}</figcaption>
   </figure>
   <div class="figpair">
     {fig_levels}
@@ -1133,22 +1239,72 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 </section>
 
 <section>
-  <div class="sechead"><h2>What the mesh decides</h2><span class="dim"></span></div>
-  <p class="lede">One scan is an outlier for every method at once — segmentation 128%,
-  slice 180%, and the only scan where the port and MATLAB disagree. The cause sits upstream
-  of all three.</p>
+  <div class="sechead"><h2>When the reference is the one that fails</h2><span class="dim"></span></div>
+  <p class="lede">One scan looks like an outlier for every method &mdash; segmentation 128%,
+  slice 180%, and the only scan where the port and MATLAB disagree. It is worth being
+  careful about what that means, because the scan is fine and so is segmentation.</p>
+
   {fig_segments}
-  {fig_segments_ok}
+
   <div class="prose">
-    <p>Limb separation is the step every later measurement inherits. When it fails on one
-    side, the shoulder, armpit, wrist and arm length on that side fail with it, the torso
-    absorbs the missing arm, and the notch profile <code>adjustCrotch</code> clusters
-    becomes degenerate — which is why MATLAB's randomly seeded <code>kmeans</code> is
-    unstable on precisely this scan and no other. One bad capture propagates through every
-    pipeline, because all three assume the limbs can be told apart.</p>
+    <p><code>Avatar.m</code>'s left-arm search collapses on this mesh. Its arm segment ends
+    up with 82 vertices against the right arm's 732, and every landmark on that side
+    follows: <code>lShoulder</code> lands 37&nbsp;cm below <code>rShoulder</code>, and the
+    reported left bicep is <strong>4.9&nbsp;cm</strong> &mdash; a circumference of about
+    1.6&nbsp;cm across, which is not an arm.</p>
+    <p>The mesh is not the problem. Segmentation's boolean-and-connectivity split separates
+    both arms cleanly on the same file, 784 and 681 vertices, and returns arm lengths
+    within 1% of each other:</p>
+  </div>
+
+  <div class="scroll"><table>
+    <thead><tr><th>On this scan</th>
+      <th class="num"><span class="dot" style="background:var(--ref)"></span>matlab</th>
+      <th class="num"><span class="dot" style="background:var(--c-avatar)"></span>avatar</th>
+      <th class="num"><span class="dot" style="background:var(--c-segmentation)"></span>segmentation</th>
+    </tr></thead>
+    <tbody>
+      <tr><th scope="row">arm length, left / right (cm)</th>
+        <td class="num">27.3 / 44.5</td><td class="num">27.3 / 44.5</td>
+        <td class="num strong">45.5 / 45.3</td></tr>
+      <tr><th scope="row">bicep, left / right (cm)</th>
+        <td class="num">4.9 / 43.5</td><td class="num">4.9 / 43.5</td>
+        <td class="num strong">36.1 / 33.1</td></tr>
+      <tr><th scope="row">arm surface area, left / right (cm&sup2;)</th>
+        <td class="num">295 / 2349</td><td class="num">295 / 2349</td>
+        <td class="num strong">2146 / 1790</td></tr>
+      <tr><th scope="row">left-right asymmetry</th>
+        <td class="num">39%</td><td class="num">39%</td>
+        <td class="num strong">1%</td></tr>
+      <tr><th scope="row">arm segment, vertices</th>
+        <td class="num dim">&mdash;</td><td class="num">82 / 732</td>
+        <td class="num strong">784 / 681</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout seg">
+    <p><strong>Segmentation's 128% on this scan is measured against a reference that is
+    wrong here.</strong> The port reproduces <code>Avatar.m</code> faithfully, including
+    the failure, so both agree on a 4.9&nbsp;cm bicep. Segmentation disagrees with them
+    because it got the arm right.</p>
+    <p>This also explains the one crotch the port cannot reproduce.
+    <code>adjustCrotch</code> sweeps from the crotch up to the lower armpit, and it
+    excludes arm vertices from that sweep &mdash; both inputs are corrupted by the same
+    failed arm search. The notch profile it clusters comes out degenerate, which is why
+    MATLAB's randomly seeded <code>kmeans</code> is unstable on this scan and no other.</p>
+  </div>
+
+  <div class="prose">
+    <p>The general point is that limb separation is the step every later measurement
+    inherits, and the three backends are not equally exposed to it. Avatar cuts arms with a
+    constrained flood fill and legs with two straight lines. Segmentation does boolean
+    subtraction, a plane cut, connected-component scoring and a geodesic fallback &mdash;
+    which is most of why it costs what it costs. Slice does not separate limbs at all,
+    which is why its crotch detector, drawn above, finds the arms instead: it takes the
+    highest level with two or more loops, and the torso plus two arms satisfies that all
+    the way up to its band ceiling at 65% of stature.</p>
   </div>
 </section>
-
 
 <section>
   <div class="sechead"><h2>Which placement is right</h2><span class="dim"></span></div>
@@ -1159,51 +1315,16 @@ PAGE = """<title>Three Ways to Measure a Body</title>
 
   <div class="prose">
     <p>Two checks, neither of which uses <code>Avatar.m</code> as the reference.</p>
-    <p><strong>Ordering.</strong> Chest must sit above waist, and waist above hip, on every
-    body. Avatar gets this right on 21 of
-    21 scans, segmentation on 20
-    of 21, and slice on 15 of
-    20 — it inverts waist and hip on
-    5 of them.</p>
+    <p><strong>Ordering.</strong> {ordering_text}</p>
     <p><strong>Absolute placement.</strong> Standard anthropometry puts the chest near
     70&ndash;72% of stature, the natural waist near 62&ndash;64%, and the hip near
     48&ndash;52%. Median placements:</p>
   </div>
 
-  <div class="scroll"><table>
-    <thead><tr><th>Method</th><th class="num">chest</th><th class="num">waist</th>
-    <th class="num">hip</th><th class="num">waist IQR</th><th class="num">ordered</th></tr></thead>
-    <tbody>
-      <tr><th scope="row"><span class="dot" style="background:var(--ref)"></span>expected</th>
-        <td class="num dim">70–72%</td><td class="num dim">62–64%</td>
-        <td class="num dim">48–52%</td><td class="num dim">—</td><td class="num dim">—</td></tr>
-      <tr><th scope="row"><span class="dot" style="background:var(--c-segmentation)"></span>segmentation</th>
-        <td class="num strong">72%</td>
-        <td class="num strong">63%</td>
-        <td class="num strong">50%</td>
-        <td class="num">2.4</td>
-        <td class="num">20/21</td></tr>
-      <tr><th scope="row"><span class="dot" style="background:var(--c-avatar)"></span>avatar</th>
-        <td class="num">69%</td><td class="num">59%</td>
-        <td class="num strong">50%</td>
-        <td class="num">2.4</td>
-        <td class="num">21/21</td></tr>
-      <tr><th scope="row"><span class="dot" style="background:var(--c-slice)"></span>slice</th>
-        <td class="num">68%</td><td class="num">51%</td>
-        <td class="num">46%</td>
-        <td class="num">10.3</td>
-        <td class="num">15/20</td></tr>
-    </tbody>
-  </table></div>
+  {placement_table}
 
   <div class="callout seg">
-    <p><strong>Segmentation places all three inside the expected windows; the other two do
-    not.</strong> Avatar's chest sits 3 points low
-    and its waist 4 points low, because both are
-    midpoints of armpit and hip rather than searches for the bust or the narrowing.
-    Slice's waist is 12 points low with
-    4&times; the
-    spread.</p>
+    <p>{placement_verdict}</p>
     <p>This is the uncomfortable result. Segmentation scores worst against
     <code>Avatar.m</code> on exactly these measurements — chest 6.6%, waist 9.9% — and it
     is the one putting the tape in the right place. The gap is the reference's, not
@@ -1361,7 +1482,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   </table></div>
   <div class="prose">
     <p>{avatar_misses} values still differ, {misses_on_odd} of them on the single
-    bad-capture scan above, where MATLAB's own <code>kmeans</code> is not reproducible. The
+    scan above, where the reference's own arm search fails and MATLAB's randomly seeded <code>kmeans</code> is not reproducible. The
     last is a calf girth off by five micrometres.</p>
   </div>
 </section>
