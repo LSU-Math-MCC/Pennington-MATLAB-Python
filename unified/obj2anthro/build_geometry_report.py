@@ -410,7 +410,7 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
                for label, value in slice_summary.items()],
             decimals=1, sub="Slice pipeline: sum of all loops vs largest single loop"),
         headline=headline_table(detail),
-        assumptions=assumptions_table(),
+        assumptions=ASSUMPTIONS,
         timing_table=timing_table(payload["runtime_detail"]),
         band_cm=f"{decomposition['band']:+.2f}",
         shortcut_cm=f"{decomposition['shortcut']:+.2f}",
@@ -531,6 +531,83 @@ def headline_table(detail: pd.DataFrame) -> str:
     return (f'<div class="scroll"><table><thead><tr><th>Measurement</th>{head}</tr>'
             f'</thead><tbody>{"".join(rows)}</tbody></table></div>')
 
+
+
+ASSUMPTIONS = """
+<div class="scroll"><table class="assume"><thead><tr>
+  <th>Level</th><th>avatar</th><th>segmentation</th><th>slice</th>
+</tr></thead><tbody>
+<tr><th scope="row">chest</th>
+  <td class="k c">constant</td><td class="k h">hybrid</td><td class="k h">hybrid</td></tr>
+<tr><td class="wrap-cell" colspan="4">Avatar takes the <em>median of the two armpit
+  heights</em> and stops. Segmentation blends four signals (0.42 front depth + 0.24 depth
+  + 0.20 perimeter + 0.14 area) and runs <code>find_peaks</code> inside a 0.60&ndash;0.78
+  band of the shoulder&ndash;crotch span. Slice takes the max summed perimeter in a fixed
+  65&ndash;82% stature band.</td></tr>
+<tr><th scope="row">waist</th>
+  <td class="k c">constant</td><td class="k h">hybrid</td><td class="k h">hybrid</td></tr>
+<tr><td class="wrap-cell" colspan="4">Avatar: the <em>midpoint of armpit and hip</em>, no
+  narrowing search at all. Segmentation: local minimum of section area in a 0.34&ndash;0.70
+  band. Slice: min summed perimeter in a 45&ndash;65% band.</td></tr>
+<tr><th scope="row">hip</th>
+  <td class="k h">hybrid</td><td class="k h">hybrid</td><td class="k h">hybrid</td></tr>
+<tr><td class="wrap-cell" colspan="4">All three search, all three inside a fixed window.
+  Avatar smooths a width profile and stops at the first sign change; segmentation takes a
+  smoothed local max of y-extent above the crotch; slice takes a max in 38&ndash;56%.</td></tr>
+<tr><th scope="row">thigh</th>
+  <td class="k c">constant</td><td class="k c">constant</td><td class="k h">hybrid</td></tr>
+<tr><td class="wrap-cell" colspan="4">Avatar and segmentation both use a literal
+  <strong>0.75</strong> of the ankle&ndash;hip span with no search. Slice takes a max in a
+  30&ndash;47% band.</td></tr>
+<tr><th scope="row">crotch</th>
+  <td class="k s">search</td><td class="k s">search</td><td class="k h">hybrid</td></tr>
+<tr><td class="wrap-cell" colspan="4">Avatar sweeps 50 vertical planes between the feet
+  and takes the max of the per-plane minima &mdash; a genuine saddle-point search &mdash;
+  then refines by clustering a notch profile. Segmentation maximises a convexity score
+  (area / hull area) by iterative ray-casting. Slice takes the highest level with two or
+  more loops, falling back to <strong>0.45&times;height</strong> if that fails.</td></tr>
+<tr><th scope="row">arm length</th>
+  <td class="k h">hybrid</td><td class="k h">hybrid</td><td class="k c">constant</td></tr>
+<tr><td class="wrap-cell" colspan="4">Slice assigns <strong>0.30&times;height</strong> to
+  both arms unconditionally, with no geometry consulted and no fallback path. Outside leg
+  length is likewise <strong>0.53&times;height</strong>.</td></tr>
+<tr><th scope="row">orientation</th>
+  <td class="wrap-cell">90&deg;/180&deg; axis permutation by bounding-box extent. Never a
+  rotation, so stature equals a bbox extent exactly.</td>
+  <td class="wrap-cell">Rule-based whole-body axis pick; then <em>per-limb</em> OBB
+  alignment after segmentation.</td>
+  <td class="wrap-cell">True PCA on the vertex covariance. No azimuthal correction, so
+  left/right is inherited from the file.</td></tr>
+<tr><th scope="row">limb separation</th>
+  <td class="wrap-cell">Arms: constrained flood fill from the fingertip. Legs: <em>no
+  connectivity</em> &mdash; two cutting lines, crotch to each hip.</td>
+  <td class="wrap-cell">Boolean subtraction, plane cut, connected components scored by
+  shape, with a geodesic flood-fill fallback.</td>
+  <td class="wrap-cell"><strong>None.</strong> Every value is read off whole-body slice
+  statistics in a stature band.</td></tr>
+<tr><th scope="row">tally</th>
+  <td>5 constant · 3 search · 7 hybrid</td>
+  <td>4 constant · 3 search · 14 hybrid</td>
+  <td>4 constant · <strong>0 search</strong> · 13 hybrid</td></tr>
+</tbody></table></div>
+<div class="prose">
+  <p><strong>constant</strong> = a fixed fraction or midpoint, no geometry consulted.
+  <strong>search</strong> = an unrestricted extremum, derivative or convexity criterion.
+  <strong>hybrid</strong> = a search boxed inside a hard-coded window.</p>
+  <p>The ordering is not what the accuracy table implies. <em>Segmentation</em> is the most
+  search-driven of the three &mdash; its crotch and armpit detection run real optimisations
+  with no fixed finish line. <em>Slice</em> is the most constant-driven: it has no
+  unrestricted search anywhere, every extremum is boxed inside a percent-of-stature window
+  that supplies most of the anatomical information, and two of its measurements are pure
+  fractions of height. <em>Avatar</em> sits between, but is constant-heavy exactly where it
+  matters most: chest and waist are a median and a midpoint of armpit and hip heights, with
+  no fullness or narrowing search at all.</p>
+  <p>This is the real trade. A constant is reproducible and cheap and cannot fail loudly;
+  it is simply wrong on any body the constant was not fitted to. A search adapts to the
+  body in front of it and can fail outright &mdash; which is what the outlier scan below
+  shows happening.</p>
+</div>
+"""
 
 CSS = """
 :root{
@@ -724,6 +801,33 @@ table.assump td.wrap, table td.wrap{white-space:normal; min-width:14rem; max-wid
 table.assump tbody th{white-space:normal; max-width:11rem; vertical-align:top;
   font-weight:600; color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+
+.defs{display:grid; grid-template-columns:repeat(auto-fit,minmax(19rem,1fr)); gap:1rem;
+  margin:0 0 1.6rem}
+.def{background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  border-left:3px solid var(--bar); padding:1.1rem 1.25rem 1.2rem; box-shadow:var(--shadow)}
+.def .name{font-family:"IBM Plex Sans Condensed","Arial Narrow",ui-sans-serif,sans-serif;
+  text-transform:uppercase; letter-spacing:.1em; font-size:.74rem; color:var(--ink-3);
+  margin:0 0 .8rem; display:flex; align-items:center; gap:.45rem; font-weight:600}
+.def .math{margin:0 0 .85rem; padding:.55rem .2rem; overflow-x:auto;
+  border-bottom:1px solid var(--rule-2)}
+.def .note{font-size:.88rem; color:var(--ink-2); margin:0; line-height:1.55}
+math{font-size:1.02em; color:var(--ink)}
+math[display="block"]{margin:0}
+.eq{background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:1.3rem 1.35rem 1rem; box-shadow:var(--shadow); margin:0 0 1.5rem; overflow-x:auto}
+.eq math[display="block"]{font-size:1.12em}
+.eqkey{display:flex; gap:2.2rem; justify-content:center; flex-wrap:wrap;
+  margin:.7rem 0 0; padding-top:.7rem; border-top:1px solid var(--rule-2);
+  font-family:"IBM Plex Sans Condensed",ui-sans-serif,sans-serif; font-size:.76rem;
+  text-transform:uppercase; letter-spacing:.1em; color:var(--ink-3)}
+table.assume td.k{font-family:"IBM Plex Sans Condensed",ui-sans-serif,sans-serif;
+  font-weight:700; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em}
+table.assume td.k.c{color:var(--warn)}
+table.assume td.k.s{color:var(--good)}
+table.assume td.k.h{color:var(--ink-3)}
+table.assume td.wrap-cell{white-space:normal; min-width:16rem; color:var(--ink-2);
+  font-size:.86rem}
 @media (max-width:640px){
   body{font-size:16px} .wrap{padding:0 1.1rem 4rem}
   .sechead{flex-wrap:wrap} .sechead .dim{display:none}
