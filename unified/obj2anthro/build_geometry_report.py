@@ -1024,7 +1024,7 @@ td.num, th.num{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
   font-variant-numeric:tabular-nums; text-align:right}
 th.num{font-family:"IBM Plex Sans Condensed",ui-sans-serif,sans-serif}
 td.num .sub{color:var(--ink-3); font-size:.82em}
-td.num.strong{color:var(--ink); font-weight:600}
+td.num.strong{color:var(--ink); font-weight:500}   /* Plex Mono has no 600 loaded */
 td.dim{color:var(--ink-3)}
 table.matrix td.tint{background:color-mix(in srgb, var(--c-avatar) calc(var(--a) * 100%), var(--surface))}
 table.matrix td.diag{color:var(--ink-3)}
@@ -1126,6 +1126,50 @@ table.assume td.k.h{color:var(--ink-3)}
 table.assume td.k.tip{text-decoration:underline dotted; text-underline-offset:3px}
 table.assume td.wrap-cell{white-space:normal; min-width:16rem; color:var(--ink-2);
   font-size:.86rem}
+
+/* ---- print / PDF -------------------------------------------------------
+   Paper is always light, always one column, and has page breaks the screen
+   does not. Force the light tokens rather than inheriting the viewer's dark
+   theme, drop the shadows and rounded surfaces that only read on screen, and
+   keep figures, tables and their captions from splitting across a page. */
+@page{ size:A4; margin:16mm 14mm 18mm; }
+@media print{
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]){
+    --ground:#FFFFFF; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#14181B; --ink-2:#3C454B; --ink-3:#6B747A;
+    --rule:#C9D1D4; --rule-2:#E2E7E9;
+    --c-avatar:#0F6BC4; --c-segmentation:#A85600; --c-slice:#833670; --ref:#4A5257;
+    --shadow:none;
+  }
+  body{ font-size:10.5pt; line-height:1.5; background:#fff }
+  .wrap{ max-width:none; padding:0 }
+  header{ padding:0 0 1.1rem; margin-bottom:1.6rem }
+  h1{ font-size:24pt }
+  .standfirst{ font-size:11.5pt }
+  section{ margin:0 0 1.6rem; break-inside:auto }
+  .sechead{ break-after:avoid; page-break-after:avoid }
+  h2{ font-size:14pt } h3{ break-after:avoid }
+  .prose, .lede, .defs, .cards{ max-width:none }
+  figure.fig, figure.chartbox, .scroll, .callout, .eq, .def, .card, pre{
+    box-shadow:none; break-inside:avoid; page-break-inside:avoid;
+  }
+  figure.fig:not(.wide){ max-width:none }
+  /* A figure plus its caption is one unbreakable block, so a tall one that
+     will not fit moves wholesale and leaves the page half empty. Capping the
+     image lets two blocks share a page. */
+  figure.fig img{ max-height:135mm; width:auto; max-width:100%; margin:0 auto }
+  figure.fig, figure.chartbox{ padding:.7rem .8rem .55rem; margin:.9rem 0 }
+  figcaption{ margin:.5rem 0 0; padding-top:.45rem; font-size:8.5pt }
+  .figpair{ grid-template-columns:1fr 1fr }
+  .scroll{ overflow:visible }
+  table{ font-size:8.5pt } th,td{ padding:.32rem .5rem }
+  thead{ display:table-header-group }         /* repeat headers across pages */
+  tr{ break-inside:avoid }
+  .chart{ break-inside:avoid }
+  a{ color:var(--ink); text-decoration:none }
+  .tip{ cursor:auto }
+  footer{ break-inside:avoid; font-size:8.5pt }
+}
 @media (max-width:640px){
   body{font-size:16px} .wrap{padding:0 1.1rem 4rem}
   .sechead{flex-wrap:wrap} .sechead .dim{display:none}
