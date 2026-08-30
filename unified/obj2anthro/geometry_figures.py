@@ -534,3 +534,90 @@ def placement_panels(avatar: MatlabAvatar, levels: dict[str, dict[str, float]],
         fig.suptitle(title, color=INK, fontsize=11)
     fig.tight_layout()
     return _save(fig, out, name)
+
+
+# --------------------------------------------------------------------------
+# Figure 8 -- how each backend cuts the body up, side by side
+# --------------------------------------------------------------------------
+SEG_PART_COLORS = {
+    "trunk": "#5E7A8A", "head": "#8A6FBF",
+    "left_arm": "#7F77DD", "right_arm": "#3C3489",
+    "left_leg": "#1D9E75", "right_leg": "#0F6E56",
+}
+
+
+def segmentation_parts(obj_path):
+    """``{part: vertices}`` from the segmentation backend's own decomposition.
+
+    Imports the backend package directly rather than shelling out, because the
+    per-subject artifacts it writes record vertex *counts* but not the split.
+    Returns ``None`` if the backend cannot be imported or the mesh fails.
+    """
+    import sys
+    root = Path(__file__).resolve().parent / "backends" / "segmentation"
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    try:
+        from src.body import Body
+    except Exception:
+        return None
+    try:
+        body = Body(str(obj_path))
+    except Exception:
+        return None
+    # The backend keys parts as "left arm"; normalise to match SEG_PART_COLORS.
+    return {name.replace(" ", "_"): np.asarray(part.vertices, dtype=float)
+            for name, part in body.subregion_meshes.items()
+            if part is not None and len(part.vertices)}
+
+
+def cut_comparison(avatar: MatlabAvatar, obj_path, scale: float = 1.0,
+                   units: str = "cm", out: Path | None = None,
+                   name: str = "cut_comparison.png", title: str = ""):
+    """The same body, decomposed by Avatar.m and by the segmentation backend.
+
+    Each backend orients the mesh itself, so the two panels are independently
+    normalised to put the floor at z = 0. Vertex counts are in the legend,
+    which is where the two disagree most visibly.
+    """
+    plt = _plt()
+    parts = segmentation_parts(obj_path)
+    panels = [("avatar", {k: avatar.v[idx] for k, idx in (
+        ("trunk", avatar.segments["trunk"]), ("head", avatar.segments["head"]),
+        ("left_arm", avatar.segments["left_arm"]),
+        ("right_arm", avatar.segments["right_arm"]),
+        ("left_leg", avatar.segments["left_leg"]),
+        ("right_leg", avatar.segments["right_leg"])) if len(idx)})]
+    if parts:
+        panels.append(("segmentation", parts))
+
+    # Both bodies are the same person, so draw them at the same true size: fix
+    # each panel's unit from its own z-extent against the known stature. Reading
+    # a backend's declared units and trusting them is how the first version of
+    # this figure ended up with one body 100x the other.
+    stature = float((avatar.v[:, 2].max() - avatar.v[:, 2].min()) * scale)
+
+    fig, axes = plt.subplots(1, len(panels), figsize=(4.9 * len(panels), 7.0))
+    fig.patch.set_alpha(0)
+    axes = np.atleast_1d(axes)
+    for ax, (method, groups) in zip(axes, panels):
+        # Each backend has its own frame; normalise so the floor sits at zero.
+        z_lo = min(v[:, 2].min() for v in groups.values())
+        z_hi = max(v[:, 2].max() for v in groups.values())
+        x_mid = np.mean([np.mean([v[:, 0].min(), v[:, 0].max()])
+                         for v in groups.values()])
+        unit = stature / (z_hi - z_lo)
+        for key, verts in groups.items():
+            ax.scatter((verts[:, 0] - x_mid) * unit, (verts[:, 2] - z_lo) * unit,
+                       s=3.2, c=SEG_PART_COLORS.get(key, BODY), linewidths=0,
+                       label=f"{key.replace('_', ' ')} ({len(verts)})")
+        ax.set_aspect("equal")
+        ax.legend(fontsize=6.6, frameon=False, labelcolor=INK, loc="upper center",
+                  bbox_to_anchor=(0.5, -0.09), ncol=3, columnspacing=.9,
+                  handletextpad=.35)
+        _style(ax, f"x ({units})", f"z ({units})" if method == panels[0][0] else "",
+               f"{method} — how it cuts the body")
+    if title:
+        fig.suptitle(title, color=INK, fontsize=11)
+    fig.tight_layout()
+    return _save(fig, out, name)

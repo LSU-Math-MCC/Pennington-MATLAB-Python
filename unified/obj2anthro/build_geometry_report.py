@@ -717,8 +717,10 @@ def build(run: Path, repo_root: Path, out: Path) -> Path:
         shortcut_cm=f"{decomposition['shortcut']:+.2f}",
         net_cm=f"{decomposition['net']:+.2f}",
         n_sections=decomposition["n"],
+        fig_cut=figure(fig_uri("A00-09-0254_2025-12-10_10-38-56_cut.png"),
+            "The same mesh, cut up by each backend, drawn at the same true scale. <strong>Left:</strong> <code>Avatar.m</code> — one arm segment holds 82 vertices, a sliver at the hand, and the trunk absorbs the rest of that arm at 1557 vertices. <strong>Right:</strong> the segmentation backend separates both arms, 784 and 691, leaving a trunk of 1032 — a trunk rather than a trunk-plus-arm. Note also that the two label left and right oppositely: avatar puts 'left' at x&nbsp;&gt;&nbsp;0, segmentation at x&nbsp;&lt;&nbsp;0. Swapping the sides back changes segmentation's paired left/right error only from 25.6% to 23.9%, so the convention is not what drives its numbers."),
         fig_segments=figure(fig_uri("A00-09-0254_2025-12-10_10-38-56_segments.png"),
-            "<strong>Left:</strong> how <code>Avatar.m</code> cut this body up. The left-arm segment holds 82 vertices against the right arm's 732 — the arm search collapsed, and the reported left bicep is 4.9&nbsp;cm. Segmentation separates the same two arms into 784 and 681 vertices. <strong>Right:</strong> the landmarks that follow, each method in its own colour; segmentation and slice report in their own frames, so only height is comparable and they are drawn in lanes. Avatar's <code>lShoulder</code> sits 37&nbsp;cm below its <code>rShoulder</code>, where segmentation puts one shoulder height for both. Slice's crotch lands at chest height — its detector takes the highest level with two or more loops, which the separated arms satisfy all the way up."),
+            "The landmarks that follow from those cuts, each method in its own colour. Segmentation and slice report in their own frames, so only height is comparable and they are drawn in lanes. Avatar's <code>lShoulder</code> sits 37&nbsp;cm below its <code>rShoulder</code>; segmentation puts one shoulder height for both. Slice's crotch lands at chest height — its detector takes the highest level with two or more loops, which the separated arms satisfy all the way up to its band ceiling."),
         avatar_s=f"{payload['runtime_detail']['avatar']['mean']:.2f}",
         slice_s=f"{payload['runtime_detail']['slice']['mean']:.2f}",
         matlab_s=f"{payload['runtime_detail']['matlab']['mean']:.2f}",
@@ -1244,7 +1246,7 @@ PAGE = """<title>Three Ways to Measure a Body</title>
   slice 180%, and the only scan where the port and MATLAB disagree. It is worth being
   careful about what that means, because the scan is fine and so is segmentation.</p>
 
-  {fig_segments}
+  {fig_cut}
 
   <div class="prose">
     <p><code>Avatar.m</code>'s left-arm search collapses on this mesh. Its arm segment ends
@@ -1281,6 +1283,8 @@ PAGE = """<title>Three Ways to Measure a Body</title>
         <td class="num strong">784 / 681</td></tr>
     </tbody>
   </table></div>
+
+  {fig_segments}
 
   <div class="callout seg">
     <p><strong>Segmentation's 128% on this scan is measured against a reference that is
